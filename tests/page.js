@@ -82,6 +82,10 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
    checks++;if((await q.locator('#tcount').textContent())!=='Wonder 2 of 7'||!(await q.locator('#tour').isVisible())){fails++;console.log('FAIL hashchange opens wonder');}
    await q.goto('file://'+f+'#wonders/7');await q.waitForTimeout(400);await q.click('#tshow');await q.waitForTimeout(400);
    checks++;{const v=await q.locator('#out .val').allTextContents();const r=await q.locator('#treveal').textContent();if(JSON.stringify(v)!==JSON.stringify(['…262464195387','yes  (proved)'])||!r.includes('…262464195387')||(await q.locator('#tnext').textContent())!=='Done'){fails++;console.log('FAIL wonder 7 (Graham)',v,r);}}
+   checks++;{const t=await q.locator('#tsrc').textContent();if(!(await q.locator('#tcode').isVisible())||t!=='x = 3\nforever: x = 3 ^ x\nshow x\nshow 3 ^ x = x'){fails++;console.log('FAIL wonder shows its code',t);}}
+   await q.click('#tedit');await q.waitForTimeout(500);
+   checks++;if(!(await q.locator('#code').isVisible())||(await q.inputValue('#code'))!=='x = 3\nforever: x = 3 ^ x\nshow x\nshow 3 ^ x = x'){fails++;console.log('FAIL change it opens the editor');}
+   await q.click('#tback');checks++;if(await q.locator('#tcode').isVisible()){fails++;console.log('FAIL code hides on the next wonder');}
    await q.goto('file://'+f+'#wonders/99');await q.waitForTimeout(400);
    checks++;if((await q.locator('#tcount').textContent())!=='Wonder 1 of 7'){fails++;console.log('FAIL bad wonder number');}
    await q.close(); }

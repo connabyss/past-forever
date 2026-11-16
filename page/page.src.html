@@ -100,6 +100,9 @@ details .live{margin-top:12px}
 .tour .share{font:600 14px var(--sans);color:var(--gold);background:transparent;border:1px solid var(--gold);border-radius:8px;padding:8px 14px;cursor:pointer;align-self:flex-start}
 .tour .share[hidden]{display:none}
 .tour .share{overflow-wrap:anywhere;text-align:left}
+.tcode[hidden]{display:none}
+.tcode pre{margin:6px 0 0;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font:400 14px/1.6 var(--mono);color:var(--ink);white-space:pre;overflow-x:auto}
+.tcode button{font:600 14px var(--sans);color:var(--blue);background:transparent;border:0;padding:8px 0 0;cursor:pointer;text-align:left}
 </style>
 <div class="wrap">
   <div class="hero">
@@ -118,6 +121,7 @@ details .live{margin-top:12px}
     <p class="q" id="tq"></p>
     <button class="show" id="tshow" type="button">Show me</button>
     <p class="reveal" id="treveal" hidden aria-live="polite"></p>
+    <div class="tcode" id="tcode" hidden><div class="label">The code that ran</div><pre id="tsrc"></pre><button id="tedit" type="button">Change it and run it yourself →</button></div>
     <button class="share" id="tshare" type="button" hidden>Share this wonder</button>
     <div class="nav"><button id="tback" type="button">← Back</button><button id="tnext" type="button">Next →</button></div>
   </section>
@@ -137,9 +141,9 @@ details .live{margin-top:12px}
       <ul>
         <li><code>x = 5</code> gives a name a number. <code>count n = 0</code> makes a count that can go past forever.</li>
         <li><code>forever: x = x × x</code> runs the rest of the line without end. Lines pushed in below it work too.</li>
-        <li><code>show x</code>, <code>show 40 digits of x</code>, and <code>why x</code> for the reason.</li>
+        <li><code>show x</code>, <code>show 40 digits of x</code> (up to 2000), and <code>why x</code> for the reason.</li>
         <li><code>if x ends in 7: found = yes</code>, with <code>else:</code>. Also <code>is even</code>, <code>is odd</code>, <code>is a palindrome</code>, <code>=</code>, <code>&lt;</code>, <code>&gt;</code>.</li>
-        <li><code>+ − × /</code>, powers like <code>x^5</code>, and <code>mod</code>, <code>backwards(x)</code>, <code>digitsum(x)</code>, <code>repeat 10:</code>, and <code>forever</code> as a number for counts.</li>
+        <li><code>+ − × /</code>, powers like <code>x^5</code> and towers like <code>3 ^ x</code> (the bottom needs no 2 or 5 in it), and <code>mod</code>, <code>backwards(x)</code>, <code>digitsum(x)</code>, <code>repeat 10:</code>, and <code>forever</code> as a number for counts.</li>
         <li><code>hunt c from 0 to 99:</code> runs the lines pushed in below it once for every number, and sorts the numbers by what their last <code>show</code> said. Tap a square to open that one loop. Add <code>ends in 57</code> before the colon to look only at numbers ending in 57 (that is what Zoom in does). Rings and liars are checked 40 digits deep.</li>
         <li>You can divide by anything that has no 2 or 5 in it. There is no one half here.</li>
       </ul>
@@ -200,7 +204,7 @@ function pick(i) {
   go();
 }
 EXAMPLES.forEach(([name], i) => { const b = el('button', 'chip', name); b.type = 'button'; b.onclick = () => pick(i); $('chips').appendChild(b); });
-['×', '−', 'forever: ', 'show ', 'why '].forEach((k) => {
+['×', '−', ' ^ ', 'forever: ', 'show ', 'why '].forEach((k) => {
   const b = el('button', 'key', k.trim()); b.type = 'button';
   b.onclick = () => { const s = code.selectionStart, e = code.selectionEnd; code.setRangeText(k, s, e, 'end'); code.focus(); save(); };
   $('keys').appendChild(b);
@@ -376,7 +380,7 @@ function showWonder(i) {
   $('tcount').textContent = 'Wonder ' + (i + 1) + ' of ' + WONDERS.length;
   $('tq').textContent = q; $('treveal').hidden = true; $('tshow').hidden = false;
   $('tback').disabled = i === 0; $('tnext').textContent = i === WONDERS.length - 1 ? 'Done' : 'Next →';
-  $('tshare').hidden = true; $('tshare').textContent = 'Share this wonder';
+  $('tshare').hidden = true; $('tshare').textContent = 'Share this wonder'; $('tcode').hidden = true;
   setHash('#wonders/' + (i + 1));
 }
 // each wonder has its own link, #wonders/1 to #wonders/7; the link opens the question, never the answer
@@ -400,7 +404,10 @@ $('tshow').onclick = () => {
   const [, src, reveal] = WONDERS[wonder];
   code.value = src; [...$('chips').children].forEach((x) => x.setAttribute('aria-pressed', 'false'));
   go(); $('treveal').innerHTML = reveal; $('treveal').hidden = false; $('tshow').hidden = true; $('tshare').hidden = false;
+  $('tsrc').textContent = src; $('tcode').hidden = false;
 };
+// the code behind each wonder, a few lines, with a way into the editor
+$('tedit').onclick = () => { code.value = WONDERS[wonder][1]; save(); openOwn(); go(); $('own').scrollIntoView({ behavior: 'smooth', block: 'start' }); code.focus({ preventScroll: true }); };
 function tourFromHash() {
   const m = /^#wonders(?:\/(\d+))?$/.exec(location.hash); if (!m) return;
   const n = m[1] ? parseInt(m[1], 10) : 1; openTour(n >= 1 && n <= WONDERS.length ? n - 1 : 0);

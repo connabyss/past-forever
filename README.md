@@ -2,7 +2,8 @@
 
 ## 1 ÷ 7 = …142857143. A whole number.
 
-**(Here's the world where that's true.)** Past Forever is a small language where infinite loops finish with an answer.
+**(Here's the world where that's true.)** Past Forever is a small language where infinite loops finish with an answer. It can even tell you
+[how Graham's number ends](#the-last-digits-of-grahams-number).
 
 <p align="center"><a href="https://connabyss.github.io/past-forever/"><img src="media/try-it-now.svg" width="300" alt="Try it now: open the playground in your browser"></a></p>
 
@@ -156,6 +157,8 @@ show 3 ^ x = x
 yes  (proved)
 ```
 
+<p align="center"><img src="media/tower.gif" width="520" alt="A tower of 3s, one floor at a time: 3, 27, 7625597484987, and then numbers too long to write down. The digits on the right freeze in gold, one more each floor, and after forever the ending is ...262464195387"></p>
+
 Once the tower is a few floors tall, every new floor freezes one more digit on the right, and Graham's number is far
 taller than that. Ask for `show 105 digits of x` and all 105 match the digits listed in the
 [OEIS (A133613)](https://oeis.org/A133613). The tests check them on every build.
@@ -235,14 +238,14 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
 ## Honest notes
 
 - **The maths is old.** Numbers that run off to the left are the 10-adic numbers named above. Counting past forever
-  is Cantor's ordinals. The …212890625 number is an automorphic number. What is new here, as far as we found,
+  is Cantor's ordinals. The …212890625 number is an automorphic number. The frozen last digits of towers of 3s have been known for a long time too. What is new here, as far as we found,
   is a language you can actually run where code keeps going after a forever loop. Closest cousins: the
   Zeno esolang (an imaginary machine) and infinite time Turing machines
   (theory, not a language). Not finding one is not proof there isn't one.
 - **"proved" means proved by the rules above**, as written in forever.js. They are not machine-checked, and no
   mathematician has reviewed them.
 - **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 3,000 random loops
-  (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums) and checks every
+  (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers) and checks every
   `settles`, `never settles` and exact fraction against plain arithmetic on the last 30 or more digits. Last run:
   4,500 answers, 0 wrong, 9 `can't see the end`. That is a strong check, not a proof.
 - Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
@@ -255,7 +258,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 600 checks
+node tests/run.js        # ok: 605 checks
 node tests/referee.js    # the robot referee, about 5 minutes
 ```
 

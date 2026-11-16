@@ -263,7 +263,10 @@ function powArith(a, b) {
       if (qint(a.q) && abs(a.q.n) <= 1n) return num(Q(a.q.n === -1n && t % 2n === 0n ? 1n : a.q.n));
       if (lg(a.q.n) * Number(t) <= 2500 && lg(a.q.d) * Number(t) <= 2500) return num(Q(a.q.n ** t, a.q.d ** t));
       if (!qint(a.q)) throw new LangError('that power is too big to work out');
-      return endGeneric((k) => powmod(a.q.n, t, pow10(k)), 'a power far too big to write out, so only its last digits are worked out');
+      const r = endGeneric((k) => powmod(a.q.n, t, pow10(k)), 'a whole number far too big to write out, so only its last digits are worked out');
+      r.huge = lg(a.q.n) * Number(t);    // about how many digits it has
+      r.hugeMinus = a.q.n < 0n && t % 2n === 1n;
+      return r;
     }
     else {
       if (t > 100000n) throw new LangError('a power of an endless number can be 100000 at most');
@@ -341,6 +344,7 @@ function countArith(op, a, b) {
 const EQ_DIGITS = 1000;
 function equal(a, b) {                 // -> bool value or unknown
   const bad = poison(a, b); if (bad) return unknown(bad.desc);
+  if (a === b && a.k === 'end') return bool(true, 'it is the very same number', 'proved');
   if (a.k === 'bool' && b.k === 'bool') return bool(a.v === b.v);
   if (a.k === 'bool' || b.k === 'bool') return bool(false);
   if (a.k === 'count' || b.k === 'count') {
@@ -367,7 +371,7 @@ function compare(op, a, b) {
 }
 
 // ───────────────────────── showing values ─────────────────────────
-const SHOW_DIGITS = 12;
+const SHOW_DIGITS = 12, MAX_SHOW = 2000;
 function digitsText(r, k) { return '…' + String(r).padStart(k, '0'); }
 function showPlain(v) { return v.q.d === 1n ? String(v.q.n) : v.q.n + '/' + v.q.d; }
 function show(v, k = SHOW_DIGITS) {
@@ -375,12 +379,16 @@ function show(v, k = SHOW_DIGITS) {
     case 'num':
       if (qint(v.q) && v.q.n >= 0n) return String(v.q.n);
       return digitsText(qmod(v.q, pow10(k)), k) + '  (this is ' + showPlain(v) + ')';
-    case 'end': return digitsText(v.mod(k), k);
+    case 'end': return digitsText(v.mod(k), k) + (v.huge ? (v.hugeMinus ? '  (this is minus a whole number ' : '  (the end of a whole number ') + hugeSize(v.huge) + ')' : '');
     case 'count': return O.show(v.o);
     case 'bool': return (v.v ? 'yes' : 'no') + (v.tag ? '  (' + v.tag + ')' : '');
     case 'restless': return 'never settles';
     case 'unknown': return "can't see the end";
   }
+}
+function hugeSize(d) {                // d is about log10 of the number
+  if (d < 1e15) return 'with about ' + Math.floor(d + 1).toLocaleString('en-US') + ' digits';
+  return 'with more than 10^' + Math.floor(Math.log10(d)) + ' digits';
 }
 function whyText(v) {
   if (v.k === 'restless') return v.desc;
@@ -464,7 +472,9 @@ function parse(src) {
       if (at('else')) { p++; eat(':'); return { t: 'else', body: body(), line }; }
       if (at('show')) {
         p++;
-        if (at('num') && toks[p + 1] && toks[p + 1].t === 'digits') { const k = Number(toks[p].v); p += 2; eat('of'); return { t: 'show', e: expr(), k, line }; }
+        if (at('num') && toks[p + 1] && toks[p + 1].t === 'digits') {
+          const k = Number(toks[p].v); p += 2;
+          if (k > MAX_SHOW) throw new LangError('line ' + line + ': I show at most ' + MAX_SHOW + ' digits at a time'); eat('of'); return { t: 'show', e: expr(), k, line }; }
         return { t: 'show', e: expr(), line };
       }
       if (at('why')) { p++; return { t: 'why', name: eat('name').v, line }; }
@@ -808,10 +818,11 @@ function towerLoop(m, body, pure, start) {
   const x0v = start.get(v);
   if (x0v && x0v.k !== 'num' && x0v.k !== 'end') return false;
   const init = (K) => (x0v ? valMod(x0v, K) : 0n);
+  const t0 = Date.now();
   const orbit = (K) => {
     const seen = new Map(), list = []; let x = init(K);
     for (let step = 0; step <= LIMITS.orbit; step++) {
-      if (x === null) return null;
+      if (x === null || (step % 256 === 255 && Date.now() - t0 > m.limits.ms)) return null;
       if (seen.has(x)) return { first: seen.get(x), period: step - seen.get(x), list };
       seen.set(x, step); list.push(x); x = evm(e, x, K);
     }
@@ -923,7 +934,7 @@ function alreadyStill(m, body, stateNames, start) {
   const final = new Map(start);
   for (const v of stateNames) {
     const vals = hist.slice(first, first + period).map((h) => h.get(v));
-    const same = vals.every((x) => { const q = equal(x, vals[0]); return q.k === 'bool' && q.v; });
+    const same = period === 1 || vals.every((x) => { const q = equal(x, vals[0]); return q.k === 'bool' && q.v; });
     if (same) { const x = { ...vals[0] }; x.why = whyLoop; if (x.k === 'bool') x.tag = 'proved'; final.set(v, x); }
     else final.set(v, restless(whyLoop + ', and ' + v + ' goes round ' + vals.map((x) => show(x)).join(', ') + ' without end'));
   }
