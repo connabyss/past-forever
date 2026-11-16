@@ -203,8 +203,10 @@ function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.
 function pick(i) {
   code.value = EXAMPLES[i][1];
   [...$('chips').children].forEach((c, j) => c.setAttribute('aria-pressed', j === i ? 'true' : 'false'));
-  go();
+  filled();
 }
+// new code in the box: old answers go away, and nothing runs until you press Run
+function filled() { save(); $('answers').hidden = true; out.textContent = ''; }
 EXAMPLES.forEach(([name], i) => { const b = el('button', 'chip', name); b.type = 'button'; b.onclick = () => pick(i); $('chips').appendChild(b); });
 ['×', '−', ' ^ ', 'forever: ', 'show ', 'why '].forEach((k) => {
   const b = el('button', 'key', k.trim()); b.type = 'button';
@@ -316,7 +318,7 @@ function openOne(name, c) {
   }
   code.value = outL.join('\n'); if (!/\nwhy |^why /.test(code.value)) { const sh = code.value.match(/show\s+([A-Za-z_]\w*)\s*$/m); if (sh) code.value += '\nwhy ' + sh[1]; }
   [...$('chips').children].forEach((x) => x.setAttribute('aria-pressed', 'false'));
-  window.scrollTo({ top: 0, behavior: 'smooth' }); go();
+  filled(); $('own').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 // "Report this": opens the Break it form on GitHub with the program and what it printed already filled in
 function reportLink(src, r) {
@@ -409,7 +411,7 @@ $('tshow').onclick = () => {
   $('tsrc').textContent = src; $('tcode').hidden = false;
 };
 // the code behind each wonder, a few lines, with a way into the editor
-$('tedit').onclick = () => { code.value = WONDERS[wonder][1]; save(); openOwn(); go(); $('own').scrollIntoView({ behavior: 'smooth', block: 'start' }); code.focus({ preventScroll: true }); };
+$('tedit').onclick = () => { code.value = WONDERS[wonder][1]; openOwn(); filled(); $('own').scrollIntoView({ behavior: 'smooth', block: 'start' }); code.focus({ preventScroll: true }); };
 function tourFromHash() {
   const m = /^#wonders(?:\/(\d+))?$/.exec(location.hash); if (!m) return;
   const n = m[1] ? parseInt(m[1], 10) : 1; openTour(n >= 1 && n <= WONDERS.length ? n - 1 : 0);
@@ -417,8 +419,8 @@ function tourFromHash() {
 addEventListener('hashchange', tourFromHash);
 setTimeout(tourFromHash, 50);
 $('run').onclick = go;
-code.addEventListener('input', () => { save(); [...$('chips').children].forEach((c) => c.setAttribute('aria-pressed', 'false')); });
+code.addEventListener('input', () => { filled(); [...$('chips').children].forEach((c) => c.setAttribute('aria-pressed', 'false')); });
 let saved = null; try { saved = localStorage.getItem('pf-code'); } catch (e) {}
-// first visit: one calm button and nothing running; a returning visitor gets their own loop back
-if (saved && saved.trim()) { code.value = saved; openOwn(); go(); }
+// first visit: one calm button and nothing running; a returning visitor gets their own loop back, not run yet
+if (saved && saved.trim()) { code.value = saved; openOwn(); }
 </script>
