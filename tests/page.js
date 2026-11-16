@@ -54,5 +54,25 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
  await p.click('#tshow');await p.waitForTimeout(400);
  checks++;if((await p.locator('#out .val').first().textContent())!=='…857142857143  (this is 1/7)'||!(await p.locator('#treveal').isVisible())){fails++;console.log('FAIL tour show',await p.locator('#out').textContent());}
  await p.click('#tback');checks++;if((await p.locator('#tcount').textContent())!=='Wonder 2 of 6'||await p.locator('#treveal').isVisible()){fails++;console.log('FAIL tour back');}
+ // each wonder has its own link: #wonders/4 opens wonder 4 with the answer hidden; Share copies that link; the address follows the tour
+ { const os=require('os'),pth=require('path');const f=pth.join(os.tmpdir(),'pf_page_test.html');fs.writeFileSync(f,html);
+   const q=await ctx.newPage();q.on('pageerror',e=>errs.push(e.message));await q.route('**/*',r=>r.request().url().startsWith('https://fonts')?r.abort():r.continue());
+   await ctx.grantPermissions(['clipboard-read','clipboard-write']).catch(()=>{});
+   await q.goto('file://'+f+'#wonders/4');await q.waitForTimeout(500);
+   checks++;if(!(await q.locator('#tour').isVisible())||(await q.locator('#tcount').textContent())!=='Wonder 4 of 6'||await q.locator('#treveal').isVisible()||await q.locator('#tshare').isVisible()){fails++;console.log('FAIL wonder link opens wonder 4');}
+   await q.click('#tshow');await q.waitForTimeout(400);
+   checks++;if(!(await q.locator('#tshare').isVisible())){fails++;console.log('FAIL share button after reveal');}
+   await q.evaluate(()=>{window.__copied=null;navigator.share=undefined;navigator.clipboard.writeText=async t=>{window.__copied=t;};});
+   await q.click('#tshare');await q.waitForTimeout(200);
+   checks++;{const c=await q.evaluate(()=>window.__copied);if(c!=='file://'+f+'#wonders/4'||(await q.locator('#tshare').textContent())!=='Link copied ✓'){fails++;console.log('FAIL share copies link',c);}}
+   await q.click('#tnext');
+   checks++;if(!(await q.evaluate(()=>location.hash==='#wonders/5'))||await q.locator('#tshare').isVisible()){fails++;console.log('FAIL hash follows tour',await q.evaluate(()=>location.hash));}
+   await q.click('#tclose');
+   checks++;if(await q.evaluate(()=>location.hash!=='')){fails++;console.log('FAIL close clears hash');}
+   await q.evaluate(()=>{location.hash='#wonders/2';});await q.waitForTimeout(300);
+   checks++;if((await q.locator('#tcount').textContent())!=='Wonder 2 of 6'||!(await q.locator('#tour').isVisible())){fails++;console.log('FAIL hashchange opens wonder');}
+   await q.goto('file://'+f+'#wonders/99');await q.waitForTimeout(400);
+   checks++;if((await q.locator('#tcount').textContent())!=='Wonder 1 of 6'){fails++;console.log('FAIL bad wonder number');}
+   await q.close(); }
  checks++;if(errs.length){fails++;console.log('FAIL page errors',errs);}
  console.log(fails?('FAILED '+fails+' of '+checks):('ok: '+checks+' page checks'));await b.close();})();
