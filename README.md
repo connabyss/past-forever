@@ -245,9 +245,9 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
 - **"proved" means proved by the rules above**, as written in forever.js. They are not machine-checked, and no
   mathematician has reviewed them.
 - **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 3,000 random loops
-  (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers) and checks every
-  `settles`, `never settles` and exact fraction against plain arithmetic on the last 30 or more digits. Last run:
-  4,500 answers, 0 wrong, 9 `can't see the end`. That is a strong check, not a proof.
+  (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers) and checks
+  every `settles`, `never settles` and exact fraction against plain arithmetic on the last 30 or more digits. Last
+  run: 4,285 answers, 0 wrong, 11 `can't see the end`. That is a strong check, not a proof.
 - Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
 - `can't see the end` comes up a lot. That's the language being honest, not a bug.
 
