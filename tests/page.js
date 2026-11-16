@@ -12,7 +12,7 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
  await p.click('#ownb');await p.waitForTimeout(400);
  checks++;if(!(await p.locator('#code').isVisible())||(await p.inputValue('#code'))!=='x = 5\nforever: x = x × x\nshow x\nshow x × x = x'||await p.locator('#ownb').isVisible()){fails++;console.log('FAIL write your own opens');}
  const n=await p.locator('.chip').count();
- const want={'Own square':['…918212890625','yes  (proved)'],'Minus one':['…999999999999  (this is -1)','0'],'One third':['…666666666667  (this is 1/3)','1'],'196':["can't see the end"],'6 squared':['never settles'],'Twins':['…081787109376','1','0'],'The lamp':['never settles'],'Forever twice':['forever × forever'],'Powers of 2':['no  (proved)'],'Collatz 27':['yes  (proved)','never settles'],'Endless search':['no  (proved)'],'Past forever':['forever + 1','forever × 2','yes'],'Hunt':[],'Adds to −1':['…999999999999  (this is -1)','s: what gets added each step (f × n × n + 2 × f × n + f) settles to 0, and here a sum settles as soon as its pieces do. More than that: s + (− n − 1) × f is the same after every step, so the total is exactly -1'],'Exactly 3':['3','s: what gets added each step (f × n × n × n − 4 × f × n + f) settles to 0, and here a sum settles as soon as its pieces do. More than that: s + (− n + 3) × f is the same after every step, so the total is exactly 3'],'Ring of six':['never settles','x: the last digit of x goes round 0, 1, 2, 5, 6, 7 every 6 steps and never stops. Looking deeper, the last 1 to 40 digits all come round every 6 steps too. As far as I can see, x is going round a ring of 6 endless numbers'],'The liar':['never settles','x: the last digit of x goes round 6, 3 every 2 steps and never stops. Looking deeper, the last 1, 2, 3… digits take 2, 2, 2, 2, 2, 2, 8, 8, 40, 200, 1000, 5000 steps to come round'],'Hunt squares':[],'Hunt thirds':[],'All factorials':['0','…039052556442336528920420940313']};
+ const want={'Own square':['…918212890625','yes  (proved)'],'Tower of 3s':['…262464195387','yes  (proved)'],'Minus one':['…999999999999  (this is -1)','0'],'One third':['…666666666667  (this is 1/3)','1'],'196':["can't see the end"],'6 squared':['never settles'],'Twins':['…081787109376','1','0'],'The lamp':['never settles'],'Forever twice':['forever × forever'],'Powers of 2':['no  (proved)'],'Collatz 27':['yes  (proved)','never settles'],'Endless search':['no  (proved)'],'Past forever':['forever + 1','forever × 2','yes'],'Hunt':[],'Adds to −1':['…999999999999  (this is -1)','s: what gets added each step (f × n × n + 2 × f × n + f) settles to 0, and here a sum settles as soon as its pieces do. More than that: s + (− n − 1) × f is the same after every step, so the total is exactly -1'],'Exactly 3':['3','s: what gets added each step (f × n × n × n − 4 × f × n + f) settles to 0, and here a sum settles as soon as its pieces do. More than that: s + (− n + 3) × f is the same after every step, so the total is exactly 3'],'Ring of six':['never settles','x: the last digit of x goes round 0, 1, 2, 5, 6, 7 every 6 steps and never stops. Looking deeper, the last 1 to 40 digits all come round every 6 steps too. As far as I can see, x is going round a ring of 6 endless numbers'],'The liar':['never settles','x: the last digit of x goes round 6, 3 every 2 steps and never stops. Looking deeper, the last 1, 2, 3… digits take 2, 2, 2, 2, 2, 2, 8, 8, 40, 200, 1000, 5000 steps to come round'],'Hunt squares':[],'Hunt thirds':[],'All factorials':['0','…039052556442336528920420940313']};
  for(let i=0;i<n;i++){const c=p.locator('.chip').nth(i);const name=await c.textContent();await c.click();await p.waitForFunction(()=>!document.querySelector('#out .empty')&&document.querySelectorAll('#out .row').length>0,null,{timeout:15000});
   const vals=await p.locator('#out .val').allTextContents();checks++;
   if(name.startsWith('Hunt')){checks++;const sq=await p.locator('#out .sq').count();if(sq!==(name==='Hunt'?400:100)){fails++;console.log('FAIL hunt squares',name,sq);}}
@@ -59,16 +59,16 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
  checks++;{const g=await p.locator('#steps div').nth(3).locator('b').textContent();if(g!=='90625'){fails++;console.log('FAIL live gold digits',g);}}
  // wonders tour: open, go to wonder 3, the reveal stays hidden until Show me runs the real code
  await p.click('#tourb');await p.click('#tnext');await p.click('#tnext');
- checks++;if((await p.locator('#tcount').textContent())!=='Wonder 3 of 6'||await p.locator('#treveal').isVisible()){fails++;console.log('FAIL tour step');}
+ checks++;if((await p.locator('#tcount').textContent())!=='Wonder 3 of 7'||await p.locator('#treveal').isVisible()){fails++;console.log('FAIL tour step');}
  await p.click('#tshow');await p.waitForTimeout(400);
  checks++;if((await p.locator('#out .val').first().textContent())!=='…857142857143  (this is 1/7)'||!(await p.locator('#treveal').isVisible())){fails++;console.log('FAIL tour show',await p.locator('#out').textContent());}
- await p.click('#tback');checks++;if((await p.locator('#tcount').textContent())!=='Wonder 2 of 6'||await p.locator('#treveal').isVisible()){fails++;console.log('FAIL tour back');}
+ await p.click('#tback');checks++;if((await p.locator('#tcount').textContent())!=='Wonder 2 of 7'||await p.locator('#treveal').isVisible()){fails++;console.log('FAIL tour back');}
  // each wonder has its own link: #wonders/4 opens wonder 4 with the answer hidden; Share copies that link; the address follows the tour
  { const os=require('os'),pth=require('path');const f=pth.join(os.tmpdir(),'pf_page_test.html');fs.writeFileSync(f,html);
    const q=await ctx.newPage();q.on('pageerror',e=>errs.push(e.message));await q.route('**/*',r=>r.request().url().startsWith('https://fonts')?r.abort():r.continue());
    await ctx.grantPermissions(['clipboard-read','clipboard-write']).catch(()=>{});
    await q.goto('file://'+f+'#wonders/4');await q.waitForTimeout(500);
-   checks++;if(!(await q.locator('#tour').isVisible())||(await q.locator('#tcount').textContent())!=='Wonder 4 of 6'||await q.locator('#treveal').isVisible()||await q.locator('#tshare').isVisible()){fails++;console.log('FAIL wonder link opens wonder 4');}
+   checks++;if(!(await q.locator('#tour').isVisible())||(await q.locator('#tcount').textContent())!=='Wonder 4 of 7'||await q.locator('#treveal').isVisible()||await q.locator('#tshare').isVisible()){fails++;console.log('FAIL wonder link opens wonder 4');}
    await q.click('#tshow');await q.waitForTimeout(400);
    checks++;if(!(await q.locator('#tshare').isVisible())){fails++;console.log('FAIL share button after reveal');}
    await q.evaluate(()=>{window.__copied=null;navigator.share=undefined;navigator.clipboard.writeText=async t=>{window.__copied=t;};});
@@ -79,9 +79,11 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
    await q.click('#tclose');
    checks++;if(await q.evaluate(()=>location.hash!=='')){fails++;console.log('FAIL close clears hash');}
    await q.evaluate(()=>{location.hash='#wonders/2';});await q.waitForTimeout(300);
-   checks++;if((await q.locator('#tcount').textContent())!=='Wonder 2 of 6'||!(await q.locator('#tour').isVisible())){fails++;console.log('FAIL hashchange opens wonder');}
+   checks++;if((await q.locator('#tcount').textContent())!=='Wonder 2 of 7'||!(await q.locator('#tour').isVisible())){fails++;console.log('FAIL hashchange opens wonder');}
+   await q.goto('file://'+f+'#wonders/7');await q.waitForTimeout(400);await q.click('#tshow');await q.waitForTimeout(400);
+   checks++;{const v=await q.locator('#out .val').allTextContents();const r=await q.locator('#treveal').textContent();if(JSON.stringify(v)!==JSON.stringify(['…262464195387','yes  (proved)'])||!r.includes('…262464195387')||(await q.locator('#tnext').textContent())!=='Done'){fails++;console.log('FAIL wonder 7 (Graham)',v,r);}}
    await q.goto('file://'+f+'#wonders/99');await q.waitForTimeout(400);
-   checks++;if((await q.locator('#tcount').textContent())!=='Wonder 1 of 6'){fails++;console.log('FAIL bad wonder number');}
+   checks++;if((await q.locator('#tcount').textContent())!=='Wonder 1 of 7'){fails++;console.log('FAIL bad wonder number');}
    await q.close(); }
  checks++;if(errs.length){fails++;console.log('FAIL page errors',errs);}
  console.log(fails?('FAILED '+fails+' of '+checks):('ok: '+checks+' page checks'));await b.close();})();

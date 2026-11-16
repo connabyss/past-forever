@@ -1,0 +1,6 @@
+# a tower of 3s, forever: 3 ^ 3 ^ 3 ^ …
+# Graham's number is a tower of 3s far taller than needed, so it ends in these digits
+x = 3
+forever: x = 3 ^ x
+show x
+show 3 ^ x = x

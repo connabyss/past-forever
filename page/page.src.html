@@ -110,7 +110,7 @@ details .live{margin-top:12px}
   </header>
   <div class="start">
     <button class="tourb" id="tourb" type="button" aria-controls="tour">Take the Wonders tour</button>
-    <p class="hint">6 surprises, one tap each. No maths or code needed.</p>
+    <p class="hint">7 surprises, one tap each. No maths or code needed.</p>
   </div>
   </div>
   <section class="tour" id="tour" hidden aria-label="Wonders tour" tabindex="-1">
@@ -171,6 +171,7 @@ details .live{margin-top:12px}
 const EXAMPLES = [
   ['Hunt', '# stripes: the last digit of c sets the last digit of x at every step\nhunt c from 0 to 399:\n    x = 0\n    forever: x = x × x + c\n    show x'],
   ['Own square', 'x = 5\nforever: x = x × x\nshow x\nshow x × x = x'],
+  ['Tower of 3s', '# 3 ^ 3 ^ 3 ^ … forever: the last digits of Graham\'s number\nx = 3\nforever: x = 3 ^ x\nshow x\nshow 3 ^ x = x'],
   ['Minus one', 'x = 0   step = 9\nforever: x = x + step   step = step × 10\nshow x\nshow x + 1'],
   ['One third', 'x = 7\nforever: x = x × (2 − 3 × x)\nshow x\nshow x × 3'],
   ['Past forever', 'count n = 0\nforever: n = n + 1\nn = n + 1\nshow n\nforever: n = n + 1\nshow n\nshow 1 + forever = forever'],
@@ -365,6 +366,9 @@ const WONDERS = [
   ['Some loops pretend. Add 85205078123 each time you square. Does it calm down?',
    'x = 0\nforever: x = x × x + 85205078123\nshow x\nwhy x',
    'For 13 digits it looks calm, flipping back and forth. Then the next digit breaks it. Past Forever was not fooled: never settles. All of this is real, old maths, called <a href="https://en.wikipedia.org/wiki/P-adic_number" target="_blank" rel="noopener">10-adic numbers</a>.'],
+  ["Graham's number is a tower of 3s: 3 to the power of 3 to the power of 3, on and on, so tall that its digits would not fit in the universe. Can anyone know how it ends?",
+   'x = 3\nforever: x = 3 ^ x\nshow x\nshow 3 ^ x = x',
+   "Yes: …262464195387. Once the tower is a few floors tall, every new floor freezes one more digit on the right. <a href=\"https://en.wikipedia.org/wiki/Graham%27s_number\" target=\"_blank\" rel=\"noopener\">Graham's number</a> is far taller than that, so it ends in exactly these digits. Nobody knows its first digit."],
 ];
 let wonder = 0;
 function showWonder(i) {
@@ -375,7 +379,7 @@ function showWonder(i) {
   $('tshare').hidden = true; $('tshare').textContent = 'Share this wonder';
   setHash('#wonders/' + (i + 1));
 }
-// each wonder has its own link, #wonders/1 to #wonders/6; the link opens the question, never the answer
+// each wonder has its own link, #wonders/1 to #wonders/7; the link opens the question, never the answer
 function setHash(h) { try { history.replaceState(null, '', h || location.pathname + location.search); } catch (e) {} }
 function wonderLink() { return location.href.split('#')[0] + '#wonders/' + (wonder + 1); }
 function openTour(i) { $('tour').hidden = false; calm(); showWonder(i || 0); $('tour').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('tour').focus({ preventScroll: true }); }

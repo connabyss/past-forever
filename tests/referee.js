@@ -28,7 +28,16 @@ const families = {
   sum(){ const p0 = small() || 1n, r = pick([10n, 100n, 20n, 50n, 2n, 3n, 5n]), x0 = small();
     return { vars: ['x', 'p'], start: { x: x0, p: p0 }, src: 'x = ' + lit(x0) + '\np = ' + lit(p0) + '\nforever: x = x + p   p = p × ' + r,
       step: (s, m) => { s.x = mod(s.x + s.p, m); s.p = mod(s.p * r, m); } }; },
+  // towers: the loop's own number on top of a power.  The brute force only uses that B ^ λ = 1 for λ = λ(10^D)
+  // (Carmichael's function), which divides 10^D; both facts are checked here for every loop, not assumed
+  tower(){ const B = pick([3n, 7n, 9n, 11n, 13n, 17n, 21n, 3n, 7n, -3n]), a = pick([1n, 1n, 1n, 2n, 3n, -1n, 10n]), b = small(), c = pick([1n, 1n, 2n, 3n, -1n, 7n]), d = small(), x0 = small();
+    const shape = rnd(3), top = shape === 0 ? 'x' : '(' + lit(a) + ' × x + ' + lit(b) + ')';
+    const src = 'x = ' + lit(x0) + '\nforever: x = ' + lit(B) + ' ^ ' + top + (shape === 0 ? '' : ' × ' + lit(c) + ' + ' + lit(d)) + (shape === 2 ? ' + x' : '');
+    return { vars: ['x'], start: { x: x0 }, src, tower: B,
+      step: (s, m) => { const t = shape === 0 ? s.x : a * s.x + b; const p = powmodR(B, mod(t, m), m); s.x = shape === 0 ? p : mod(p * c + d + (shape === 2 ? s.x : 0n), m); } }; },
 };
+function powmodR(b, e, m) { let r = 1n; b = mod(b, m); while (e > 0n) { if (e & 1n) r = r * b % m; b = b * b % m; e >>= 1n; } return r; }
+function carmichael10(D) { const two = D >= 3 ? 2n ** BigInt(D - 2) : D === 2 ? 2n : 1n, five = 4n * 5n ** BigInt(D - 1); const g = (x, y) => (y ? g(y, x % y) : x); return two * five / g(two, five); }
 function mod(a, m) { const r = a % m; return r < 0n ? r + m : r; }
 function fracMod(t, m) { const [p, q] = t.split('/').map(BigInt); if (!q) return mod(p, m); let inv = 1n, b = mod(q, m), e = m / 10n * 4n - 1n, base = b; while (e > 0n) { if (e & 1n) inv = inv * base % m; base = base * base % m; e >>= 1n; } return mod(p * inv, m); }
 
@@ -40,6 +49,7 @@ for (let i = 0; i < LOOPS; i++) {
   const fam = names[i % names.length], L = families[fam]();
   const bigLen = Math.max(...(L.src.match(/\d+/g) || ['0']).map((d) => d.length));
   const D = 30 + bigLen, m = 10n ** BigInt(D);
+  if (L.tower) { const lam = carmichael10(D); if (m % lam !== 0n || powmodR(L.tower, lam, m) !== 1n) { bad++; console.log('LEMMA FAILS for ' + L.tower + ' at ' + D + ' digits'); continue; } }
   const src = L.src + '\n' + L.vars.map((v) => 'show ' + v).join('\n');
   let lines; try { lines = F.run(src, { huntMs: 2000 }).lines; } catch (e) { bad++; console.log('CRASH ' + e.message + '\n' + src); continue; }
   // brute force: run long enough for digits that lock one per few steps, then see what the last D digits do

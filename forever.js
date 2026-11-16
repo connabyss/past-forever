@@ -238,9 +238,50 @@ function valMod(v, k) {                // last k digits as a BigInt
 const isBad = (v) => v.k === 'restless' || v.k === 'unknown';
 function poison(...vs) { for (const v of vs) if (v.k === 'unknown') return v; for (const v of vs) if (v.k === 'restless') return v; return null; }
 
+// powers with anything on top.  For a bottom number with no 2 or 5 in it, the last k digits of b ^ t only
+// depend on the last k digits of t (for k ≥ 2; the last digit needs the last 2), because b comes back to 1 after a
+// number of steps that divides 10^k.  So b ^ (an endless number) makes sense, digit by digit.
+function powmod(b, e, m) { let r = 1n % m; b = mod(b, m); while (e > 0n) { if (e & 1n) r = r * b % m; b = b * b % m; e >>= 1n; } return r; }
+const TOWER_BOTTOM = 'a power with an endless number or a huge number on top needs an ordinary whole number at the bottom with no 2 or 5 in it, like 3, 7 or 11';
+function lg(n) { const t = String(abs(n)), h = Math.min(t.length, 15); return t.length - h + Math.log10(Number(t.slice(0, h)) || 1); }   // about log10 of n
+function unitBase(a) { return a.k === 'num' && qint(a.q) && a.q.n !== 0n && a.q.n % 2n !== 0n && a.q.n % 5n !== 0n; }
+function powArith(a, b) {
+  if (b.k === 'count') throw new LangError('a power cannot have a count on top');
+  if (a.k === 'count') throw new LangError('a count cannot be raised to a power');
+  if (b.k === 'num') {
+    if (!qint(b.q) && !unitBase(a)) throw new LangError('a power with a fraction on top needs ' + TOWER_BOTTOM.slice(TOWER_BOTTOM.indexOf('an ordinary')));
+    const t = b.q.n;
+    if (!qint(b.q)) { /* a fraction on top, like 1/7: an endless number, see below */ }
+    else if (t < 0n) {
+      if (a.k !== 'num' || !qint(a.q) || a.q.n === 0n) throw new LangError('a power with a minus number on top needs an ordinary whole number at the bottom, not 0');
+      if (!unitBase(a)) throw new LangError(showPlain(a) + ' ^ ' + t + ' would be 1 ÷ ' + showPlain(a) + ' ^ ' + (-t) + ', and nothing here can be divided by a number with a 2 or a 5 in it');
+      if (-t > 4000n) return endGeneric((k) => powmod(modInv(a.q.n, pow10(k)), -t, pow10(k)), 'a power worked out from its last digits');
+      return num(Q(1n, a.q.n ** -t));
+    }
+    else if (a.k === 'num') {
+      if (t === 0n) return num(Q1);
+      if (qint(a.q) && abs(a.q.n) <= 1n) return num(Q(a.q.n === -1n && t % 2n === 0n ? 1n : a.q.n));
+      if (lg(a.q.n) * Number(t) <= 2500 && lg(a.q.d) * Number(t) <= 2500) return num(Q(a.q.n ** t, a.q.d ** t));
+      if (!qint(a.q)) throw new LangError('that power is too big to work out');
+      return endGeneric((k) => powmod(a.q.n, t, pow10(k)), 'a power far too big to write out, so only its last digits are worked out');
+    }
+    else {
+      if (t > 100000n) throw new LangError('a power of an endless number can be 100000 at most');
+      let r = num(Q1), x = a, e = t;
+      while (e > 0n) { if (e & 1n) r = arith('*', r, x); e >>= 1n; if (e) x = arith('*', x, x); }
+      return r;
+    }
+  }
+  if (!unitBase(a)) throw new LangError(TOWER_BOTTOM);
+  const r = endGeneric((k) => powmod(a.q.n, valMod(b, Math.max(k, 2)), pow10(k)));
+  r.powOf = { base: a.q.n, top: b }; if (b.maxDigits) r.maxDigits = b.maxDigits;
+  return r;
+}
+
 function arith(op, a, b) {
   const bad = poison(a, b); if (bad) return bad;
   if (a.k === 'bool' || b.k === 'bool') throw new LangError('yes and no are not numbers');
+  if (op === '^') return powArith(a, b);
   if (a.k === 'count' || b.k === 'count') return countArith(op, a, b);
   if (a.k === 'num' && b.k === 'num') {
     if (op === '+') return num(qadd(a.q, b.q));
@@ -271,10 +312,12 @@ function arith(op, a, b) {
     const p = op === '+' ? U.add(pa, pb) : op === '-' ? U.add(pa, U.scale(pb, Q(-1n))) : U.mul(pa, pb);
     return endAtom(atom, p);
   }
-  return endGeneric((k) => {
+  const r = endGeneric((k) => {
     const m = pow10(k), x = valMod(a, k), y = valMod(b, k);
     return op === '+' ? mod(x + y, m) : op === '-' ? mod(x - y, m) : mod(x * y, m);
   });
+  const lim = Math.min(a.maxDigits || Infinity, b.maxDigits || Infinity); if (lim < Infinity) r.maxDigits = lim;
+  return r;
 }
 function toCount(v) {
   if (v.k === 'count') return v.o;
@@ -305,14 +348,15 @@ function equal(a, b) {                 // -> bool value or unknown
     return bool(O.cmp(toCount(a), toCount(b)) === 0);
   }
   if (a.k === 'num' && b.k === 'num') return bool(qeq(a.q, b.q));
+  for (const [x, y] of [[a, b], [b, a]]) if (x.selfPow && y.powOf && y.powOf.top === x && y.powOf.base === x.selfPow) return bool(true, 'the loop settled on a number that stays the same after one more step, so it is ' + x.selfPow + ' ^ itself', 'proved');
   const d = arith('-', a, b);
   if (d.k === 'num') return bool(qzero(d.q), qzero(d.q) ? 'this follows from the rule the number obeys once its loop has run forever' : undefined, qzero(d.q) ? 'proved' : undefined);
-  const r = d.mod(EQ_DIGITS);
+  const n = Math.min(EQ_DIGITS, d.maxDigits || Infinity), r = d.mod(n);
   if (r !== 0n) {
     let j = 1; while (r % pow10(j) === 0n) j++;
     return bool(false, 'they differ at digit ' + j + ' from the right', 'proved');
   }
-  return unknown('the two agree on their last ' + EQ_DIGITS + ' digits, but I have no proof they are the same');
+  return unknown('the two agree on their last ' + n + ' digits, but I have no proof they are the same');
 }
 function compare(op, a, b) {
   const bad = poison(a, b); if (bad) return unknown(bad.desc);
@@ -451,14 +495,19 @@ function parse(src) {
     function addE() { let a = mulE(); while (at('+') || at('-')) { const op = toks[p++].t; a = { t: 'bin', op, a, b: mulE() }; } return a; }
     function mulE() { let a = unE(); while (at('*') || at('/') || at('mod')) { const op = toks[p++].t; a = { t: 'bin', op, a, b: unE() }; } return a; }
     function unE() { if (at('-')) { p++; return { t: 'bin', op: '-', a: { t: 'num', v: 0n }, b: unE() }; } return powE(); }
-    function powE() {                  // x ^ 5 : a whole-number power, written out as multiplying
-      let a = prim();
+    function powE() {                  // x ^ 5 : a small whole-number power, written out as multiplying
+      let a = prim();                  // 3 ^ x : a power with anything on top (towers read right to left)
       if (at('^')) {
-        p++; const k = Number(eat('num').v);
-        if (k > 64) throw new LangError('line ' + L.line + ': powers above 64 are not allowed');
-        if (k === 0) return { t: 'num', v: 1n };
-        let r = a; for (let i = 1; i < k; i++) r = { t: 'bin', op: '*', a: r, b: a };
-        return r;
+        p++;
+        const top = at('-') ? (p++, { t: 'bin', op: '-', a: { t: 'num', v: 0n }, b: powE() }) : powE();
+        if (top.t === 'num' && (top.v <= 64n || readsIn(a, new Set()).size)) {
+          const k = Number(top.v);
+          if (top.v > 64n) throw new LangError('line ' + L.line + ': a power of a name can be 64 at most');
+          if (k === 0) return { t: 'num', v: 1n };
+          let r = a; for (let i = 1; i < k; i++) r = { t: 'bin', op: '*', a: r, b: a };
+          return r;
+        }
+        return { t: 'bin', op: '^', a, b: top, line: L.line };
       }
       return a;
     }
@@ -692,6 +741,8 @@ function runForever(m, loop) {
   let B = null;
   try { B = reason(m, body, assigned, pure, start, A); } catch (e) { if (!(e instanceof TooBig) && !(e instanceof NotPoly)) throw e; }
   if (B) return;
+  // ── B2. towers: x = 3 ^ x and other loops with the loop's own number on top of a power
+  if (towerLoop(m, body, pure, start)) return;
   // ── C. give up honestly
   m.env = new Map(start);
   const note = 'I watched ' + plural(A.steps, 'step') + ' and the loop never came back to a state it had been in, and none of the rules I can prove things with fit this loop';
@@ -701,6 +752,120 @@ function runForever(m, loop) {
     else m.env.set(v, unknown(note));
   }
   settlePureCounts(m, body, pure, start);
+}
+
+// ── B2. towers ──
+// One name v, remade each step by a rule that uses + − × and powers b ^ (…) where b has no 2 or 5 in it.
+// Then the last k digits of v after a step depend only on its last k digits before it (k ≥ 2), so the loop can be
+// run on remainders.  In the plain tower v = b ^ v there is more: when two tops share their last k digits, the
+// powers share k + 1 (b comes back to 1 after a number of steps that divides 10^k).  So once the last 2 digits stop
+// changing, every step locks in one more digit for good, and the loop settles.
+const TOWER_DIGITS = 300;
+function towerLoop(m, body, pure, start) {
+  const sets = body.filter((s) => s.t === 'set' && !pure.has(s.name));
+  if (sets.length !== 1 || body.some((s) => s.t !== 'set')) return false;
+  const v = sets[0].name, e = sets[0].e;
+  if (body.some((s) => s.t === 'set' && s.name !== v && !pure.has(s.name))) return false;
+  let hasTower = false, ok = true;
+  const reads = (x) => readsIn(x, new Set()).has(v);
+  const evStart = (x) => { const mm = new Machine(); mm.env = new Map(start); return mm.ev(x); };
+  const bases = new Map();
+  (function walk(x) {
+    if (!ok || !x || typeof x !== 'object') return;
+    if (x.t === 'var' && x.name !== v) { const c = start.get(x.name); if (!c || (c.k !== 'num' && c.k !== 'end')) ok = false; return; }
+    if (x.t === 'bin') {
+      if (x.op === 'mod') { ok = false; return; }
+      if (x.op === '/' && (reads(x.b) || readsIn(x.b, new Set()).size)) { ok = false; return; }
+      if (x.op === '^') {
+        if (reads(x.a) || !reads(x.b)) { if (reads(x.a)) ok = false; else { walk(x.a); walk(x.b); } }
+        else {
+          let b; try { b = evStart(x.a); } catch (err) { ok = false; return; }
+          if (!unitBase(b)) { ok = false; return; }
+          bases.set(x, b.q.n); hasTower = true;
+        }
+      }
+      walk(x.a); walk(x.b); return;
+    }
+    if (x.t !== 'num' && x.t !== 'var') ok = false;
+  })(e);
+  if (!ok || !hasTower) return false;
+  // the rule on remainders: x is v's last K digits
+  const evm = (x, xr, K) => {
+    const M = pow10(K);
+    switch (x.t) {
+      case 'num': return mod(x.v, M);
+      case 'var': return x.name === v ? xr : valMod(start.get(x.name), K);
+      case 'bin': {
+        if (x.op === '^' && bases.has(x)) { const t = evm(x.b, xr, K); return t === null ? null : powmod(bases.get(x), t, M); }
+        if (x.op === '/') { const c = evStart(x.b); if (c.k !== 'num' || qzero(c.q)) return null; const inv = qmod(qdiv(Q1, c.q), M); const a = evm(x.a, xr, K); return inv === null || a === null ? null : mod(a * inv, M); }
+        const a = evm(x.a, xr, K), b = evm(x.b, xr, K); if (a === null || b === null) return null;
+        if (x.op === '^') return valMod(evStart(x), K);   // a power with no v in it: a fixed number
+        return x.op === '+' ? mod(a + b, M) : x.op === '-' ? mod(a - b, M) : mod(a * b, M);
+      }
+    }
+    return null;
+  };
+  const x0v = start.get(v);
+  if (x0v && x0v.k !== 'num' && x0v.k !== 'end') return false;
+  const init = (K) => (x0v ? valMod(x0v, K) : 0n);
+  const orbit = (K) => {
+    const seen = new Map(), list = []; let x = init(K);
+    for (let step = 0; step <= LIMITS.orbit; step++) {
+      if (x === null) return null;
+      if (seen.has(x)) return { first: seen.get(x), period: step - seen.get(x), list };
+      seen.set(x, step); list.push(x); x = evm(e, x, K);
+    }
+    return null;
+  };
+  m.env = new Map(start);
+  const o2 = orbit(2);
+  if (!o2) return false;
+  const ring = (o, K) => o.list.slice(o.first, o.first + Math.min(o.period, 6)).map((r) => String(r).padStart(K, '0')).join(', ') + (o.period > 6 ? ', …' : '');
+  const finish = (val) => { m.env.set(v, val); settlePureCounts(m, body, pure, start); return true; };
+  if (o2.period > 1) return finish(restless('the last 2 digits of ' + v + ' go round ' + ring(o2, 2) + ' every ' + o2.period + ' steps and never stop (after a step, the last 2 digits only depend on the last 2 digits before it)'));
+  // the plain tower v = b ^ v: settles, digits by the lock-one-more rule
+  if (e.t === 'bin' && e.op === '^' && bases.has(e) && e.b.t === 'var' && e.b.name === v) {
+    const B = bases.get(e), r = o2.list[o2.first];
+    const digits = (N) => {               // the fixed point's last N digits, one digit per step
+      const M = pow10(Math.max(N, 2));
+      let P = r, Y = powmod(B, r, M), T = powmod(B, 100n, M);
+      for (let j = 2; j < N; j++) {
+        const d = (Y / pow10(j)) % 10n;
+        if (d) { let Td = 1n; for (let i = 0n; i < d; i++) Td = Td * T % M; Y = Y * Td % M; P += d * pow10(j); }
+        let T10 = T; for (let i = 0; i < 9; i++) T10 = T10 * T % M; T = T10;
+      }
+      return mod(P, pow10(N));
+    };
+    const why = 'the last 2 digits of ' + v + ' stop changing ' + (o2.first === 0 ? 'right away' : 'after step ' + o2.first) + '. After that, every step locks in one more digit for good: when two tops share their last k digits, ' + B + ' ^ those tops share k + 1. So ' + v + ' settles, and after forever ' + v + ' = ' + B + ' ^ ' + v;
+    const val = endGeneric(digits, why); val.selfPow = B;
+    return finish(val);
+  }
+  // v only ever sits on top of such powers (x = 3 ^ x + 1, x = 3 ^ (x + 1), x = 7 × 3 ^ x …): the same lock-one-more
+  // rule holds, so it settles.  Its digits come one at a time by putting the last j digits in, which is slower,
+  // so it shows at most TOWER_DIGITS of them
+  const outside = (x, top) => !x || typeof x !== 'object' ? false : x.t === 'var' ? x.name === v && !top
+    : x.t === 'bin' ? (bases.has(x) ? outside(x.a, top) || outside(x.b, true) : outside(x.a, top) || outside(x.b, top)) : false;
+  if (!outside(e, false)) {
+    const r = o2.list[o2.first];
+    let known = r, have = 2;                // the fixed point's last `have` digits
+    const digits = (N) => {
+      if (N > TOWER_DIGITS) throw new LangError('I can only work out the last ' + TOWER_DIGITS + ' digits of ' + v);
+      while (have < N) { known = evm(e, known, have + 1); have++; }
+      return mod(known, pow10(N));
+    };
+    const why = 'the last 2 digits of ' + v + ' stop changing ' + (o2.first === 0 ? 'right away' : 'after step ' + o2.first) + '. After that, every step locks in one more digit for good: ' + v + ' only sits on top of powers of numbers with no 2 or 5 in them, and when two tops share their last k digits, the powers share k + 1. So ' + v + ' settles';
+    const val = endGeneric(digits, why); val.maxDigits = TOWER_DIGITS;
+    return finish(val);
+  }
+  // other rules: look deeper for a ring that never stops; if every depth settles, say so honestly
+  const settled = [2];
+  for (let K = 3; K <= DEEP; K++) {
+    const o = orbit(K);
+    if (!o) break;
+    if (o.period > 1) return finish(restless('the last ' + K + ' digits of ' + v + ' go round ' + ring(o, K) + ' every ' + o.period + ' steps and never stop'));
+    settled.push(K);
+  }
+  return finish(unknown('the last ' + (settled.length > 1 ? '2 to ' + settled[settled.length - 1] : '2') + ' digits of ' + v + ' each stop changing, but I have no rule that proves every digit after them does too'));
 }
 
 // a straight-line rule v = sum(a_vw × w) + c_v: its fixed point, as exact fractions, when there is exactly one
@@ -863,7 +1028,7 @@ function toPoly(m, e, kinds) {
     case 'num': return Poly.num(Q(e.v));
     case 'var': if (kinds.get(e.name) !== 'plain' && kinds.get(e.name) !== 'newplain') throw new NotPoly(); return Poly.name(e.name);
     case 'bin': {
-      if (e.op === 'mod') throw new NotPoly();
+      if (e.op === 'mod' || e.op === '^') throw new NotPoly();
       const a = toPoly(m, e.a, kinds), b = toPoly(m, e.b, kinds);
       if (e.op === '+') return a.add(b);
       if (e.op === '-') return a.sub(b);
@@ -1358,7 +1523,7 @@ function run(src, opts) {
   catch (e) {
     if (e instanceof LangError) error = e.message;
     else if (e instanceof Unseen) error = "an if needed a yes or a no, but got something I can't see the end of";
-    else if (e instanceof RangeError) error = 'that number got too big for this machine';
+    else if (e instanceof RangeError && !process.env.PFDEBUG) error = 'that number got too big for this machine';
     else throw e;
   }
   return { lines: m.out, error, env: m.env };

@@ -6,7 +6,7 @@
 
 <p align="center"><a href="https://connabyss.github.io/past-forever/"><img src="media/try-it-now.svg" width="300" alt="Try it now: open the playground in your browser"></a></p>
 
-<p align="center">or take the <a href="https://connabyss.github.io/past-forever/#wonders">Wonders tour</a>: 6 surprises, one tap each</p>
+<p align="center">or take the <a href="https://connabyss.github.io/past-forever/#wonders">Wonders tour</a>: 7 surprises, one tap each</p>
 
 ## First, try this on a calculator
 
@@ -119,7 +119,7 @@ If the digits settle, the program gets the finished number and carries on. If th
 instead. If it can't tell, it says so.
 
 **Try it in your browser:** [connabyss.github.io/past-forever](https://connabyss.github.io/past-forever/). No install, works on a phone.
-New here? Take the [Wonders tour](https://connabyss.github.io/past-forever/#wonders): 6 surprises, one tap each.
+New here? Take the [Wonders tour](https://connabyss.github.io/past-forever/#wonders): 7 surprises, one tap each.
 
 ## Four lines
 
@@ -138,6 +138,27 @@ yes  (proved)
 5, 25, 625, 390625… Squaring forever never stops, but the digits on the right freeze, one or more at a time.
 So after forever, `x` is an endless number that runs off to the left, and it is its own square. Ask `why x`
 and it tells you how it knows.
+
+## The last digits of Graham's number
+
+[Graham's number](https://en.wikipedia.org/wiki/Graham%27s_number) is a tower of 3s, `3 ^ 3 ^ 3 ^ …`, so tall that
+the universe is too small to hold its digits. Nobody knows its first digit. Past Forever can show you its last ones:
+
+```
+x = 3
+forever: x = 3 ^ x
+show x
+show 3 ^ x = x
+```
+
+```
+…262464195387
+yes  (proved)
+```
+
+Once the tower is a few floors tall, every new floor freezes one more digit on the right, and Graham's number is far
+taller than that. Ask for `show 105 digits of x` and all 105 match the digits listed in the
+[OEIS (A133613)](https://oeis.org/A133613). The tests check them on every build.
 
 ## Three honest answers
 
@@ -206,6 +227,8 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
 - The whole state comes back: from then on it repeats forever.
 - A digit stops changing, and the rule pulls nearby numbers together: one more digit locks in every step.
 - A sum whose pieces end in more and more zeros settles.
+- A power tower like `x = 3 ^ x`: when two tops share their last k digits, the powers share k + 1 (the bottom
+  number must have no 2 or 5 in it). So once the last 2 digits stop changing, it settles.
 - The last digits go round a ring that never stops: proved never to settle.
 - None of these fit: `can't see the end`.
 
@@ -232,7 +255,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 580 checks
+node tests/run.js        # ok: 600 checks
 node tests/referee.js    # the robot referee, about 5 minutes
 ```
 
