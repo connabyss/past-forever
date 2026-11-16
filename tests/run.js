@@ -241,5 +241,45 @@ is(out('x = 1\ny = 2\nforever: x = 10 × y + 3   y = 20 × x + 7\nshow x'), '…
 // ── Gemma's probe: a decimal point gets a clear answer, not a crash or a rounded guess
 is(out('x = 1\nforever: x = x + 0.1\nshow x'), 'stopped: line 2: there are no decimal points here. Numbers grow to the left, not the right, so 0.1 would be 1 ÷ 10, and nothing here can be divided by 10 (it has a 2 and a 5 in it). Try 1 / 3 or 1 / 7 instead', '0.1 is explained');
 
+// ── towers: a number on top of a power.  3 ^ 3 ^ 3 ^ … forever is where Graham's number gets its last digits
+{
+  // checked a different way: the tower one floor at a time, each floor worked out on the last 70 digits, using that
+  // 3 ^ (4 × 5^69 × 2^68) = 1 on the last 70 digits (Carmichael), which this test checks first
+  const m = 10n ** 70n, lam = 4n * 5n ** 69n * 2n ** 68n / 4n;
+  is(powmod(3n, lam, m), 1n, '3 comes back to 1 on the last 70 digits after λ(10^70) steps');
+  let t = 3n; for (let i = 0; i < 100; i++) t = powmod(3n, t % lam, m);
+  const g60 = String(t % 10n ** 60n).padStart(60, '0');
+  is(out('x = 3\nforever: x = 3 ^ x\nshow 60 digits of x'), '…' + g60, "3 ^ 3 ^ 3 … forever: 60 digits, floor by floor");
+  is(g60.slice(-10), '2464195387', "and they end in Graham's number's famous last ten digits");
+  // OEIS A133613 (Graham's number's digits from the right), the 105 terms on oeis.org/A133613/list, 2026-11-16
+  is(out('x = 3\nforever: x = 3 ^ x\nshow 105 digits of x'), '…615089404248265018193851562535796399618993967905496638003222348723967018485186439059104575627262464195387', 'all 105 digits listed on the OEIS match');
+  is(out('x = 3\nforever: x = 3 ^ x\nshow 3 ^ x = x'), 'yes  (proved)', 'the tower is 3 ^ itself, proved');
+  has(F.run('x = 3\nforever: x = 3 ^ x\nshow x').lines[0].why, 'every step locks in one more digit for good', 'and it says how it knows');
+  is(out('x = 3\nforever: x = 3 ^ x\nshow 1000 digits of x').length, 1001, 'a thousand digits come back quickly');
+  is(out('show 3 ^ 7625597484987'), '…' + String(powmod(3n, 7625597484987n, 10n ** 12n)).padStart(12, '0') + '  (the end of a whole number with about 3,638,334,640,025 digits)', 'a tower of four 3s, its last 12 digits, and how long it is');
+  is(out('show (0 − 2) ^ 9999'), '…' + String(((-(2n ** 9999n)) % 10n ** 12n + 10n ** 12n) % 10n ** 12n).padStart(12, '0') + '  (this is minus a whole number with about 3,010 digits)', 'a huge minus power says it is minus');
+  // night shift bug hunt: a settled tower fed back into the same loop said "never settles", because the engine
+  // compared the number with itself by digits instead of knowing it is the same number
+  is(out('x = 3\nforever: x = 3 ^ x\ny = x\nforever: y = 3 ^ y\nshow y\nshow y = 3 ^ y'), '…262464195387\nyes  (proved)', 'a tower that is already at rest stays at rest');
+  is(out('x = 3\nforever: x = 3 ^ x\nforever: x = 3 ^ x\nshow x'), '…262464195387', 'running the tower loop twice changes nothing');
+  is(out('x = 0\nforever: x = 7 ^ x\nshow x'), '…' + String((() => { let y = 0n; for (let i = 0; i < 40; i++) y = powmod(7n, y, 10n ** 12n); return y; })()).padStart(12, '0'), 'a tower of 7s');
+  is(out('x = 1/7\nforever: x = 9 ^ x\nshow x').startsWith('…'), true, 'an endless fraction can go on top');
+  is(out('x = 1\nforever: x = 3 ^ x + x\nshow x'), 'never settles', 'x = 3 ^ x + x: its last 2 digits go round 50 steps');
+  { let y = 1n; const M = 10n ** 40n; for (let i = 0; i < 200; i++) y = (powmod(3n, y, M) + 1n) % M;
+    is(out('x = 1\nforever: x = 3 ^ x + 1\nshow 40 digits of x'), '…' + String(y).padStart(40, '0'), 'x = 3 ^ x + 1 settles too (it once said "too big")'); }
+  is(out('x = 1\nforever: x = 3 ^ x + 1\nshow 301 digits of x'), 'stopped: I can only work out the last 300 digits of x', 'the slower towers say how far they go');
+  is(out('x = 2\nforever: x = 2 ^ x\nshow x'), "can't see the end", 'a tower of 2s is not claimed (2 never comes back to 1)');
+  is(out('x = 5\nforever: x = x × x\nshow 5 ^ x'), 'stopped: a power with an endless number or a huge number on top needs an ordinary whole number at the bottom with no 2 or 5 in it, like 3, 7 or 11', 'an endless top needs a bottom with no 2 or 5');
+  is(out('show 2 ^ 3 ^ 2'), '512', 'towers read from the top down');
+  is(out('show 2 ^ 64 ^ 2 = 2 ^ 4096'), 'yes', 'a 1,234-digit power is still worked out exactly');
+  is(out('show 3 ^ -1'), '…666666666667  (this is 1/3)', 'a minus number on top divides');
+  is(out('show (0 − 1) ^ 99999999999999'), '…999999999999  (this is -1)', 'minus one to a huge power');
+  is(out('x = 5\nshow x ^ 100'), 'stopped: line 2: a power of a name can be 64 at most', 'a name to a big power is still capped');
+}
+
+// ── night shift bug hunt: asking for a huge number of digits froze the page (100000 digits of the own square)
+is(out('x = 5\nforever: x = x × x\nshow 100000 digits of x'), 'stopped: line 3: I show at most 2000 digits at a time', 'a digit count that would freeze the page gets a clear answer');
+is(out('x = 5\nforever: x = x × x\nshow 2000 digits of x').length, 2001, '2000 digits still work');
+
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);
