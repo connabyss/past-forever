@@ -189,7 +189,9 @@ with the code and what it printed.
 
 ### Hall of Fame
 
-Nobody yet. Be the first.
+1. **Leo AI in Brave (Qwen).** Its "numbers that are their own square" challenge turned up a loop that starts
+   on its own answer, …081787109376 squared forever, where Past Forever said `can't see the end`. It settles,
+   and now Past Forever proves it. (November 2026)
 
 ## How it knows
 
@@ -220,7 +222,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 564 checks
+node tests/run.js        # ok: 572 checks
 ```
 
 The playground is one file, [docs/index.html](docs/index.html). Rebuild it with `python3 page/build.py`.

@@ -210,5 +210,18 @@ is(out('n = 0\nforever: n = n + 1   show n'), '1\n2\n3\n4\n… and so on, foreve
   has(F.run('x = 0\nforever: x = x × x + 1\nshow x').lines[0].why, 'the last 1 to 40 digits all come round every 6 steps', 'a true ring is checked 40 digits deep');
 }
 
+// ── Break it #1 (Leo AI): a loop that starts on its own answer settles at once, proved by the rule, not digits
+{
+  const E = 'e = 5\nforever: e = e × e\nf = 1 - e\n';
+  is(out(E + 'y = f\nforever: y = y × y\nshow y'), '…081787109376', "squaring the 6-twin forever settles (it is already its own square)");
+  has(F.run(E + 'y = f\nforever: y = y × y\nshow y').lines[0].why, 'gives back exactly what it started with', 'and it says why');
+  is(out(E + 'y = e\nforever: y = y × y\nshow y'), '…918212890625', 'same for the 5-twin');
+  is(out(E + 'r = e - f\nforever: r = r × r × r\nshow r'), '…836425781249', 'the odd square root of 1 is still under cubing');
+  is(out(E + 'r = e - f\nforever: r = r × r\nshow r'), '1', 'squaring the odd square root of 1 settles on 1 after one step');
+  is(out(E + 'a = e\nb = f\nforever: t = a   a = b   b = t\nshow a'), 'never settles', 'swapping the twins forever never settles');
+  is(out(E + 'y = e + 1\nforever: y = y × y\nshow y'), "can't see the end", 'a start that is not at rest is not claimed');
+  is(out(E + 'y = e\nforever: show y   y = y × y').split('\n')[1], '… and so on, forever', 'a show inside still prints');
+}
+
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);

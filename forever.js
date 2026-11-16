@@ -685,6 +685,8 @@ function runForever(m, loop) {
   // ── A. just run it and watch for the whole state coming round again
   const A = watch(m, body, stateNames, pure, start);
   if (A.done) return;
+  // ── A2. already at rest: one step leaves every value provably the same (an endless start that is its own answer)
+  if (A.skipped && pure.size === 0 && alreadyStill(m, body, stateNames, start)) return;
   // ── B. reason about it as arithmetic
   let B = null;
   try { B = reason(m, body, assigned, pure, start, A); } catch (e) { if (!(e instanceof TooBig) && !(e instanceof NotPoly)) throw e; }
@@ -698,6 +700,39 @@ function runForever(m, loop) {
     else m.env.set(v, unknown(note));
   }
   settlePureCounts(m, body, pure, start);
+}
+
+// a few steps by hand, comparing whole states by proof instead of by digits (for starts that are endless numbers)
+function alreadyStill(m, body, stateNames, start) {
+  const before = m.out.length;
+  const undo = () => { m.env = new Map(start); m.out.length = before; return false; };
+  const sameState = (x, y) => stateNames.every((v) => {
+    const a = x.get(v), b = y.get(v); if (!a || !b) return false;
+    const q = equal(a, b); return q.k === 'bool' && q.v && (q.tag === 'proved' || (a.k !== 'end' && b.k !== 'end'));
+  });
+  const hist = [new Map(start)];
+  let hit = null;
+  for (let step = 1; step <= 4 && !hit; step++) {
+    try { m.run(body); } catch (e) { if (e instanceof LangError || e instanceof Unseen || e instanceof TooBig || e instanceof NotPoly) return undo(); throw e; }
+    const now = new Map(m.env);
+    for (let j = 0; j < hist.length; j++) if (sameState(hist[j], now)) { hit = { first: j, period: step - j }; break; }
+    hist.push(now);
+  }
+  if (!hit) return undo();
+  const { first, period } = hit;
+  const how = ' (worked out from the rule each number obeys, not from digits)';
+  const whyLoop = period === 1
+    ? (first === 0 ? 'one step of the loop gives back exactly what it started with' : 'after step ' + first + ' the loop changes nothing any more') + how + ', so nothing changes forever'
+    : 'from step ' + first + ' the loop comes back to the same state every ' + period + ' steps' + how + ', forever';
+  const final = new Map(start);
+  for (const v of stateNames) {
+    const vals = hist.slice(first, first + period).map((h) => h.get(v));
+    const same = vals.every((x) => { const q = equal(x, vals[0]); return q.k === 'bool' && q.v; });
+    if (same) { const x = { ...vals[0] }; x.why = whyLoop; if (x.k === 'bool') x.tag = 'proved'; final.set(v, x); }
+    else final.set(v, restless(whyLoop + ', and ' + v + ' goes round ' + vals.map((x) => show(x)).join(', ') + ' without end'));
+  }
+  if (m.out.length > before) m.out.push({ text: '… and so on, forever', why: 'a show inside a forever loop prints its first few steps only' });
+  m.env = final; return true;
 }
 
 // flags that the loop can only ever set to one fixed yes/no
