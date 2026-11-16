@@ -42,5 +42,11 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
  checks++;if(!(await p.locator('#out .row.bad').count())){fails++;console.log('FAIL error row');}
  await p.locator('.chip').nth(0).click();await p.waitForTimeout(500);await p.locator('.whyb').first().click();
  checks++;if(!(await p.locator('.why').first().isVisible())){fails++;console.log('FAIL why toggle');}
+ // report link carries the program and the answer; live box freezes 390625's last five digits in gold
+ await p.fill('#code','x = 6\nforever: x = x × x\nshow x');await p.click('#run');await p.waitForTimeout(400);
+ { const u=new URL(await p.locator('#out a.report').getAttribute('href'));
+   checks++;if(u.origin+u.pathname!=='https://github.com/connabyss/past-forever/issues/new'||u.searchParams.get('template')!=='break-it.yml'||u.searchParams.get('code')!=='x = 6\nforever: x = x × x\nshow x'||!u.searchParams.get('printed').startsWith('never settles')){fails++;console.log('FAIL report link',u.href);} }
+ await p.locator('#steps div').nth(3).waitFor({timeout:15000});
+ checks++;{const g=await p.locator('#steps div').nth(3).locator('b').textContent();if(g!=='90625'){fails++;console.log('FAIL live gold digits',g);}}
  checks++;if(errs.length){fails++;console.log('FAIL page errors',errs);}
  console.log(fails?('FAILED '+fails+' of '+checks):('ok: '+checks+' page checks'));await b.close();})();

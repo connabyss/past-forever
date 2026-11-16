@@ -58,12 +58,36 @@ details code{font-family:var(--mono);color:var(--ink);font-size:14px}
 .pickd{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;font:500 15px var(--mono);color:var(--ink)}
 .open{font:600 14px var(--sans);color:var(--blue);background:transparent;border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
 details ul{padding-left:18px;margin:10px 0 0;display:flex;flex-direction:column;gap:6px}
+/* live first screen: 5 squared forever */
+.live{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:14px}
+@media (min-width:640px){.live{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}}
+.live .cap{font:600 15px var(--sans);color:var(--ink);margin:0 0 8px}
+.steps{font:400 15px/1.55 var(--mono);color:var(--soft);min-height:calc(1.55em * 7)}
+.steps div{white-space:nowrap;overflow:hidden;text-overflow:clip}
+.steps b{color:var(--gold);font-weight:600}
+.steps .lim{color:var(--ink);margin-top:4px}
+.three{display:flex;flex-direction:column;gap:8px;font-size:14.5px;line-height:1.45;color:var(--soft);margin:0;padding:0;list-style:none}
+.three strong{color:var(--ink);font-weight:600}
+.three .g{color:var(--gold)}
+.report{font:500 14px var(--sans);color:var(--blue);text-decoration:none;align-self:flex-start;padding:4px 2px}
+.report:hover{text-decoration:underline}
 </style>
 <div class="wrap">
   <header>
     <h1>Past <span>Forever</span></h1>
     <p class="sub">A language where a loop can run forever, and the program carries on afterwards. It only says a number settled when it can prove it.</p>
   </header>
+  <section class="live" aria-label="A forever loop, running">
+    <div>
+      <p class="cap">x = 5, then square it forever:</p>
+      <div class="steps" id="steps" aria-live="off"></div>
+    </div>
+    <ul class="three">
+      <li><strong class="g">Settles.</strong> The <span class="g">gold</span> digits never change again. After forever, Past Forever hands you the finished number and carries on.</li>
+      <li><strong>Never settles.</strong> If the digits go round and round for good, it proves that instead.</li>
+      <li><strong>Can't see the end.</strong> If it can't prove either one, it says so. It never guesses.</li>
+    </ul>
+  </section>
   <div>
     <div class="label" style="margin-bottom:8px">Try one</div>
     <div class="chips" id="chips"></div>
@@ -154,6 +178,7 @@ function go() {
     if (r.error) { const row = el('div', 'row bad'); row.appendChild(el('div', 'val', 'stopped: ' + r.error)); out.appendChild(row); }
     if (!r.lines.length && !r.error) out.appendChild(el('div', 'empty', 'Nothing was shown. Add a line like: show x'));
     $('time').textContent = '· ' + ms + ' ms';
+    out.appendChild(reportLink(code.value, r));
   }, 20);
 }
 const HUES = { 'settles': 'var(--gold)', 'goes wild': 'var(--bad)', 'never settles': '#6b7280', "can't see the end": '#2a3340', 'yes': 'var(--ok)', 'no': '#6b7280', 'stops with an error': '#a34b5a' };
@@ -230,6 +255,40 @@ function openOne(name, c) {
   [...$('chips').children].forEach((x) => x.setAttribute('aria-pressed', 'false'));
   window.scrollTo({ top: 0, behavior: 'smooth' }); go();
 }
+// "Report this": opens the Break it form on GitHub with the program and what it printed already filled in
+function reportLink(src, r) {
+  const said = r.lines.map((l) => l.text + (l.why ? '\n    why: ' + l.why : '')).concat(r.error ? ['stopped: ' + r.error] : []).join('\n');
+  const cut = (t, n) => (t.length > n ? t.slice(0, n) + '\n…(cut short)' : t);
+  const q = new URLSearchParams({ template: 'break-it.yml', title: 'Break it: ', code: cut(src, 2500), printed: cut(said, 2500) });
+  const a = el('a', 'report', 'Think this answer is wrong? Report this loop');
+  a.href = 'https://github.com/connabyss/past-forever/issues/new?' + q.toString(); a.target = '_blank'; a.rel = 'noopener';
+  return a;
+}
+// the live first screen: square 5 again and again, digits that can never change again turn gold
+(function live() {
+  const box = $('steps'), W = 16n, M = 10n ** 24n;
+  let lim = 5n; for (let i = 0; i < 40; i++) lim = lim * lim % M;     // the endless answer, last 24 digits
+  const rows = []; let x = 5n;
+  for (let i = 0; i < 7; i++) { rows.push(x); x = x * x; }
+  const line = (v) => {
+    const full = v.toString(), shown = full.length > 16 ? full.slice(-16) : full;
+    let k = 0; const lv = (lim % 10n ** BigInt(full.length > 16 ? 16 : full.length)).toString().padStart(Math.min(full.length, 16), '0');
+    while (k < shown.length && shown[shown.length - 1 - k] === lv[lv.length - 1 - k]) k++;
+    const d = document.createElement('div');
+    d.append((full.length > 16 ? '…' : '') + shown.slice(0, shown.length - k)); const b = document.createElement('b'); b.textContent = shown.slice(shown.length - k); d.append(b);
+    return d;
+  };
+  const end = () => { const d = el('div', 'lim', 'after forever: …' + (lim % 10n ** W).toString().padStart(16, '0')); return d; };
+  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (still) { rows.forEach((v) => box.appendChild(line(v))); box.appendChild(end()); return; }
+  let i = 0;
+  const tick = () => {
+    if (i === 0) box.textContent = '';
+    if (i < rows.length) { box.appendChild(line(rows[i])); i++; setTimeout(tick, 900); }
+    else { box.appendChild(end()); i = 0; setTimeout(tick, 4000); }
+  };
+  tick();
+})();
 $('run').onclick = go;
 code.addEventListener('input', () => { save(); [...$('chips').children].forEach((c) => c.setAttribute('aria-pressed', 'false')); });
 let saved = null; try { saved = localStorage.getItem('pf-code'); } catch (e) {}
