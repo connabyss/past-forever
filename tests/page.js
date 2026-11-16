@@ -48,5 +48,11 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
    checks++;if(u.origin+u.pathname!=='https://github.com/connabyss/past-forever/issues/new'||u.searchParams.get('template')!=='break-it.yml'||u.searchParams.get('code')!=='x = 6\nforever: x = x × x\nshow x'||!u.searchParams.get('printed').startsWith('never settles')){fails++;console.log('FAIL report link',u.href);} }
  await p.locator('#steps div').nth(3).waitFor({timeout:15000});
  checks++;{const g=await p.locator('#steps div').nth(3).locator('b').textContent();if(g!=='90625'){fails++;console.log('FAIL live gold digits',g);}}
+ // wonders tour: open, go to wonder 3, the reveal stays hidden until Show me runs the real code
+ await p.click('#tourb');await p.click('#tnext');await p.click('#tnext');
+ checks++;if((await p.locator('#tcount').textContent())!=='Wonder 3 of 6'||await p.locator('#treveal').isVisible()){fails++;console.log('FAIL tour step');}
+ await p.click('#tshow');await p.waitForTimeout(400);
+ checks++;if((await p.locator('#out .val').first().textContent())!=='…857142857143  (this is 1/7)'||!(await p.locator('#treveal').isVisible())){fails++;console.log('FAIL tour show',await p.locator('#out').textContent());}
+ await p.click('#tback');checks++;if((await p.locator('#tcount').textContent())!=='Wonder 2 of 6'||await p.locator('#treveal').isVisible()){fails++;console.log('FAIL tour back');}
  checks++;if(errs.length){fails++;console.log('FAIL page errors',errs);}
  console.log(fails?('FAILED '+fails+' of '+checks):('ok: '+checks+' page checks'));await b.close();})();

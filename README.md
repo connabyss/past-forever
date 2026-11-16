@@ -6,6 +6,8 @@
 
 <p align="center"><a href="https://connabyss.github.io/past-forever/"><img src="media/try-it-now.svg" width="300" alt="Try it now: open the playground in your browser"></a></p>
 
+<p align="center">or take the <a href="https://connabyss.github.io/past-forever/#wonders">Wonders tour</a>: 6 surprises, one tap each</p>
+
 ## First, try this on a calculator
 
 Any calculator works (turn your phone sideways if an answer gets cut off). Copy each sum exactly: the number of zeros matters, and one zero more or less spoils the trick. Do one step at a time, then open the answer.
@@ -117,6 +119,7 @@ If the digits settle, the program gets the finished number and carries on. If th
 instead. If it can't tell, it says so.
 
 **Try it in your browser:** [connabyss.github.io/past-forever](https://connabyss.github.io/past-forever/). No install, works on a phone.
+New here? Take the [Wonders tour](https://connabyss.github.io/past-forever/#wonders): 6 surprises, one tap each.
 
 ## Four lines
 
