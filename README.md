@@ -215,6 +215,10 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   (theory, not a language). Not finding one is not proof there isn't one.
 - **"proved" means proved by the rules above**, as written in forever.js. They are not machine-checked, and no
   mathematician has reviewed them.
+- **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 3,000 random loops
+  (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums) and checks every
+  `settles`, `never settles` and exact fraction against plain arithmetic on the last 30 or more digits. Last run:
+  4,500 answers, 0 wrong, 9 `can't see the end`. That is a strong check, not a proof.
 - Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
 - `can't see the end` comes up a lot. That's the language being honest, not a bug.
 
@@ -225,7 +229,8 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 577 checks
+node tests/run.js        # ok: 580 checks
+node tests/referee.js    # the robot referee, about 5 minutes
 ```
 
 The playground is one file, [docs/index.html](docs/index.html). Rebuild it with `python3 page/build.py`.

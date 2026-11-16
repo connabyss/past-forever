@@ -234,5 +234,12 @@ is(out('n = 0\nforever: n = n + 1   show n'), '1\n2\n3\n4\n… and so on, foreve
   is(out('M = ' + M + '\nx = 0\nforever: x = M × x + 1\nshow x').split('  ')[0], '…000000000001', 'a big multiplier that pulls digits together still settles');
 }
 
+// ── a straight-line loop that settles shows its exact fraction, like a one-name loop does (Luna test 5)
+is(out('x = 0\ny = 0\nforever: t = x   x = y   y = 10 × t + 1\nshow x\nshow y'), '…111111111111  (this is -1/9)\n…111111111111  (this is -1/9)', 'two names passing a number back and forth settle on exactly -1/9');
+is(out('x = 1\ny = 2\nforever: x = 10 × y + 3   y = 20 × x + 7\nshow x'), '…' + (() => { const m = 10n ** 12n; let x = 1n, y = 2n; for (let i = 0; i < 200; i++) { x = (10n * y + 3n) % m; y = (20n * x + 7n) % m; } return String(x).padStart(12, '0'); })() + '  (this is -73/199)', 'a coupled pair names its fraction');
+
+// ── Gemma's probe: a decimal point gets a clear answer, not a crash or a rounded guess
+is(out('x = 1\nforever: x = x + 0.1\nshow x'), 'stopped: line 2: there are no decimal points here. Numbers grow to the left, not the right, so 0.1 would be 1 ÷ 10, and nothing here can be divided by 10 (it has a 2 and a 5 in it). Try 1 / 3 or 1 / 7 instead', '0.1 is explained');
+
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);

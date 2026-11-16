@@ -8,4 +8,5 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: node tests/run.js
+      - run: node tests/referee.js 3000
       - run: python3 page/build.py && git diff --exit-code docs/index.html

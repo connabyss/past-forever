@@ -458,6 +458,7 @@ function lexLine(text, lineNo) {
     if (c === '≥') { push('>=', c); i++; continue; }
     if (c === '≠') { push('!=', c); i++; continue; }
     if ('+/=<>():,^'.includes(c)) { push(c, c); i++; continue; }
+    if (c === '.' && /[0-9]/.test(text[i + 1] || '')) throw new LangError('line ' + lineNo + ': there are no decimal points here. Numbers grow to the left, not the right, so 0.1 would be 1 ÷ 10, and nothing here can be divided by 10 (it has a 2 and a 5 in it). Try 1 / 3 or 1 / 7 instead');
     throw new LangError('line ' + lineNo + ": I don't know the mark " + c);
   }
   return toks;
@@ -795,6 +796,36 @@ function runForever(m, loop) {
     else m.env.set(v, unknown(note));
   }
   settlePureCounts(m, body, pure, start);
+}
+
+// a straight-line rule v = sum(a_vw × w) + c_v: its fixed point, as exact fractions, when there is exactly one
+// (1 − A has a determinant with no 2 or 5 in it, so no other endless numbers are left alone either)
+function affineFixed(group, G) {
+  const n = group.length, M = [];
+  for (const v of group) {
+    const row = group.map(() => Q0); let c = Q0;
+    for (const { c: k, e } of G.get(v).t.values()) {
+      const names = Object.keys(e);
+      if (names.length === 0) c = qadd(c, k);
+      else if (names.length === 1 && e[names[0]] === 1 && group.includes(names[0])) { const j = group.indexOf(names[0]); row[j] = qadd(row[j], k); }
+      else return null;
+    }
+    M.push([...row.map((x, j) => qsub(group.indexOf(v) === j ? Q1 : Q0, x)), c]);
+  }
+  let det = Q1;
+  for (let col = 0; col < n; col++) {
+    let piv = -1; for (let r = col; r < n; r++) if (!qzero(M[r][col])) { piv = r; break; }
+    if (piv < 0) return null;
+    if (piv !== col) { [M[piv], M[col]] = [M[col], M[piv]]; det = qneg(det); }
+    det = qmul(det, M[col][col]);
+    const inv = qdiv(Q1, M[col][col]); M[col] = M[col].map((x) => qmul(x, inv));
+    for (let r = 0; r < n; r++) if (r !== col && !qzero(M[r][col])) { const f = M[r][col]; M[r] = M[r].map((x, j) => qsub(x, qmul(f, M[col][j]))); }
+  }
+  const unit = (q) => tenIntegral(q) && q.n % 2n !== 0n && q.n % 5n !== 0n;
+  if (!unit(det)) return null;
+  const sol = new Map(group.map((v, i) => [v, M[i][n]]));
+  for (const q of sol.values()) if (!tenIntegral(q)) return null;
+  return sol;
 }
 
 // a few steps by hand, comparing whole states by proof instead of by digits (for starts that are endless numbers)
@@ -1294,7 +1325,12 @@ class System {
     if (!P.every((row) => row.every((x) => x === 0n))) return null;
     const conv = (s) => (s < N ? 0 : Math.floor((s - N) / n) + 1);
     const out = new Map();
+    const exact = affineFixed(group, G);
     for (const v of group) {
+      if (exact) {
+        out.set(v, { type: 'settled', conv, value: num(exact.get(v), 'from step ' + N + ' on the last digits of ' + group.join(', ') + ' stop changing, and from there every ' + plural(n, 'step') + ' locks at least one more digit of each for good. Each step is a straight-line rule, and it leaves exactly one set of numbers alone, so the limit is exactly that') });
+        continue;
+      }
       const modfn = (k) => this.digitsAfter(group, k, N + n * k).get(v);
       out.set(v, { type: 'settled', conv, value: endGeneric(modfn, 'from step ' + N + ' on the last digits of ' + group.join(', ') + ' stop changing, and from there every ' + plural(n, 'step') + ' locks at least one more digit of each for good') });
     }
