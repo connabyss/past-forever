@@ -1205,12 +1205,22 @@ class System {
     }
     return out;
   }
+  // digits in the biggest whole number the loop starts from or uses
+  bigDigits() {
+    let d = 0;
+    const see = (q) => { if (q && q.n !== undefined) { const n = q.n < 0n ? -q.n : q.n; d = Math.max(d, String(n).length, String(q.d).length); } };
+    for (const v of this.start.values()) if (v && v.k === 'num') see(v.q);
+    for (const p of this.F.values()) if (p && p.t) for (const { c } of p.t.values()) see(c);
+    return Math.min(d, 400);
+  }
   // no proof of settling: look for proof of NOT settling (last digits going round), else say so
   byCycling(group) {
     const out = new Map();
     for (const v of group) {
       let found = null, looked = 0;
-      for (let k = 1; k <= 9 && !found; k++) {
+      // a big number in the loop can hide what happens below its own digits, so look at least that deep
+      const reach = Math.max(9, this.bigDigits() + 9);
+      for (let k = 1; k <= reach && !found; k++) {
         const vals = []; const o = this.orbit([v], pow10(k), k, (st) => vals.push(st.get(v)));
         if (!o) break;
         looked = k;
@@ -1218,12 +1228,22 @@ class System {
         if (!cyc.every((x) => x === cyc[0])) {
           const list = cyc.slice(0, 6).map((x) => String(x).padStart(k, '0')).join(', ') + (cyc.length > 6 ? ', …' : '');
           // look deeper: how long do the last 1, 2, 3… digits take to come round?  (a ring keeps one number; a liar grows late)
-          const pers = []; for (let j = 1; j <= DEEP; j++) { const oj = j === k ? o : this.orbit([v], pow10(j), j, () => {}); if (!oj) break; pers.push(oj.period); if (oj.period > 3000) break; }
+          const pers = []; for (let j = 1; j <= Math.max(DEEP, k + 9); j++) { const oj = j === k ? o : this.orbit([v], pow10(j), j, () => {}); if (!oj) break; pers.push(oj.period); if (oj.period > 3000) break; }
           const same = pers.every((x) => x === pers[0]);
-          const deeper = pers.length < 3 ? '' : same
+          let run = 0; while (run < pers.length && pers[run] === pers[0]) run++;
+          const deeper = pers.length < 3 ? '' : !same && run >= DEEP
+            ? '. Looking deeper, the last 1 to ' + run + ' digits come round every ' + plural(pers[0], 'step') + ', and the next ones take ' + pers.slice(run).join(', ') + ' steps'
+            : same
             ? '. Looking deeper, the last 1 to ' + pers.length + ' digits all come round every ' + plural(pers[0], 'step') + ' too. As far as I can see, ' + v + ' is going round a ring of ' + pers[0] + ' endless numbers'
             : '. Looking deeper, the last 1, 2, 3… digits take ' + pers.join(', ') + ' steps to come round';
-          found = restless((k === 1 ? 'the last digit of ' + v + ' goes round ' : 'the last ' + k + ' digits of ' + v + ' go round ') + list + ' every ' + plural(o.period, 'step') + (k === 1 ? ' and never stops' : ' and never stop') + deeper);
+          // when most of those digits never move, name the one that does
+          const strs = cyc.map((x) => String(x).padStart(k, '0'));
+          let t = 0; while (t < k - 1 && strs.every((x) => x[k - 1 - t] === strs[0][k - 1 - t])) t++;
+          const lead = t >= 6
+            ? 'the last ' + t + ' digits of ' + v + ' stay put, but the digit to their left goes round ' + strs.slice(0, 10).map((x) => x[k - 1 - t]).join(', ') + (strs.length > 10 ? ', …' : '') + ' every ' + plural(o.period, 'step') + ' and never stops'
+            : null;
+          if (lead) found = restless(lead + deeper);
+          else found = restless((k === 1 ? 'the last digit of ' + v + ' goes round ' : 'the last ' + k + ' digits of ' + v + ' go round ') + list + ' every ' + plural(o.period, 'step') + (k === 1 ? ' and never stops' : ' and never stop') + deeper);
           if (pers.length >= 3) { if (same) found.ring = pers[0]; else found.wild = pers; }
         }
       }

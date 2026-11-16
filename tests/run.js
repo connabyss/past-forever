@@ -223,5 +223,16 @@ is(out('n = 0\nforever: n = n + 1   show n'), '1\n2\n3\n4\n… and so on, foreve
   is(out(E + 'y = e\nforever: show y   y = y × y').split('\n')[1], '… and so on, forever', 'a show inside still prints');
 }
 
+// ── Break it #2 (GPT Luna): a big number can hide what happens past 40 digits, so look as deep as the loop's own numbers
+{
+  const M = '1' + '0'.repeat(40);
+  const r = F.run('M = ' + M + '\nx = 0\nforever: x = (M + 1) × x + M\nshow x').lines[0];
+  is(r.text, 'never settles', "Luna's loop: the 41st digit goes round, so it never settles");
+  has(r.why, 'the last 40 digits of x stay put, but the digit to their left goes round 0, 1, 2, 3, 4, 5, 6, 7, 8, 9', 'and it names the digit that moves');
+  is(out('M = ' + M + '\nx = 1 + M\nforever: x = x × x\nshow x'), 'never settles', '1 + M squared forever: digit 41 goes 2, 4, 8, 6');
+  is(out('M = ' + M + M + '\nx = 0\nforever: x = (M + 1) × x + M\nshow x'), 'never settles', 'the same trick 81 digits deep');
+  is(out('M = ' + M + '\nx = 0\nforever: x = M × x + 1\nshow x').split('  ')[0], '…000000000001', 'a big multiplier that pulls digits together still settles');
+}
+
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);

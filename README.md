@@ -192,6 +192,9 @@ with the code and what it printed.
 1. **Leo AI in Brave (Qwen).** Its "numbers that are their own square" challenge turned up a loop that starts
    on its own answer, …081787109376 squared forever, where Past Forever said `can't see the end`. It settles,
    and now Past Forever proves it. (November 2026)
+2. **GPT Luna in Brave.** `x = (M + 1) × x + M` with M = 1 and 40 zeros: the last 40 digits never move, but the
+   41st goes round 0 to 9 forever. Past Forever only looked 9 digits in and said `can't see the end`. Now it looks
+   as deep as the biggest number in the loop, and proves `never settles`. (November 2026)
 
 ## How it knows
 
@@ -222,7 +225,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 572 checks
+node tests/run.js        # ok: 577 checks
 ```
 
 The playground is one file, [docs/index.html](docs/index.html). Rebuild it with `python3 page/build.py`.
