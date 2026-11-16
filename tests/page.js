@@ -10,26 +10,32 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
  // first screen is calm: one big button, no code, nothing running, no answers yet
  checks++;if(!(await p.locator('#tourb').isVisible())||await p.locator('#code').isVisible()||await p.locator('#answers').isVisible()||await p.locator('.live').isVisible()||!(await p.locator('#ownb').isVisible())){fails++;console.log('FAIL calm first screen');}
  await p.click('#ownb');await p.waitForTimeout(400);
+ // CH 16 Nov: answers only after Run. Opening the editor shows code, not answers
+ checks++;if(await p.locator('#answers').isVisible()){fails++;console.log('FAIL write your own ran before Run was pressed');}
  checks++;if(!(await p.locator('#code').isVisible())||(await p.inputValue('#code'))!=='x = 5\nforever: x = x × x\nshow x\nshow x × x = x'||await p.locator('#ownb').isVisible()){fails++;console.log('FAIL write your own opens');}
  const n=await p.locator('.chip').count();
  const want={'Own square':['…918212890625','yes  (proved)'],'Tower of 3s':['…262464195387','yes  (proved)'],'Minus one':['…999999999999  (this is -1)','0'],'One third':['…666666666667  (this is 1/3)','1'],'196':["can't see the end"],'6 squared':['never settles'],'Twins':['…081787109376','1','0'],'The lamp':['never settles'],'Forever twice':['forever × forever'],'Powers of 2':['no  (proved)'],'Collatz 27':['yes  (proved)','never settles'],'Endless search':['no  (proved)'],'Past forever':['forever + 1','forever × 2','yes'],'Hunt':[],'Adds to −1':['…999999999999  (this is -1)','s: what gets added each step (f × n × n + 2 × f × n + f) settles to 0, and here a sum settles as soon as its pieces do. More than that: s + (− n − 1) × f is the same after every step, so the total is exactly -1'],'Exactly 3':['3','s: what gets added each step (f × n × n × n − 4 × f × n + f) settles to 0, and here a sum settles as soon as its pieces do. More than that: s + (− n + 3) × f is the same after every step, so the total is exactly 3'],'Ring of six':['never settles','x: the last digit of x goes round 0, 1, 2, 5, 6, 7 every 6 steps and never stops. Looking deeper, the last 1 to 40 digits all come round every 6 steps too. As far as I can see, x is going round a ring of 6 endless numbers'],'The liar':['never settles','x: the last digit of x goes round 6, 3 every 2 steps and never stops. Looking deeper, the last 1, 2, 3… digits take 2, 2, 2, 2, 2, 2, 8, 8, 40, 200, 1000, 5000 steps to come round'],'Hunt squares':[],'Hunt thirds':[],'All factorials':['0','…039052556442336528920420940313']};
- for(let i=0;i<n;i++){const c=p.locator('.chip').nth(i);const name=await c.textContent();await c.click();await p.waitForFunction(()=>!document.querySelector('#out .empty')&&document.querySelectorAll('#out .row').length>0,null,{timeout:15000});
+ for(let i=0;i<n;i++){const c=p.locator('.chip').nth(i);const name=await c.textContent();await c.click();
+  checks++;if(await p.locator('#answers').isVisible()){fails++;console.log('FAIL an example ran before Run was pressed',name);}
+  await p.click('#run');await p.waitForFunction(()=>!document.querySelector('#out .empty')&&document.querySelectorAll('#out .row').length>0,null,{timeout:15000});
   const vals=await p.locator('#out .val').allTextContents();checks++;
   if(name.startsWith('Hunt')){checks++;const sq=await p.locator('#out .sq').count();if(sq!==(name==='Hunt'?400:100)){fails++;console.log('FAIL hunt squares',name,sq);}}
   if(JSON.stringify(vals)!==JSON.stringify(want[name])){fails++;console.log('FAIL',name,vals);}
   const ow=await p.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);checks++;if(ow){fails++;console.log('FAIL sideways scroll',name);}
  }
  // the hunt map: tap a square, open that one loop
- await p.locator('.chip',{hasText:/^Hunt$/}).click();await p.waitForSelector('#out .sq');
+ await p.locator('.chip',{hasText:/^Hunt$/}).click();await p.click('#run');await p.waitForSelector('#out .sq');
  checks++;const head=await p.locator('#out .head').textContent();if(!head.startsWith('hunt c from 0 to 399: tried 400 numbers, 5 kinds')){fails++;console.log('FAIL hunt head',head);}
  checks++;const leg=(await p.locator('#out .legend').textContent()).replace(/\s+/g,' ');if(!leg.includes('ring of 6 40')||!leg.includes('goes wild 160')){fails++;console.log('FAIL legend',leg);}
  await p.locator('#out .sq').nth(14).click();
  checks++;const det=await p.locator('#out .pickd').textContent();if(!det.includes('c = 14: ring of 2')){fails++;console.log('FAIL square detail',det);}
  await p.locator('#out .open',{hasText:'Open this loop'}).click();await p.waitForTimeout(600);
+ checks++;if(await p.locator('#answers').isVisible()){fails++;console.log('FAIL Open this loop ran before Run was pressed');}
+ await p.click('#run');await p.waitForTimeout(600);
  checks++;const code=await p.inputValue('#code');if(code!=='# stripes: the last digit of c sets the last digit of x at every step\nc = 14\nx = 0\nforever: x = x × x + c\nshow x\nwhy x'){fails++;console.log('FAIL open loop code',JSON.stringify(code));}
  checks++;const v=await p.locator('#out .val').allTextContents();if(JSON.stringify(v)!==JSON.stringify(['never settles','x: the last digit of x goes round 0, 4 every 2 steps and never stops. Looking deeper, the last 1 to 40 digits all come round every 2 steps too. As far as I can see, x is going round a ring of 2 endless numbers'])){fails++;console.log('FAIL opened loop output',v);}
  // zoom: chase the liar 57 -> 4557 -> back out
- await p.locator('.chip',{hasText:/^Hunt$/}).click();await p.waitForSelector('#out .sq');
+ await p.locator('.chip',{hasText:/^Hunt$/}).click();await p.click('#run');await p.waitForSelector('#out .sq');
  await p.locator('#out .sq').nth(57).click();await p.locator('#out .open',{hasText:'Zoom in'}).click();await p.waitForTimeout(1500);
  checks++;let hd=await p.locator('#out .head').textContent();if(!hd.startsWith('hunt c from 0 to 99 ends in 57: tried 100')){fails++;console.log('FAIL zoom 1',hd);}
  checks++;if(!(await p.inputValue('#code')).includes('hunt c from 0 to 99 ends in 57:')){fails++;console.log('FAIL zoom code');}
@@ -45,7 +51,7 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
  checks++;if((await p.locator('#out .val').first().textContent())!=='42'){fails++;console.log('FAIL typed program',await p.locator('#out').textContent());}
  await p.fill('#code','show 1 / 2');await p.click('#run');await p.waitForTimeout(300);
  checks++;if(!(await p.locator('#out .row.bad').count())){fails++;console.log('FAIL error row');}
- await p.locator('.chip').nth(0).click();await p.waitForTimeout(500);await p.locator('.whyb').first().click();
+ await p.locator('.chip').nth(0).click();await p.click('#run');await p.waitForTimeout(500);await p.locator('.whyb').first().click();
  checks++;if(!(await p.locator('.why').first().isVisible())){fails++;console.log('FAIL why toggle');}
  // report link carries the program and the answer; live box freezes 390625's last five digits in gold
  await p.fill('#code','x = 6\nforever: x = x × x\nshow x');await p.click('#run');await p.waitForTimeout(400);
