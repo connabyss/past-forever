@@ -6,7 +6,12 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
  const html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0">'+fs.readFileSync(require('path').join(__dirname,'..','docs','index.html'),'utf8')+'</body></html>';
  await p.route('**/*',r=>r.request().url().startsWith('https://fonts')?r.abort():r.continue());
  await p.setContent(html);await p.waitForTimeout(400);
- const n=await p.locator('.chip').count();let fails=0,checks=0;
+ let fails=0,checks=0;
+ // first screen is calm: one big button, no code, nothing running, no answers yet
+ checks++;if(!(await p.locator('#tourb').isVisible())||await p.locator('#code').isVisible()||await p.locator('#answers').isVisible()||await p.locator('.live').isVisible()||!(await p.locator('#ownb').isVisible())){fails++;console.log('FAIL calm first screen');}
+ await p.click('#ownb');await p.waitForTimeout(400);
+ checks++;if(!(await p.locator('#code').isVisible())||(await p.inputValue('#code'))!=='x = 5\nforever: x = x × x\nshow x\nshow x × x = x'||await p.locator('#ownb').isVisible()){fails++;console.log('FAIL write your own opens');}
+ const n=await p.locator('.chip').count();
  const want={'Own square':['…918212890625','yes  (proved)'],'Minus one':['…999999999999  (this is -1)','0'],'One third':['…666666666667  (this is 1/3)','1'],'196':["can't see the end"],'6 squared':['never settles'],'Twins':['…081787109376','1','0'],'The lamp':['never settles'],'Forever twice':['forever × forever'],'Powers of 2':['no  (proved)'],'Collatz 27':['yes  (proved)','never settles'],'Endless search':['no  (proved)'],'Past forever':['forever + 1','forever × 2','yes'],'Hunt':[],'Adds to −1':['…999999999999  (this is -1)','s: what gets added each step (f × n × n + 2 × f × n + f) settles to 0, and here a sum settles as soon as its pieces do. More than that: s + (− n − 1) × f is the same after every step, so the total is exactly -1'],'Exactly 3':['3','s: what gets added each step (f × n × n × n − 4 × f × n + f) settles to 0, and here a sum settles as soon as its pieces do. More than that: s + (− n + 3) × f is the same after every step, so the total is exactly 3'],'Ring of six':['never settles','x: the last digit of x goes round 0, 1, 2, 5, 6, 7 every 6 steps and never stops. Looking deeper, the last 1 to 40 digits all come round every 6 steps too. As far as I can see, x is going round a ring of 6 endless numbers'],'The liar':['never settles','x: the last digit of x goes round 6, 3 every 2 steps and never stops. Looking deeper, the last 1, 2, 3… digits take 2, 2, 2, 2, 2, 2, 8, 8, 40, 200, 1000, 5000 steps to come round'],'Hunt squares':[],'Hunt thirds':[],'All factorials':['0','…039052556442336528920420940313']};
  for(let i=0;i<n;i++){const c=p.locator('.chip').nth(i);const name=await c.textContent();await c.click();await p.waitForFunction(()=>!document.querySelector('#out .empty')&&document.querySelectorAll('#out .row').length>0,null,{timeout:15000});
   const vals=await p.locator('#out .val').allTextContents();checks++;
@@ -46,7 +51,11 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
  await p.fill('#code','x = 6\nforever: x = x × x\nshow x');await p.click('#run');await p.waitForTimeout(400);
  { const u=new URL(await p.locator('#out a.report').getAttribute('href'));
    checks++;if(u.origin+u.pathname!=='https://github.com/connabyss/past-forever/issues/new'||u.searchParams.get('template')!=='break-it.yml'||u.searchParams.get('code')!=='x = 6\nforever: x = x × x\nshow x'||!u.searchParams.get('printed').startsWith('never settles')){fails++;console.log('FAIL report link',u.href);} }
+ await p.locator('summary',{hasText:'How does it know'}).click();
  await p.locator('#steps div').nth(3).waitFor({timeout:15000});
+ // the running x = 5 box keeps one size the whole loop, so the page never jumps
+ { const hs=new Set();for(let i=0;i<60;i++){hs.add(await p.evaluate(()=>Math.round(document.querySelector('.live').getBoundingClientRect().height)));await p.waitForTimeout(200);}
+   checks++;if(hs.size!==1){fails++;console.log('FAIL live box changes size',[...hs]);} }
  checks++;{const g=await p.locator('#steps div').nth(3).locator('b').textContent();if(g!=='90625'){fails++;console.log('FAIL live gold digits',g);}}
  // wonders tour: open, go to wonder 3, the reveal stays hidden until Show me runs the real code
  await p.click('#tourb');await p.click('#tnext');await p.click('#tnext');
