@@ -1,0 +1,6 @@
+count n = 0
+forever: n = n + 1
+n = n + 1
+show n
+forever: n = n + 1
+show n

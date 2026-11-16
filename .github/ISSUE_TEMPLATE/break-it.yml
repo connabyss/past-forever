@@ -1,0 +1,42 @@
+name: Break it
+description: You found a wrong answer, a loop you can answer that Past Forever can't, or a longer liar.
+title: "Break it: "
+labels: ["break-it"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What did you find?
+      options:
+        - A wrong answer (it says "proved" and is wrong)
+        - A loop it can't see the end of, but I can
+        - A longer liar
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Your code
+      description: Paste the Past Forever program, exactly as you ran it.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: printed
+    attributes:
+      label: What Past Forever printed
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: truth
+    attributes:
+      label: The real answer, and how you know
+      description: Working, a script, or a link. For a liar, say how many digits it stays calm.
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Name for the Hall of Fame
+      description: Your GitHub name is used if you leave this empty.

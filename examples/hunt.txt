@@ -1,0 +1,4 @@
+hunt c from 0 to 99:
+    x = 0
+    forever: x = x × x + c
+    show x

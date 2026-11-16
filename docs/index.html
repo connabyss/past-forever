@@ -1,0 +1,1525 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body style="margin:0">
+<title>Past Forever</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* layout: one column, a strip of examples, the program, one big Run button, answers below */
+:root{
+  color-scheme:dark;
+  --bg:#0b0e14; --panel:#111620; --line:#1f2733; --ink:#e6edf3; --soft:#8b95a3; --dim:#5c6673;
+  --gold:#f2c14e; --blue:#7aa2f7; --bad:#f7768e; --ok:#4ade80;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;
+}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--sans);font-size:16px;padding-block:22px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font:600 26px/1.1 var(--sans);margin:0;letter-spacing:-.01em}
+h1 span{color:var(--gold)}
+.sub{color:var(--soft);font-size:15px;line-height:1.45;margin:6px 0 0;max-width:60ch}
+.label{font:600 12px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.chip{flex:none;font:500 14px var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--line);
+  border-radius:999px;padding:9px 14px;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+.chip:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.edit{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+textarea{display:block;width:100%;box-sizing:border-box;min-height:190px;resize:vertical;background:transparent;border:0;
+  color:var(--ink);font:400 16px/1.6 var(--mono);padding:14px 16px;tab-size:4;white-space:pre;overflow:auto}
+.keys{display:flex;gap:8px;flex-wrap:wrap;padding:0 12px 12px}
+.key{font:600 15px var(--mono);color:var(--blue);background:transparent;border:1px solid var(--line);border-radius:8px;
+  padding:7px 12px;cursor:pointer}
+.run{font:600 17px var(--sans);color:#14110a;background:var(--gold);border:0;border-radius:12px;padding:15px;cursor:pointer}
+.run:active{transform:translateY(1px)}
+.out{display:flex;flex-direction:column;gap:8px;min-height:60px}
+.row{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 14px;min-width:0}
+.ans{display:flex;gap:10px;align-items:baseline;justify-content:space-between}
+.val{font:600 17px/1.5 var(--mono);color:var(--gold);overflow-wrap:anywhere;min-width:0}
+.row.dim .val{color:var(--soft)}
+.row.bad .val{color:var(--bad)}
+.whyb{flex:none;font:500 13px var(--sans);color:var(--blue);background:transparent;border:0;padding:4px 2px;cursor:pointer}
+.why{color:var(--soft);font-size:14.5px;line-height:1.5;margin:8px 0 2px}
+.empty{color:var(--dim);font-size:15px}
+.time{color:var(--dim);font-size:13px}
+details{border-top:1px solid var(--line);padding-top:14px;color:var(--soft);font-size:15px;line-height:1.55}
+summary{cursor:pointer;color:var(--ink);font-weight:600}
+details code{font-family:var(--mono);color:var(--ink);font-size:14px}
+/* hunt map */
+.hunt .head{font:600 15px/1.45 var(--mono);color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0}
+.lg{display:flex;align-items:center;gap:6px;font:500 14px var(--sans);color:var(--soft)}
+.lg i{width:12px;height:12px;border-radius:3px;flex:none}
+.lg b{font-weight:600;color:var(--ink)}
+.grid{display:grid;gap:3px}
+.sq{aspect-ratio:1;border:0;border-radius:3px;padding:0;cursor:pointer;min-width:0}
+.sq[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
+.cols{display:grid;gap:3px;margin-top:4px}
+.cols span{font:400 11px var(--mono);color:var(--dim);text-align:center}
+.pickd{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;font:500 15px var(--mono);color:var(--ink)}
+.open{font:600 14px var(--sans);color:var(--blue);background:transparent;border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+details ul{padding-left:18px;margin:10px 0 0;display:flex;flex-direction:column;gap:6px}
+</style>
+<div class="wrap">
+  <header>
+    <h1>Past <span>Forever</span></h1>
+    <p class="sub">A language where a loop can run forever, and the program carries on afterwards. It only says a number settled when it can prove it.</p>
+  </header>
+  <div>
+    <div class="label" style="margin-bottom:8px">Try one</div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="edit">
+    <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Program"></textarea>
+    <div class="keys" id="keys"></div>
+  </div>
+  <button class="run" id="run">Run</button>
+  <div>
+    <div class="label" style="margin-bottom:8px">Answers <span class="time" id="time"></span></div>
+    <div class="out" id="out"></div>
+  </div>
+  <details>
+    <summary>Words it knows</summary>
+    <ul>
+      <li><code>x = 5</code> gives a name a number. <code>count n = 0</code> makes a count that can go past forever.</li>
+      <li><code>forever: x = x × x</code> runs the rest of the line without end. Lines pushed in below it work too.</li>
+      <li><code>show x</code>, <code>show 40 digits of x</code>, and <code>why x</code> for the reason.</li>
+      <li><code>if x ends in 7: found = yes</code>, with <code>else:</code>. Also <code>is even</code>, <code>is odd</code>, <code>is a palindrome</code>, <code>=</code>, <code>&lt;</code>, <code>&gt;</code>.</li>
+      <li><code>+ − × /</code>, powers like <code>x^5</code>, and <code>mod</code>, <code>backwards(x)</code>, <code>digitsum(x)</code>, <code>repeat 10:</code>, and <code>forever</code> as a number for counts.</li>
+      <li><code>hunt c from 0 to 99:</code> runs the lines pushed in below it once for every number, and sorts the numbers by what their last <code>show</code> said. Tap a square to open that one loop. Add <code>ends in 57</code> before the colon to look only at numbers ending in 57 (that is what Zoom in does). Rings and liars are checked 40 digits deep.</li>
+      <li>You can divide by anything that has no 2 or 5 in it. There is no one half here.</li>
+    </ul>
+  </details>
+</div>
+<script>
+// Past forever: a language where a loop can run forever and the program carries on afterwards.
+// One file, no dependencies. Works in node and in a browser.
+'use strict';
+(function (root) {
+
+// ───────────────────────── exact fractions ─────────────────────────
+const abs = (a) => (a < 0n ? -a : a);
+function gcd(a, b) { a = abs(a); b = abs(b); while (b) { [a, b] = [b, a % b]; } return a; }
+function Q(n, d = 1n) {
+  if (d === 0n) throw new LangError('dividing by zero');
+  if (d < 0n) { n = -n; d = -d; }
+  const g = gcd(n, d) || 1n;
+  return { n: n / g, d: d / g };
+}
+const Q0 = Q(0n), Q1 = Q(1n);
+const qadd = (a, b) => Q(a.n * b.d + b.n * a.d, a.d * b.d);
+const qsub = (a, b) => Q(a.n * b.d - b.n * a.d, a.d * b.d);
+const qmul = (a, b) => Q(a.n * b.n, a.d * b.d);
+const qdiv = (a, b) => Q(a.n * b.d, a.d * b.n);
+const qneg = (a) => Q(-a.n, a.d);
+const qeq = (a, b) => a.n === b.n && a.d === b.d;
+const qzero = (a) => a.n === 0n;
+const qint = (a) => a.d === 1n;
+const tenIntegral = (a) => a.d % 2n !== 0n && a.d % 5n !== 0n;   // no 2 or 5 underneath
+function mod(a, m) { const r = a % m; return r < 0n ? r + m : r; }
+function modInv(a, m) {
+  let [r0, r1] = [mod(a, m), m], [s0, s1] = [1n, 0n];
+  while (r1) { const q = r0 / r1; [r0, r1] = [r1, r0 - q * r1]; [s0, s1] = [s1, s0 - q * s1]; }
+  if (r0 !== 1n) return null;
+  return mod(s0, m);
+}
+function qmod(a, m) {                  // a fraction as a remainder, or null if it has none
+  if (a.d === 1n) return mod(a.n, m);
+  const inv = modInv(a.d, m); if (inv === null) return null;
+  return mod(a.n * inv, m);
+}
+const pow10cache = new Map();
+function pow10(k) { let v = pow10cache.get(k); if (v === undefined) { v = 10n ** BigInt(k); pow10cache.set(k, v); } return v; }
+function tens(a) {                     // how many 10s divide a (a is a BigInt, not 0)
+  let k = 0; while (a % 10n === 0n) { a /= 10n; k++; } return k;
+}
+
+class LangError extends Error {}
+
+// ───────────────────────── counts past forever (ordinals below w^w) ─────────────────────────
+// a count is a list of [power, times] pairs, biggest power first.  [[1,2n],[0,3n]] = forever × 2 + 3
+const O = {
+  zero: [],
+  fin: (n) => (n === 0n ? [] : [[0, n]]),
+  omega: [[1, 1n]],
+  isFin: (a) => a.length === 0 || a[0][0] === 0,
+  finVal: (a) => (a.length ? a[0][1] : 0n),
+  add(a, b) {
+    if (!b.length) return a;
+    const e = b[0][0], out = [];
+    for (const t of a) { if (t[0] > e) out.push(t); else if (t[0] === e) { out.push([e, t[1] + b[0][1]]); return out.concat(b.slice(1)); } else break; }
+    return out.concat(b);
+  },
+  mulTerm(a, e, c) {                   // a × (forever^e × c)
+    if (!a.length || c === 0n) return [];
+    if (e === 0) return [[a[0][0], a[0][1] * c]].concat(a.slice(1));
+    return [[a[0][0] + e, c]];
+  },
+  mul(a, b) { let out = []; for (const [e, c] of b) out = O.add(out, O.mulTerm(a, e, c)); return out; },
+  cmp(a, b) {
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+      if (i >= a.length) return -1; if (i >= b.length) return 1;
+      if (a[i][0] !== b[i][0]) return a[i][0] < b[i][0] ? -1 : 1;
+      if (a[i][1] !== b[i][1]) return a[i][1] < b[i][1] ? -1 : 1;
+    }
+    return 0;
+  },
+  lsub(big, small) {                   // the d with small + d = big (needs big >= small)
+    let i = 0;
+    while (i < small.length && i < big.length && small[i][0] === big[i][0] && small[i][1] === big[i][1]) i++;
+    if (i >= small.length) return big.slice(i);
+    if (i < big.length && big[i][0] === small[i][0]) return [[big[i][0], big[i][1] - small[i][1]]].concat(big.slice(i + 1));
+    return big.slice(i);
+  },
+  show(a) {
+    if (!a.length) return '0';
+    return a.map(([e, c]) => {
+      if (e === 0) return String(c);
+      const base = e === 1 ? 'forever' : e === 2 ? 'forever × forever' : 'forever^' + e;
+      return c === 1n ? base : base + ' × ' + c;
+    }).join(' + ');
+  },
+};
+
+// ───────────────────────── polynomials in several names, fraction coefficients ─────────────────────────
+class Poly {
+  constructor(terms) { this.t = terms || new Map(); }   // key "a^2*b" -> {c: fraction, e: {a:2,b:1}}
+  static key(e) { return Object.keys(e).sort().map((k) => k + '^' + e[k]).join('*'); }
+  static num(q) { const p = new Poly(); if (!qzero(q)) p.t.set('', { c: q, e: {} }); return p; }
+  static name(v) { const p = new Poly(); p.t.set(v + '^1', { c: Q1, e: { [v]: 1 } }); return p; }
+  put(e, c) {
+    const k = Poly.key(e), old = this.t.get(k);
+    const nc = old ? qadd(old.c, c) : c;
+    if (qzero(nc)) this.t.delete(k); else this.t.set(k, { c: nc, e });
+  }
+  add(o) { const r = new Poly(new Map(this.t)); for (const { c, e } of o.t.values()) r.put(e, c); return r; }
+  scale(q) { const r = new Poly(); for (const { c, e } of this.t.values()) r.put(e, qmul(c, q)); return r; }
+  sub(o) { return this.add(o.scale(Q(-1n))); }
+  mul(o) {
+    const r = new Poly();
+    if (this.t.size * o.t.size > 4000) throw new TooBig();
+    for (const a of this.t.values()) for (const b of o.t.values()) {
+      const e = { ...a.e }; for (const k in b.e) e[k] = (e[k] || 0) + b.e[k];
+      r.put(e, qmul(a.c, b.c));
+    }
+    return r;
+  }
+  pow(n) { let r = Poly.num(Q1); for (let i = 0; i < n; i++) r = r.mul(this); return r; }
+  names() { const s = new Set(); for (const { e } of this.t.values()) for (const k in e) s.add(k); return s; }
+  isZero() { return this.t.size === 0; }
+  constant() { if (this.t.size === 0) return Q0; if (this.t.size === 1 && this.t.has('')) return this.t.get('').c; return null; }
+  subst(map) {                         // replace names by polynomials
+    let r = new Poly();
+    for (const { c, e } of this.t.values()) {
+      let m = Poly.num(c);
+      for (const k in e) { const rep = map.get(k) || Poly.name(k); m = m.mul(e[k] === 1 ? rep : rep.pow(e[k])); }
+      r = r.add(m);
+    }
+    return r;
+  }
+  deriv(v) {
+    const r = new Poly();
+    for (const { c, e } of this.t.values()) {
+      if (!e[v]) continue;
+      const ne = { ...e }; const k = ne[v]; if (k === 1) delete ne[v]; else ne[v] = k - 1;
+      r.put(ne, qmul(c, Q(BigInt(k))));
+    }
+    return r;
+  }
+  evalMod(vals, m) {                   // vals: name -> BigInt remainder.  null if a coefficient has no remainder
+    let s = 0n;
+    for (const { c, e } of this.t.values()) {
+      let x = qmod(c, m); if (x === null) return null;
+      for (const k in e) { const b = vals.get(k); for (let i = 0; i < e[k]; i++) x = (x * b) % m; }
+      s = (s + x) % m;
+    }
+    return s;
+  }
+  evalQ(vals) {
+    let s = Q0;
+    for (const { c, e } of this.t.values()) {
+      let x = c;
+      for (const k in e) { const b = vals.get(k); for (let i = 0; i < e[k]; i++) x = qmul(x, b); }
+      s = qadd(s, x);
+    }
+    return s;
+  }
+  uni(v) {                             // coefficients low to high if this only uses the name v, else null
+    const out = [];
+    for (const { c, e } of this.t.values()) {
+      const ks = Object.keys(e); if (ks.length > 1 || (ks.length === 1 && ks[0] !== v)) return null;
+      const d = e[v] || 0; while (out.length <= d) out.push(Q0); out[d] = c;
+    }
+    return out;
+  }
+  text(times = ' × ') {
+    if (!this.t.size) return '0';
+    const parts = [];
+    const ts = [...this.t.values()].sort((a, b) => Poly.key(b.e).length - Poly.key(a.e).length);
+    for (const { c, e } of ts) {
+      const vars = Object.keys(e).sort().map((k) => Array(e[k]).fill(k).join(times)).join(times);
+      const neg = c.n < 0n, a = neg ? qneg(c) : c;
+      const cs = a.d === 1n ? String(a.n) : a.n + '/' + a.d;
+      let body = vars ? (qeq(a, Q1) ? vars : cs + times + vars) : cs;
+      parts.push((neg ? '− ' : parts.length ? '+ ' : '') + body);
+    }
+    return parts.join(' ');
+  }
+}
+class TooBig extends Error {}
+
+// one-name polynomials as plain lists (low to high), used for "x obeys this rule" algebra
+const U = {
+  trim(a) { a = a.slice(); while (a.length && qzero(a[a.length - 1])) a.pop(); return a; },
+  add(a, b) { const r = []; for (let i = 0; i < Math.max(a.length, b.length); i++) r.push(qadd(a[i] || Q0, b[i] || Q0)); return U.trim(r); },
+  scale(a, q) { return U.trim(a.map((c) => qmul(c, q))); },
+  mul(a, b) {
+    if (!a.length || !b.length) return [];
+    const r = Array(a.length + b.length - 1).fill(Q0);
+    for (let i = 0; i < a.length; i++) for (let j = 0; j < b.length; j++) r[i + j] = qadd(r[i + j], qmul(a[i], b[j]));
+    return U.trim(r);
+  },
+  rem(a, p) {                          // remainder of a after dividing by p
+    a = U.trim(a); const dp = p.length - 1, lead = p[dp];
+    while (a.length - 1 >= dp && a.length) {
+      const f = qdiv(a[a.length - 1], lead), sh = a.length - 1 - dp;
+      for (let i = 0; i <= dp; i++) a[i + sh] = qsub(a[i + sh], qmul(f, p[i]));
+      a = U.trim(a);
+    }
+    return a;
+  },
+  div(a, p) {                          // [quotient, remainder]
+    a = U.trim(a); const dp = p.length - 1, lead = p[dp]; const q = [];
+    while (a.length - 1 >= dp && a.length) {
+      const f = qdiv(a[a.length - 1], lead), sh = a.length - 1 - dp;
+      while (q.length <= sh) q.push(Q0); q[sh] = f;
+      for (let i = 0; i <= dp; i++) a[i + sh] = qsub(a[i + sh], qmul(f, p[i]));
+      a = U.trim(a);
+    }
+    return [U.trim(q), a];
+  },
+  evalMod(a, x, m) { let s = 0n; for (let i = a.length - 1; i >= 0; i--) { const c = qmod(a[i], m); if (c === null) return null; s = mod(s * x + c, m); } return s; },
+};
+
+// ───────────────────────── values ─────────────────────────
+// num      {k:'num', q}                     an exact number (whole, or a fraction with no 2 or 5 underneath)
+// end      {k:'end', mod(k), atom?, poly?}  an endless number: digits on demand, maybe a rule it obeys
+// count    {k:'count', o}                   a count, possibly past forever
+// bool     {k:'bool', v}
+// restless {k:'restless', desc}             proved to never settle
+// unknown  {k:'unknown', desc}              can't see the end
+const num = (q, why) => ({ k: 'num', q, why });
+const int = (n) => num(Q(BigInt(n)));
+const bool = (v, why, tag) => ({ k: 'bool', v, why, tag });
+const count = (o, why) => ({ k: 'count', o, why });
+const unknown = (desc) => ({ k: 'unknown', desc });
+const restless = (desc) => ({ k: 'restless', desc });
+let atomSeq = 0;
+let ATOMS = [];                        // the endless numbers met so far in this run
+function endGeneric(modfn, why) { const memo = new Map(); return { k: 'end', mod: (k) => { let v = memo.get(k); if (v === undefined) { v = modfn(k); memo.set(k, v); } return v; }, why }; }
+function endAtom(atom, poly, why) {
+  poly = U.rem(poly, atom.P);
+  if (poly.length <= 1) return num(poly[0] || Q0, why);
+  if (!poly.every(tenIntegral)) return endGeneric((k) => U.evalMod(poly, atom.mod(k), pow10(k)), why);
+  const v = endGeneric((k) => U.evalMod(poly, atom.mod(k), pow10(k)), why);
+  v.atom = atom; v.poly = poly; return v;
+}
+function valMod(v, k) {                // last k digits as a BigInt
+  if (v.k === 'num') return qmod(v.q, pow10(k));
+  if (v.k === 'end') return v.mod(k);
+  return null;
+}
+const isBad = (v) => v.k === 'restless' || v.k === 'unknown';
+function poison(...vs) { for (const v of vs) if (v.k === 'unknown') return v; for (const v of vs) if (v.k === 'restless') return v; return null; }
+
+function arith(op, a, b) {
+  const bad = poison(a, b); if (bad) return bad;
+  if (a.k === 'bool' || b.k === 'bool') throw new LangError('yes and no are not numbers');
+  if (a.k === 'count' || b.k === 'count') return countArith(op, a, b);
+  if (a.k === 'num' && b.k === 'num') {
+    if (op === '+') return num(qadd(a.q, b.q));
+    if (op === '-') return num(qsub(a.q, b.q));
+    if (op === '*') return num(qmul(a.q, b.q));
+    if (op === '/') {
+      if (qzero(b.q)) throw new LangError('dividing by zero');
+      const r = qdiv(a.q, b.q);
+      if (!tenIntegral(r)) throw new LangError(showPlain(b) + ' does not go into ' + showPlain(a) + '. Here you can divide by anything except what has a 2 or a 5 left over underneath');
+      return num(r);
+    }
+    if (op === 'mod') {
+      if (!qint(a.q) || !qint(b.q) || b.q.n <= 0n) throw new LangError('mod needs whole numbers');
+      return num(Q(mod(a.q.n, b.q.n)));
+    }
+  }
+  // at least one endless number
+  if (op === 'mod') throw new LangError('mod needs whole numbers, not endless ones');
+  if (op === '/') {
+    if (b.k !== 'num') throw new LangError('dividing by an endless number is not built yet');
+    if (qzero(b.q)) throw new LangError('dividing by zero');
+    if (!tenIntegral(qdiv(Q1, b.q))) throw new LangError('an endless number can be divided by anything except what has a 2 or a 5 in it');
+    return arith('*', a, num(qdiv(Q1, b.q)));
+  }
+  const pa = a.k === 'num' ? [a.q] : a.poly, pb = b.k === 'num' ? [b.q] : b.poly;
+  const atom = a.atom || b.atom;
+  if (pa && pb && atom && (!a.atom || !b.atom || a.atom === b.atom)) {
+    const p = op === '+' ? U.add(pa, pb) : op === '-' ? U.add(pa, U.scale(pb, Q(-1n))) : U.mul(pa, pb);
+    return endAtom(atom, p);
+  }
+  return endGeneric((k) => {
+    const m = pow10(k), x = valMod(a, k), y = valMod(b, k);
+    return op === '+' ? mod(x + y, m) : op === '-' ? mod(x - y, m) : mod(x * y, m);
+  });
+}
+function toCount(v) {
+  if (v.k === 'count') return v.o;
+  if (v.k === 'num' && qint(v.q) && v.q.n >= 0n) return O.fin(v.q.n);
+  throw new LangError('a count can only be mixed with whole numbers from 0 up');
+}
+function countArith(op, a, b) {
+  const x = toCount(a), y = toCount(b);
+  if (op === '+') return count(O.add(x, y));
+  if (op === '*') return count(O.mul(x, y));
+  if (op === '-') {
+    if (O.isFin(x) && O.isFin(y) && O.finVal(x) >= O.finVal(y)) return count(O.fin(O.finVal(x) - O.finVal(y)));
+    if (O.cmp(x, y) >= 0 && O.isFin(y)) {
+      const last = x[x.length - 1];
+      if (last[0] === 0 && last[1] >= O.finVal(y)) return count(O.add(x.slice(0, -1), O.fin(last[1] - O.finVal(y))));
+    }
+    throw new LangError('there is no step just before forever, so that cannot be taken away');
+  }
+  throw new LangError('counts can be added and multiplied, not divided');
+}
+const EQ_DIGITS = 1000;
+function equal(a, b) {                 // -> bool value or unknown
+  const bad = poison(a, b); if (bad) return unknown(bad.desc);
+  if (a.k === 'bool' && b.k === 'bool') return bool(a.v === b.v);
+  if (a.k === 'bool' || b.k === 'bool') return bool(false);
+  if (a.k === 'count' || b.k === 'count') {
+    if ((a.k !== 'count' && !(a.k === 'num' && qint(a.q) && a.q.n >= 0n)) || (b.k !== 'count' && !(b.k === 'num' && qint(b.q) && b.q.n >= 0n))) return bool(false);
+    return bool(O.cmp(toCount(a), toCount(b)) === 0);
+  }
+  if (a.k === 'num' && b.k === 'num') return bool(qeq(a.q, b.q));
+  const d = arith('-', a, b);
+  if (d.k === 'num') return bool(qzero(d.q), qzero(d.q) ? 'this follows from the rule the number obeys once its loop has run forever' : undefined, qzero(d.q) ? 'proved' : undefined);
+  const r = d.mod(EQ_DIGITS);
+  if (r !== 0n) {
+    let j = 1; while (r % pow10(j) === 0n) j++;
+    return bool(false, 'they differ at digit ' + j + ' from the right', 'proved');
+  }
+  return unknown('the two agree on their last ' + EQ_DIGITS + ' digits, but I have no proof they are the same');
+}
+function compare(op, a, b) {
+  const bad = poison(a, b); if (bad) return unknown(bad.desc);
+  if (a.k === 'count' || b.k === 'count') { const c = O.cmp(toCount(a), toCount(b)); return bool(op === '<' ? c < 0 : op === '>' ? c > 0 : op === '<=' ? c <= 0 : c >= 0); }
+  if (a.k !== 'num' || b.k !== 'num' || !qint(a.q) || !qint(b.q)) throw new LangError('endless numbers have no bigger or smaller, only the same or different');
+  const x = a.q.n, y = b.q.n;
+  return bool(op === '<' ? x < y : op === '>' ? x > y : op === '<=' ? x <= y : x >= y);
+}
+
+// ───────────────────────── showing values ─────────────────────────
+const SHOW_DIGITS = 12;
+function digitsText(r, k) { return '…' + String(r).padStart(k, '0'); }
+function showPlain(v) { return v.q.d === 1n ? String(v.q.n) : v.q.n + '/' + v.q.d; }
+function show(v, k = SHOW_DIGITS) {
+  switch (v.k) {
+    case 'num':
+      if (qint(v.q) && v.q.n >= 0n) return String(v.q.n);
+      return digitsText(qmod(v.q, pow10(k)), k) + '  (this is ' + showPlain(v) + ')';
+    case 'end': return digitsText(v.mod(k), k);
+    case 'count': return O.show(v.o);
+    case 'bool': return (v.v ? 'yes' : 'no') + (v.tag ? '  (' + v.tag + ')' : '');
+    case 'restless': return 'never settles';
+    case 'unknown': return "can't see the end";
+  }
+}
+function whyText(v) {
+  if (v.k === 'restless') return v.desc;
+  if (v.k === 'unknown') return v.desc;
+  return v.why || 'worked out directly, no forever involved';
+}
+
+// ───────────────────────── reading the program ─────────────────────────
+const KEYWORDS = new Set(['forever', 'repeat', 'if', 'else', 'show', 'why', 'count', 'yes', 'no', 'and', 'or', 'not', 'mod', 'ends', 'in', 'is', 'palindrome', 'even', 'odd', 'digits', 'of', 'hunt', 'from', 'to']);
+function lexLine(text, lineNo) {
+  const toks = []; let i = 0;
+  const push = (t, v) => toks.push({ t, v, line: lineNo });
+  while (i < text.length) {
+    const c = text[i];
+    if (c === ' ' || c === '\t' || c === ';') { i++; continue; }
+    if (c === '#' || (c === '-' && text[i + 1] === '-')) break;
+    if (/[0-9]/.test(c)) { let j = i; while (j < text.length && /[0-9_]/.test(text[j])) j++; push('num', text.slice(i, j).replace(/_/g, '')); i = j; continue; }
+    if (/[A-Za-z_]/.test(c)) { let j = i; while (j < text.length && /[A-Za-z_0-9]/.test(text[j])) j++; const w = text.slice(i, j); push(KEYWORDS.has(w) ? w : 'name', w); i = j; continue; }
+    const two = text.slice(i, i + 2);
+    if (two === '<=' || two === '>=' || two === '!=' || two === '==') { push(two === '==' ? '=' : two, two); i += 2; continue; }
+    if (c === '×' || c === '*') { push('*', c); i++; continue; }
+    if (c === '−' || c === '-') { push('-', c); i++; continue; }
+    if (c === '≤') { push('<=', c); i++; continue; }
+    if (c === '≥') { push('>=', c); i++; continue; }
+    if (c === '≠') { push('!=', c); i++; continue; }
+    if ('+/=<>():,^'.includes(c)) { push(c, c); i++; continue; }
+    throw new LangError('line ' + lineNo + ": I don't know the mark " + c);
+  }
+  return toks;
+}
+function parse(src) {
+  const lines = [];
+  src.split(/\r?\n/).forEach((raw, idx) => {
+    const text = raw.replace(/\t/g, '    ');
+    const toks = lexLine(text, idx + 1);
+    if (toks.length) lines.push({ indent: text.length - text.trimStart().length, toks, line: idx + 1 });
+  });
+  let li = 0;
+  function block(indent) {
+    const out = [];
+    while (li < lines.length && lines[li].indent >= indent) {
+      if (lines[li].indent > indent) throw new LangError('line ' + lines[li].line + ': this line is pushed in too far');
+      const L = lines[li++];
+      const st = lineStatements(L);
+      for (const s of st) {
+        if (s.t === 'else') {
+          const prev = out[out.length - 1];
+          if (!prev || prev.t !== 'if' || prev.else) throw new LangError('line ' + L.line + ': else needs an if just before it');
+          prev.else = s.body;
+        } else out.push(s);
+      }
+    }
+    return out;
+  }
+  function lineStatements(L) {
+    const toks = L.toks; let p = 0;
+    const peek = () => toks[p], at = (t) => toks[p] && toks[p].t === t;
+    const eat = (t) => { if (!at(t)) throw new LangError('line ' + L.line + ': expected ' + t + (toks[p] ? ' but found ' + toks[p].v : ' at the end')); return toks[p++]; };
+    const out = [];
+    function body() {                  // after a ':' : the rest of the line, or the pushed-in lines below
+      if (p < toks.length) { const b = []; while (p < toks.length && !at('else')) b.push(statement()); return b; }
+      if (li < lines.length && lines[li].indent > L.indent) return block(lines[li].indent);
+      throw new LangError('line ' + L.line + ': nothing after the colon');
+    }
+    function statement() {
+      const line = L.line;
+      if (at('forever') && toks[p + 1] && toks[p + 1].t === ':') { p += 2; return { t: 'forever', body: body(), line }; }
+      if (at('hunt')) {
+        p++; const name = eat('name').v; eat('from'); const lo = addE(); eat('to'); const hi = addE();
+        let end = null; if (at('ends') && toks[p + 1] && toks[p + 1].t === 'in') { p += 2; end = eat('num').v; }
+        eat(':');
+        return { t: 'hunt', name, lo, hi, end, body: body(), line };
+      }
+      if (at('repeat')) { p++; const n = expr(); eat(':'); return { t: 'repeat', n, body: body(), line }; }
+      if (at('if')) {
+        p++; const c = expr(); eat(':'); const s = { t: 'if', c, body: body(), line };
+        if (at('else')) { p++; eat(':'); s.else = body(); }
+        return s;
+      }
+      if (at('else')) { p++; eat(':'); return { t: 'else', body: body(), line }; }
+      if (at('show')) {
+        p++;
+        if (at('num') && toks[p + 1] && toks[p + 1].t === 'digits') { const k = Number(toks[p].v); p += 2; eat('of'); return { t: 'show', e: expr(), k, line }; }
+        return { t: 'show', e: expr(), line };
+      }
+      if (at('why')) { p++; return { t: 'why', name: eat('name').v, line }; }
+      if (at('count')) { p++; const name = eat('name').v; eat('='); return { t: 'set', name, e: expr(), decl: 'count', line }; }
+      if (at('name') && toks[p + 1] && toks[p + 1].t === '=') { const name = toks[p].v; p += 2; return { t: 'set', name, e: expr(), line }; }
+      throw new LangError('line ' + line + ": I can't read this" + (toks[p] ? ' (at ' + toks[p].v + ')' : ''));
+    }
+    function expr() { return orE(); }
+    function orE() { let a = andE(); while (at('or')) { p++; a = { t: 'or', a, b: andE() }; } return a; }
+    function andE() { let a = notE(); while (at('and')) { p++; a = { t: 'and', a, b: notE() }; } return a; }
+    function notE() { if (at('not')) { p++; return { t: 'not', a: notE() }; } return cmpE(); }
+    function cmpE() {
+      let a = addE();
+      for (;;) {
+        if (at('=')) { p++; a = { t: 'eq', a, b: addE() }; }
+        else if (at('!=')) { p++; a = { t: 'not', a: { t: 'eq', a, b: addE() } }; }
+        else if (at('<') || at('>') || at('<=') || at('>=')) { const op = toks[p++].t; a = { t: 'cmp', op, a, b: addE() }; }
+        else if (at('ends')) { p++; eat('in'); const d = eat('num').v; a = { t: 'endsin', a, d }; }
+        else if (at('is')) {
+          p++; if (at('name') && toks[p].v === 'a') p++;
+          if (at('palindrome')) { p++; a = { t: 'fn', f: 'palindrome', a }; }
+          else if (at('even')) { p++; a = { t: 'endsmod', a, m: 2n, r: 0n }; }
+          else if (at('odd')) { p++; a = { t: 'endsmod', a, m: 2n, r: 1n }; }
+          else throw new LangError('line ' + L.line + ': after "is" I know: a palindrome, even, odd');
+        } else return a;
+      }
+    }
+    function addE() { let a = mulE(); while (at('+') || at('-')) { const op = toks[p++].t; a = { t: 'bin', op, a, b: mulE() }; } return a; }
+    function mulE() { let a = unE(); while (at('*') || at('/') || at('mod')) { const op = toks[p++].t; a = { t: 'bin', op, a, b: unE() }; } return a; }
+    function unE() { if (at('-')) { p++; return { t: 'bin', op: '-', a: { t: 'num', v: 0n }, b: unE() }; } return powE(); }
+    function powE() {                  // x ^ 5 : a whole-number power, written out as multiplying
+      let a = prim();
+      if (at('^')) {
+        p++; const k = Number(eat('num').v);
+        if (k > 64) throw new LangError('line ' + L.line + ': powers above 64 are not allowed');
+        if (k === 0) return { t: 'num', v: 1n };
+        let r = a; for (let i = 1; i < k; i++) r = { t: 'bin', op: '*', a: r, b: a };
+        return r;
+      }
+      return a;
+    }
+    function prim() {
+      const tk = peek(); if (!tk) throw new LangError('line ' + L.line + ': the line stops too soon');
+      if (tk.t === 'num') { p++; return { t: 'num', v: BigInt(tk.v) }; }
+      if (tk.t === 'yes' || tk.t === 'no') { p++; return { t: 'bool', v: tk.t === 'yes' }; }
+      if (tk.t === 'forever') { p++; return { t: 'omega' }; }
+      if (tk.t === '(') { p++; const e = expr(); eat(')'); return e; }
+      if (tk.t === 'name') {
+        p++;
+        if (at('(')) { p++; const a = expr(); eat(')'); if (!FUNCS[tk.v]) throw new LangError('line ' + L.line + ": I don't know " + tk.v + '( )'); return { t: 'fn', f: tk.v, a }; }
+        return { t: 'var', name: tk.v, line: L.line };
+      }
+      throw new LangError('line ' + L.line + ": I can't read " + tk.v + ' here');
+    }
+    while (p < toks.length) out.push(statement());
+    return out;
+  }
+  const prog = block(lines.length ? lines[0].indent : 0);
+  if (li < lines.length) throw new LangError('line ' + lines[li].line + ': this line is pushed in less than the first line');
+  return prog;
+}
+
+function wholeArg(v, what) {
+  if (v.k !== 'num' || !qint(v.q) || v.q.n < 0n) throw new LangError(what + ' needs an ordinary whole number, 0 or more');
+  return v.q.n;
+}
+const FUNCS = {
+  backwards: (v) => int(BigInt(String(wholeArg(v, 'backwards')).split('').reverse().join(''))),
+  digitsum: (v) => int(String(wholeArg(v, 'digitsum')).split('').reduce((s, c) => s + Number(c), 0)),
+  length: (v) => int(String(wholeArg(v, 'length')).length),
+  palindrome: (v) => { const s = String(wholeArg(v, 'palindrome')); return bool(s === s.split('').reverse().join('')); },
+};
+
+// ───────────────────────── running ─────────────────────────
+const LIMITS = { steps: 4000, size: 10n ** 2500n, ms: 1500, orbit: 200000, huntMs: 15000 };
+
+class Machine {
+  constructor(opts = {}) { this.env = new Map(); this.counts = new Set(); this.out = []; this.quiet = 0; this.limits = { ...LIMITS, ...opts }; }
+  emit(text, why) { if (!this.quiet) this.out.push({ text, why }); }
+  get(name, line) { const v = this.env.get(name); if (!v) throw new LangError('line ' + line + ': ' + name + ' has no value yet'); return v; }
+  truth(v, line) {
+    if (v.k === 'bool') return v.v;
+    if (isBad(v)) throw new Unseen(v);
+    throw new LangError('line ' + line + ': if needs a yes or a no');
+  }
+  ev(e) {
+    switch (e.t) {
+      case 'num': return num(Q(e.v));
+      case 'bool': return bool(e.v);
+      case 'omega': return count(O.omega);
+      case 'var': return this.get(e.name, e.line);
+      case 'bin': return arith(e.op, this.ev(e.a), this.ev(e.b));
+      case 'eq': return equal(this.ev(e.a), this.ev(e.b));
+      case 'cmp': return compare(e.op, this.ev(e.a), this.ev(e.b));
+      case 'not': { const v = this.ev(e.a); if (isBad(v)) return v; if (v.k !== 'bool') throw new LangError('not needs a yes or a no'); return bool(!v.v, v.why, v.tag); }
+      case 'and': case 'or': {
+        const a = this.ev(e.a), b = this.ev(e.b);
+        const known = (v) => v.k === 'bool';
+        if (!known(a) && !isBad(a) || !known(b) && !isBad(b)) throw new LangError('and / or need a yes or a no on both sides');
+        if (e.t === 'and') { if ((known(a) && !a.v) || (known(b) && !b.v)) return bool(false); if (known(a) && known(b)) return bool(true); }
+        else { if ((known(a) && a.v) || (known(b) && b.v)) return bool(true); if (known(a) && known(b)) return bool(false); }
+        return poison(a, b);
+      }
+      case 'endsin': {
+        const v = this.ev(e.a); if (isBad(v)) return v;
+        if (v.k !== 'num' && v.k !== 'end') throw new LangError('"ends in" needs a number');
+        return bool(valMod(v, e.d.length) === BigInt(e.d));
+      }
+      case 'endsmod': {
+        const v = this.ev(e.a); if (isBad(v)) return v;
+        if (v.k !== 'num' && v.k !== 'end') throw new LangError('even and odd need a number');
+        return bool(valMod(v, 1) % e.m === e.r);
+      }
+      case 'fn': { const v = this.ev(e.a); if (isBad(v)) return v; return FUNCS[e.f](v); }
+    }
+    throw new LangError('internal: unknown expression ' + e.t);
+  }
+  run(stmts) { for (const s of stmts) this.exec(s); }
+  exec(s) {
+    switch (s.t) {
+      case 'set': {
+        let v = this.ev(s.e);
+        if (s.decl === 'count') this.counts.add(s.name);
+        if (this.counts.has(s.name) && !isBad(v)) v = count(toCount(v), v.why);
+        this.env.set(s.name, v); return;
+      }
+      case 'show': { const v = this.ev(s.e); this.lastShown = v; this.emit(show(v, s.k || SHOW_DIGITS), whyText(v)); return; }
+      case 'why': { const v = this.get(s.name, s.line); this.emit(s.name + ': ' + whyText(v)); return; }
+      case 'if': { const c = this.ev(s.c); if (this.truth(c, s.line)) this.run(s.body); else if (s.else) this.run(s.else); return; }
+      case 'repeat': {
+        const n = this.ev(s.n);
+        if (n.k === 'count' && !O.isFin(n.o)) throw new LangError('line ' + s.line + ': to repeat forever, write forever:');
+        const k = wholeArg(n.k === 'count' ? num(Q(O.finVal(n.o))) : n, 'repeat');
+        for (let i = 0n; i < k; i++) this.run(s.body);
+        return;
+      }
+      case 'forever': return runForever(this, s);
+      case 'hunt': return runHunt(this, s);
+    }
+  }
+}
+// ───────────────────────── hunt: try a whole range, sort the answers ─────────────────────────
+const HUNT_MAX = 2000;
+const DEEP = 40;                       // how many digits deep "looking deeper" goes
+function verdictOf(v) {               // a short label for what a shown value did
+  switch (v.k) {
+    case 'num': case 'end': case 'count': return 'settles';
+    case 'bool': return v.v ? 'yes' : 'no';
+    case 'restless': return v.ring ? 'ring of ' + v.ring : v.wild ? 'goes wild' : 'never settles';
+    case 'unknown': return "can't see the end";
+  }
+  return '?';
+}
+function runHunt(m, s) {
+  const lo = wholeArg(m.ev(s.lo), 'hunt from'), hi = wholeArg(m.ev(s.hi), 'hunt to');
+  if (hi < lo) throw new LangError('line ' + s.line + ': a hunt needs "to" at least as big as "from"');
+  if (hi - lo + 1n > BigInt(HUNT_MAX)) throw new LangError('line ' + s.line + ': a hunt can try at most ' + HUNT_MAX + ' numbers at once');
+  const keepEnv = m.env, keepCounts = m.counts, keepOut = m.out, keepAtoms = ATOMS;
+  const groups = new Map(), items = [], t0 = Date.now(); let outOfTime = false;
+  try {
+    const tail = s.end === null ? null : BigInt(s.end), shift = s.end === null ? 1n : pow10(s.end.length);
+    for (let n = lo; n <= hi; n++) {
+      const c = tail === null ? n : n * shift + tail;
+      if (items.length && Date.now() - t0 > m.limits.huntMs) { outOfTime = true; break; }
+      m.env = new Map(keepEnv); m.env.set(s.name, int(c)); m.counts = new Set(keepCounts); m.out = []; ATOMS = [];
+      let label, last = null;
+      try {
+        m.run(s.body);
+        last = m.lastShown;
+        label = last ? verdictOf(last) : null;
+      } catch (e) {
+        if (e instanceof Unseen) label = "can't see the end";
+        else if (e instanceof LangError && !/^line \d+: (I |expected|this line|nothing after|else needs)/.test(e.message)) label = 'stops with an error';
+        else throw e;
+      }
+      m.lastShown = null;
+      if (label === null) throw new LangError('line ' + s.line + ': a hunt needs a show line inside it, so it knows what to sort by');
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(c);
+      const item = { c: String(c), group: label };
+      if (last && last.k !== 'restless' && last.k !== 'unknown') item.value = show(last);
+      if (last && last.wild) item.wild = last.wild;
+      items.push(item);
+    }
+  } finally { m.env = keepEnv; m.counts = keepCounts; m.out = keepOut; ATOMS = keepAtoms; }
+  const order = [...groups.keys()];
+  const width = Math.max(...order.map((g) => g.length));
+  const lines = order.map((g) => {
+    const cs = groups.get(g);
+    return '  ' + g.padEnd(width) + '  ' + String(cs.length).padStart(String(items.length).length) + '   ' + cs.slice(0, 8).join(', ') + (cs.length > 8 ? ', …' : '');
+  });
+  const head = 'hunt ' + s.name + ' from ' + lo + ' to ' + hi + (s.end !== null ? ' ends in ' + s.end : '') + ': tried ' + plural(items.length, 'number') + ', ' + plural(order.length, 'kind') + ' of answer' + (outOfTime ? '\n  (ran out of time after ' + s.name + ' = ' + items[items.length - 1].c + '; try a smaller range)' : '');
+  if (!m.quiet) m.out.push({ text: head + '\n' + lines.join('\n'), why: 'each number was run on its own, from a fresh start. Every answer is the same kind of answer show gives, with the same proofs', hunt: { name: s.name, lo: String(lo), hi: String(hi), end: s.end, outOfTime, groups: order.map((g) => ({ label: g, count: groups.get(g).length })), items } });
+}
+class Unseen extends Error { constructor(v) { super('unseen'); this.v = v; } }
+
+// ───────────────────────── the forever loop ─────────────────────────
+function assignedIn(stmts, set = new Set()) {
+  for (const s of stmts) {
+    if (s.t === 'set') set.add(s.name);
+    if (s.body) assignedIn(s.body, set);
+    if (s.else) assignedIn(s.else, set);
+  }
+  return set;
+}
+function readsIn(e, set) {
+  if (!e || typeof e !== 'object') return set;
+  if (e.t === 'var') set.add(e.name);
+  for (const k of ['a', 'b', 'c', 'e', 'n']) if (e[k] && typeof e[k] === 'object') readsIn(e[k], set);
+  return set;
+}
+function allReads(stmts, set = new Set()) {
+  for (const s of stmts) {
+    if (s.e) readsIn(s.e, set); if (s.c) readsIn(s.c, set); if (s.n) readsIn(s.n, set);
+    if (s.t === 'why') set.add(s.name);
+    if (s.body) allReads(s.body, set); if (s.else) allReads(s.else, set);
+  }
+  return set;
+}
+// a count is "pure" in this loop if the only place it appears is n = n + (something without names)
+function pureCounts(m, stmts, assigned) {
+  const pure = new Set([...assigned].filter((v) => m.counts.has(v)));
+  const noNames = (e) => readsIn(e, new Set()).size === 0;
+  (function walk(list) {
+    for (const s of list) {
+      const isStep = s.t === 'set' && pure.has(s.name) && s.e.t === 'bin' && s.e.op === '+' && s.e.a.t === 'var' && s.e.a.name === s.name && noNames(s.e.b);
+      if (!isStep) {
+        const r = new Set(); if (s.e) readsIn(s.e, r); if (s.c) readsIn(s.c, r); if (s.n) readsIn(s.n, r);
+        if (s.t === 'why') r.add(s.name);
+        for (const v of r) pure.delete(v);
+        if (s.t === 'set') pure.delete(s.name);
+      }
+      if (s.body) walk(s.body); if (s.else) walk(s.else);
+    }
+  })(stmts);
+  return pure;
+}
+function keyOf(v) {
+  if (v.k === 'num') return 'n' + v.q.n + '/' + v.q.d;
+  if (v.k === 'bool') return v.v ? 'y' : 'f';
+  if (v.k === 'count') return 'c' + JSON.stringify(v.o.map(([e, c]) => [e, String(c)]));
+  return null;
+}
+function plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); }
+
+function runForever(m, loop) {
+  const body = loop.body;
+  const assigned = assignedIn(body);
+  const reads = allReads(body);
+  for (const v of reads) if (!m.env.has(v) && !assigned.has(v)) throw new LangError('line ' + loop.line + ': ' + v + ' has no value yet');
+  for (const v of assigned) if (!m.env.has(v)) {
+    // a name first made inside the loop: fine, but it has no start value to reason from
+  }
+  // anything already unseen that the loop leans on poisons what the loop makes
+  for (const v of reads) {
+    const cur = m.env.get(v);
+    if (cur && isBad(cur)) { for (const a of assigned) m.env.set(a, unknown('this loop leans on ' + v + ', and ' + v + ' ' + (cur.k === 'restless' ? 'never settles' : "is something I can't see the end of"))); return; }
+  }
+  const pure = pureCounts(m, body, assigned);
+  const stateNames = [...assigned].filter((v) => !pure.has(v)).sort();
+  const start = new Map(m.env);
+
+  // ── A. just run it and watch for the whole state coming round again
+  const A = watch(m, body, stateNames, pure, start);
+  if (A.done) return;
+  // ── B. reason about it as arithmetic
+  let B = null;
+  try { B = reason(m, body, assigned, pure, start, A); } catch (e) { if (!(e instanceof TooBig) && !(e instanceof NotPoly)) throw e; }
+  if (B) return;
+  // ── C. give up honestly
+  m.env = new Map(start);
+  const note = 'I watched ' + plural(A.steps, 'step') + ' and the loop never came back to a state it had been in, and none of the rules I can prove things with fit this loop';
+  for (const v of assigned) {
+    if (pure.has(v)) continue;
+    if (A.flagsYes.has(v)) m.env.set(v, bool(true, 'it became yes at step ' + A.flagsYes.get(v) + ' and nothing in the loop can turn it back', 'found at step ' + A.flagsYes.get(v)));
+    else m.env.set(v, unknown(note));
+  }
+  settlePureCounts(m, body, pure, start);
+}
+
+// flags that the loop can only ever set to one fixed yes/no
+function oneWayFlags(body) {
+  const seen = new Map();
+  (function walk(list) {
+    for (const s of list) {
+      if (s.t === 'set') { const k = s.e.t === 'bool' ? (s.e.v ? 'y' : 'n') : 'x'; seen.set(s.name, seen.has(s.name) && seen.get(s.name) !== k ? 'x' : k); }
+      if (s.body) walk(s.body); if (s.else) walk(s.else);
+    }
+  })(body);
+  return seen;
+}
+
+function watch(m, body, stateNames, pure, start) {
+  const res = { done: false, steps: 0, flagsYes: new Map() };
+  const oneWay = oneWayFlags(body);
+  for (const v of stateNames) { const cur = m.env.get(v); if (cur && keyOf(cur) === null) { res.skipped = true; return res; } }
+  const seen = new Map(), hist = [];
+  const t0 = Date.now();
+  const snap = () => { const ks = stateNames.map((v) => (m.env.has(v) ? keyOf(m.env.get(v)) : '?')); return ks.includes(null) ? null : ks.join('|'); };
+  const pureNow = () => { const o = new Map(); for (const v of pure) o.set(v, m.env.get(v)); return o; };
+  let hit = null;
+  m.quiet++;
+  const shown = [];
+  try {
+    for (let step = 0; step <= m.limits.steps; step++) {
+      const key = snap();
+      if (key === null) break;
+      if (seen.has(key)) { hit = { first: seen.get(key), again: step }; break; }
+      seen.set(key, step); hist.push({ env: new Map(m.env), pure: pureNow() });
+      if (step === m.limits.steps || Date.now() - t0 > m.limits.ms) break;
+      let tooBig = false;
+      if (step < 4) { m.quiet--; const before = m.out.length; try { m.run(body); } finally { m.quiet++; } shown.push(...m.out.splice(before)); }
+      else m.run(body);
+      res.steps = step + 1;
+      for (const v of stateNames) {
+        const cur = m.env.get(v);
+        if (cur.k === 'num' && (abs(cur.q.n) > m.limits.size || cur.q.d > m.limits.size)) tooBig = true;
+        if (cur.k === 'bool' && oneWay.get(v) === (cur.v ? 'y' : 'n') && !res.flagsYes.has(v)) {
+          const was = start.get(v); if (!was || was.k !== 'bool' || was.v !== cur.v) res.flagsYes.set(v, step + 1);
+        }
+      }
+      if (tooBig) break;
+    }
+  } catch (e) {
+    m.quiet--;
+    if (e instanceof Unseen) { m.env = new Map(start); res.unseen = e.v; return res; }
+    throw e;
+  }
+  m.quiet--;
+  if (shown.length) { for (const s of shown) m.out.push(s); m.out.push({ text: '… and so on, forever', why: 'a show inside a forever loop prints its first few steps only' }); }
+  if (!hit) { m.env = new Map(start); return res; }
+  // the whole state came back: from here the loop repeats itself exactly, forever
+  const { first, again } = hit, period = again - first;
+  const cyc = hist.slice(first, again);
+  const final = new Map(hist[first].env);
+  const whyLoop = period === 1
+    ? 'after step ' + first + ' the loop changes nothing any more, so nothing changes forever'
+    : 'from step ' + first + ' the loop comes back to the same state every ' + period + ' steps, forever';
+  for (const v of stateNames) {
+    const vals = cyc.map((h) => h.env.get(v));
+    const same = vals.every((x) => keyOf(x) === keyOf(vals[0]));
+    if (same) { const x = { ...vals[0] }; x.why = whyLoop; if (x.k === 'bool') x.tag = 'proved'; final.set(v, x); }
+    else {
+      const list = vals.slice(0, 6).map((x) => show(x)).join(', ') + (vals.length > 6 ? ', …' : '');
+      final.set(v, restless(whyLoop + ', and ' + v + ' goes round ' + list + ' without end'));
+    }
+  }
+  for (const v of pure) {
+    const a = hist[first].pure.get(v).o, b = m.env.get(v).o;
+    if (O.cmp(a, b) === 0) final.set(v, count(a, whyLoop));
+    else final.set(v, count(O.add(a, O.mul(O.lsub(b, a), O.omega)), 'it goes up by ' + O.show(O.lsub(b, a)) + (period === 1 ? ' every step' : ' every ' + period + ' steps') + ' and never stops, so after forever it has passed every ordinary number'));
+  }
+  m.env = final; res.done = true; return res;
+}
+
+// counts that only ever do n = n + c at the top of the loop body
+function settlePureCounts(m, body, pure, start) {
+  for (const v of pure) {
+    let per = O.zero, ok = true;
+    for (const s of body) {
+      if (s.t === 'set' && s.name === v) per = O.add(per, toCount(new Machine().ev(s.e.b)));
+      else if (assignedIn([s]).has(v)) ok = false;
+    }
+    const from = start.get(v).o;
+    if (!ok) m.env.set(v, unknown('this count only goes up some of the time, and I could not work out how often'));
+    else if (!per.length) m.env.set(v, start.get(v));
+    else m.env.set(v, count(O.add(from, O.mul(per, O.omega)), 'it goes up by ' + O.show(per) + ' every step and never stops, so after forever it has passed every ordinary number'));
+  }
+}
+
+// ── B. arithmetic reasoning ──
+class NotPoly extends Error {}
+function toPoly(m, e, kinds) {
+  switch (e.t) {
+    case 'num': return Poly.num(Q(e.v));
+    case 'var': if (kinds.get(e.name) !== 'plain' && kinds.get(e.name) !== 'newplain') throw new NotPoly(); return Poly.name(e.name);
+    case 'bin': {
+      if (e.op === 'mod') throw new NotPoly();
+      const a = toPoly(m, e.a, kinds), b = toPoly(m, e.b, kinds);
+      if (e.op === '+') return a.add(b);
+      if (e.op === '-') return a.sub(b);
+      if (e.op === '*') return a.mul(b);
+      const c = b.constant(); if (!c || qzero(c)) throw new NotPoly();
+      const inv = qdiv(Q1, c); if (!tenIntegral(inv)) throw new NotPoly();
+      return a.scale(inv);
+    }
+  }
+  throw new NotPoly();
+}
+
+function reason(m, body, assigned, pure, start, A) {
+  // kinds of the names the loop touches
+  const kinds = new Map();
+  const reads = allReads(body);
+  for (const v of new Set([...assigned, ...reads])) {
+    const cur = start.get(v);
+    if (pure.has(v)) kinds.set(v, 'purecount');
+    else if (!cur) kinds.set(v, 'new');
+    else if (cur.k === 'num' || cur.k === 'end') kinds.set(v, m.counts.has(v) ? 'count' : 'plain');
+    else if (cur.k === 'bool') kinds.set(v, 'flag');
+    else kinds.set(v, 'other');
+  }
+  // walk the body: build "what one step does" as polynomials, and collect the watchers
+  const cur = new Map();               // name -> Poly in terms of the values at the start of the step
+  const F = (v) => cur.get(v) || Poly.name(v);
+  const watchers = [];                 // {cond, flag, to} or {cond, count, by}
+  const oneWay = oneWayFlags(body);
+  const condOf = (c) => {
+    const sub = (e) => toPoly(m, e, kinds).subst(cur);
+    if (c.t === 'endsin') return { kind: 'ends', p: sub(c.a), m: pow10(c.d.length), r: BigInt(c.d), text: 'ends in ' + c.d };
+    if (c.t === 'endsmod') return { kind: 'ends', p: sub(c.a), m: 10n, rs: [0n, 2n, 4n, 6n, 8n].map((x) => x + c.r), text: c.r ? 'is odd' : 'is even' };
+    if (c.t === 'eq') return { kind: 'eq', p: sub(c.a).sub(sub(c.b)) };
+    throw new NotPoly();
+  };
+  for (const s of body) {
+    if (s.t === 'set') {
+      const k = kinds.get(s.name);
+      if (k === 'purecount') continue;
+      if (k === 'new') kinds.set(s.name, 'newplain');
+      else if (k !== 'plain' && k !== 'newplain') throw new NotPoly();
+      cur.set(s.name, toPoly(m, s.e, kinds).subst(cur));
+    } else if (s.t === 'if' && !s.else && s.body.length === 1 && s.body[0].t === 'set') {
+      const t = s.body[0], k = kinds.get(t.name);
+      if ((k === 'flag' || k === 'new') && t.e.t === 'bool' && oneWay.get(t.name) !== 'x' && !reads.has(t.name)) watchers.push({ cond: condOf(s.c), flag: t.name, to: t.e.v });
+      else if (k === 'purecount') watchers.push({ cond: condOf(s.c), count: t.name, by: toCount(new Machine().ev(t.e.b)) });
+      else throw new NotPoly();
+    } else throw new NotPoly();
+  }
+  const names = [...new Set([...cur.keys()].flatMap((v) => [v, ...cur.get(v).names()]))];
+  for (const w of watchers) for (const v of w.cond.p.names()) if (!names.includes(v)) names.push(v);
+  for (const v of names) if (kinds.get(v) !== 'plain' && kinds.get(v) !== 'newplain') throw new NotPoly();
+  const sysStart = new Map(start);
+  for (const v of names) if (kinds.get(v) === 'newplain') sysStart.set(v, num(Q0));
+  const sys = new System(names, F, sysStart);
+  const info = sys.classifyAll();
+
+  // write the results back
+  m.env = new Map(start);
+  for (const v of cur.keys()) m.env.set(v, info.get(v).value);
+  for (const w of watchers) {
+    const r = sys.everTrue(w.cond);
+    if (w.flag) {
+      const was = start.get(w.flag);
+      if (A.flagsYes.has(w.flag)) m.env.set(w.flag, bool(w.to, 'it happened at step ' + A.flagsYes.get(w.flag) + ', and nothing in the loop can turn it back', 'found at step ' + A.flagsYes.get(w.flag)));
+      else if (r.ever === true) m.env.set(w.flag, bool(w.to, r.why, 'proved'));
+      else if (r.ever === false) { if (was) m.env.set(w.flag, bool(was.v, r.why, 'proved')); else m.env.set(w.flag, unknown('this name is never given a value: ' + r.why)); }
+      else m.env.set(w.flag, unknown(r.why));
+    } else {
+      // a count that goes up only when the test holds
+      const from = start.get(w.count).o;
+      if (r.ever === undefined) m.env.set(w.count, unknown(r.why));
+      else if (r.inCycle > 0) m.env.set(w.count, count(O.add(O.add(from, O.mul(w.by, O.fin(BigInt(r.before)))), O.mul(w.by, O.omega)), r.why + ', so it goes up without end'));
+      else m.env.set(w.count, count(O.add(from, O.mul(w.by, O.fin(BigInt(r.before)))), r.why + ', so it goes up exactly ' + plural(r.before, 'time')));
+    }
+  }
+  const watched = new Set(watchers.filter((w) => w.count).map((w) => w.count));
+  for (const s of body) if (s.t === 'set' && watched.has(s.name)) { m.env = new Map(start); throw new NotPoly(); }
+  settlePureCounts(m, body.filter((s) => s.t === 'set'), new Set([...pure].filter((v) => !watched.has(v))), start);
+  return true;
+}
+
+class System {
+  constructor(names, F, start) {
+    this.names = names; this.F = new Map(names.map((v) => [v, F(v)])); this.start = start;
+    this.info = new Map();
+  }
+  init(v, k) { return valMod(this.start.get(v), k); }
+  closure(vs) {
+    const out = new Set(vs), todo = [...vs];
+    while (todo.length) { const v = todo.pop(); for (const d of this.F.get(v).names()) if (!out.has(d)) { out.add(d); todo.push(d); } }
+    return [...out].sort();
+  }
+  // run the closed set of names on remainders only, until the remainders come round again
+  orbit(vs, M, k, visit) {
+    const cl = this.closure(vs);
+    let st = new Map(cl.map((v) => [v, mod(this.init(v, k), M)]));
+    const seen = new Map(); let step = 0;
+    for (;;) {
+      const key = cl.map((v) => st.get(v)).join(',');
+      if (seen.has(key)) return { first: seen.get(key), period: step - seen.get(key), cl };
+      if (step > LIMITS.orbit) return null;
+      seen.set(key, step);
+      if (visit) visit(st, step);
+      const nx = new Map();
+      for (const v of cl) { const r = this.F.get(v).evalMod(st, M); if (r === null) return null; nx.set(v, r); }
+      st = nx; step++;
+    }
+  }
+  // the first n remainders of one name
+  digitsAfter(vs, k, steps) {
+    const M = pow10(k), cl = this.closure(vs);
+    let st = new Map(cl.map((v) => [v, this.init(v, k)]));
+    for (let i = 0; i < steps; i++) { const nx = new Map(); for (const v of cl) nx.set(v, this.F.get(v).evalMod(st, M)); st = nx; }
+    return st;
+  }
+  sccs() {
+    const idx = new Map(), low = new Map(), on = new Set(), stack = [], out = []; let n = 0;
+    const visit = (v) => {
+      idx.set(v, n); low.set(v, n); n++; stack.push(v); on.add(v);
+      for (const w of this.F.get(v).names()) {
+        if (!idx.has(w)) { visit(w); low.set(v, Math.min(low.get(v), low.get(w))); }
+        else if (on.has(w)) low.set(v, Math.min(low.get(v), idx.get(w)));
+      }
+      if (low.get(v) === idx.get(v)) { const c = []; let w; do { w = stack.pop(); on.delete(w); c.push(w); } while (w !== v); out.push(c); }
+    };
+    for (const v of this.names) if (!idx.has(v)) visit(v);
+    return out;                        // what a group leans on comes before it
+  }
+  classifyAll() {
+    for (const group of this.sccs()) {
+      let res;
+      try { res = this.classify(group); } catch (e) { if (!(e instanceof TooBig)) throw e; res = null; }
+      if (!res) res = this.byCycling(group);
+      for (const v of group) this.info.set(v, res.get(v));
+    }
+    return this.info;
+  }
+  // facts about a name: {type, value, conv(n) = how many last digits are surely final after n steps}
+  constInfo(v) { const x = this.start.get(v); return { type: 'const', value: x, conv: () => Infinity }; }
+  classify(group) {
+    const out = new Map();
+    if (group.length === 1) {
+      const v = group[0], f = this.F.get(v), deps = [...f.names()].filter((d) => d !== v);
+      const self = f.names().has(v);
+      if (self && deps.length === 0 && f.sub(Poly.name(v)).isZero()) { out.set(v, this.constInfo(v)); return out; }
+      const depInfo = deps.map((d) => this.info.get(d));
+      if (!self) {
+        // v is remade from other names each step
+        if (depInfo.some((i) => i.type !== 'const' && i.type !== 'settled')) return null;
+        const value = this.evalAtLimits(f);
+        const conv = (n) => (n < 1 ? 0 : Math.min(...depInfo.map((i) => i.conv(n - 1)), Infinity));
+        out.set(v, { type: depInfo.every((i) => i.type === 'const') ? 'settled' : 'settled', value: withWhy(value, v + ' is remade each step from ' + deps.join(', ') + ', and ' + (deps.length === 1 ? 'that settles' : 'those settle') + ', so it settles too'), conv });
+        if (!deps.length) out.get(v).conv = (n) => (n < 1 ? 0 : Infinity);
+        return out;
+      }
+      // substitute names that never change
+      let g = f;
+      const sub = new Map();
+      for (const d of deps) { const i = this.info.get(d); if (i.type === 'const' && i.value.k === 'num') sub.set(d, Poly.num(i.value.q)); }
+      if (sub.size) g = f.subst(sub);
+      const rest = [...g.names()].filter((d) => d !== v);
+      if (rest.length === 0) { const r = this.selfMap(v, g); if (r) { out.set(v, r); return out; } return null; }
+      // v = v + T(others)
+      const T = g.sub(Poly.name(v));
+      if (!T.names().has(v)) { const r = this.adder(v, T); if (r) { out.set(v, r); return out; } return null; }
+      // v = v × G(others)
+      const r = this.multiplier(v, g); if (r) { out.set(v, r); return out; }
+      // v = v + (pieces that may use v, each carrying something that goes to 0)
+      const r2 = this.adder(v, T, true); if (r2) { out.set(v, r2); return out; }
+      return null;
+    }
+    return this.groupPull(group);
+  }
+  evalAtLimits(p) {                    // put the settled values into a polynomial
+    let total = num(Q0);
+    for (const { c, e } of p.t.values()) {
+      let term = num(c);
+      for (const k in e) { const val = this.info.get(k).value; for (let i = 0; i < e[k]; i++) term = arith('*', term, val); }
+      total = arith('+', total, term);
+    }
+    return total;
+  }
+  // one name, one step rule that only uses itself
+  selfMap(v, g) {
+    const x0 = this.start.get(v);
+    const u = g.uni(v);
+    // a plain counter: x = x + d
+    if (u.length === 2 && qeq(u[1], Q1) && !qzero(u[0])) {
+      return { type: 'restless', value: restless(v + ' moves by ' + showPlain(num(u[0])) + ' every step, so its last digits never stop changing'), counter: { step: u[0] } };
+    }
+    const o = this.orbit([v], 10n, 1);
+    if (!o) return null;
+    if (o.period === 1) {
+      const N = o.first, r = this.digitsAfter([v], 1, N).get(v);
+      const slope = g.deriv(v).evalMod(new Map([[v, r]]), 10n);
+      if (slope === 0n) {
+        // each step from N on locks at least one more digit
+        const conv = (n) => (n < N ? 0 : n - N + 1);
+        const sys = this;
+        const modfn = (k) => sys.digitsAfter([v], k, N + k).get(v);
+        const P = U.trim(u.map((c, i) => (i === 1 ? qsub(c, Q1) : c)));      // g(L) − L
+        const rule = v + ' = ' + g.text();
+        const root = rationalRoots(P).find((q) => tenIntegral(q) && qmod(q, 10n) === r);
+        const how = 'from step ' + N + ' on its last digit stays ' + r + ', and from there every step locks at least one more digit for good (near a number ending in ' + r + ', the rule ' + rule + ' shrinks any difference by a factor of ten)';
+        if (root) {
+          const res = { type: 'settled', value: num(root, how + '. The only number ending in ' + r + ' that the rule leaves alone is ' + showPlain(num(root))), conv };
+          if (u.length === 2 && qzero(u[0]) && x0.k === 'num') res.geo = { ratio: u[1], first: x0.q };   // x = c × x
+          return res;
+        }
+        if (P.length >= 2) {
+          // the limit L has P(L) = 0.  A factor (q×L − p) whose last digit is 1, 3, 7 or 9 can be divided away
+          let PP = P;
+          for (const rho of rationalRoots(P)) {
+            const last = mod(rho.d * r - rho.n, 10n);
+            if (last % 2n === 0n || last === 5n) continue;
+            for (;;) { const [q, rem] = U.div(PP, [Q(-rho.n), Q(rho.d)]); if (rem.length || q.length < 2) break; PP = q; }
+          }
+          const keep = PP.slice(); P.length = 0; P.push(...keep);
+          // is it a number we already have, in disguise?  try small mixes of each known endless number,
+          // and keep one only if the rule provably leaves it alone and it ends in the right digit
+          for (const known of ATOMS) for (const c1 of [1n, -1n, 2n, -2n]) for (const c0 of [0n, 1n, -1n, 2n, -2n]) {
+            const cand = [Q(c0), Q(c1)];
+            if (U.evalMod(cand, known.mod(1), 10n) !== r) continue;
+            let acc = [];
+            for (let i = u.length - 1; i >= 0; i--) acc = U.rem(U.add(U.mul(acc, cand), [u[i]]), known.P);
+            if (U.add(acc, U.scale(U.rem(cand, known.P), Q(-1n))).length) continue;
+            const name = (c0 === 0n ? '' : c0 + (c1 > 0n ? ' + ' : ' − ')) + (c0 === 0n && c1 < 0n ? '−' : '') + (abs(c1) === 1n ? '' : abs(c1) + ' × ') + known.label;
+            return { type: 'settled', value: endAtom(known, cand, how + '. It is exactly ' + name + ': that number ends in ' + r + ' and the rule leaves it alone, and only one number can do both'), conv };
+          }
+          const lead = P[P.length - 1];
+          const atom = { id: ++atomSeq, P: U.scale(P, qdiv(Q1, lead)), mod: null, label: 'the number ' + v + ' settled to (…' + String(modfn(6)).padStart(6, '0') + ')' };
+          const base = endGeneric(modfn); atom.mod = base.mod; ATOMS.push(atom);
+          const val = endAtom(atom, [Q0, Q1], how + '. It is not a fraction. It is the one endless number ending in ' + r + ' that the rule leaves alone');
+          return { type: 'settled', value: val, conv };
+        }
+        return { type: 'settled', value: endGeneric(modfn, how), conv };
+      }
+    }
+    return null;
+  }
+  // v = v + T, where T uses other names only
+  adder(v, T, selfToo) {
+    const deps = [...T.names()].filter((d) => d !== v), di = deps.map((d) => this.info.get(d));
+    const isZero = (i) => (i.type === 'const' || i.type === 'settled') && i.value.k === 'num' && qzero(i.value.q);
+    let conv;
+    if (!selfToo && di.every((i) => i.type === 'const' || i.type === 'settled')) {
+      const lim = this.evalAtLimits(T);
+      if (lim.k === 'num' && !qzero(lim.q)) return { type: 'restless', value: restless('each step adds something that closes in on ' + showPlain(lim) + ', not on 0, so ' + v + ' never stops moving') };
+      if (!(lim.k === 'num' && qzero(lim.q))) return null;
+      conv = (n) => Math.min(...di.map((i) => i.conv(n)));
+    } else {
+      // some pieces never settle, but every piece is multiplied by something that goes to 0
+      const per = [];
+      for (const { e } of T.t.values()) {
+        const z = Object.keys(e).filter((k) => k !== v).map((k) => this.info.get(k)).filter(isZero);
+        if (!z.length) return null;
+        per.push((n) => Math.max(...z.map((i) => i.conv(n))));
+      }
+      conv = (n) => Math.min(...per.map((f) => f(n)));
+    }
+    const sys = this;
+    const stepsFor = (k) => { let n = 0; while (conv(n) < k) { n++; if (n > 5_000_000) throw new TooBig(); } return n; };
+    const modfn = (k) => sys.digitsAfter([v], k, stepsFor(k)).get(v);
+    const how = 'what gets added each step (' + T.text() + ') settles to 0, and here a sum settles as soon as its pieces do';
+    // exact answer when every piece shrinks by a fixed factor each step
+    let exact = !selfToo && this.start.get(v).k === 'num' ? this.start.get(v).q : null;
+    const tele = selfToo ? null : this.telescope(v, T);
+    if (tele) return { type: 'settled', value: num(tele.q, how + '. More than that: ' + tele.text + ' is the same after every step, so the total is exactly ' + showPlain(num(tele.q))), conv };
+    if (exact) for (const { c, e } of T.t.values()) {
+      if (!Object.keys(e).length) { exact = null; break; }
+      let ratio = Q1, first = c;
+      for (const k in e) {
+        const i = this.info.get(k);
+        if (!i.geo) { exact = null; break; }
+        for (let j = 0; j < e[k]; j++) { ratio = qmul(ratio, i.geo.ratio); first = qmul(first, i.geo.first); }
+      }
+      if (!exact) break;
+      exact = qadd(exact, qdiv(first, qsub(Q1, ratio)));
+    }
+    if (exact && tenIntegral(exact)) return { type: 'settled', value: num(exact, how + '. The pieces shrink by a fixed factor each step, so the total is exactly ' + showPlain(num(exact))), conv };
+    return { type: 'settled', value: endGeneric(modfn, how), conv };
+  }
+  // v = v + f × t(n), with f = f × G(n) going to 0 and n a counter: look for A with  v + A(n) × f  never changing
+  telescope(v, T) {
+    let f = null; const tn = new Poly();
+    for (const { c, e } of T.t.values()) {
+      const zs = Object.keys(e).filter((k) => this.info.get(k).mult);
+      if (zs.length !== 1 || e[zs[0]] !== 1 || (f && f !== zs[0])) return null;
+      f = zs[0]; const ne = { ...e }; delete ne[f]; tn.put(ne, c);
+    }
+    if (!f) return null;
+    const G = this.info.get(f).mult.G, ns = new Set([...tn.names(), ...G.names()]);
+    if (ns.size !== 1) return null;
+    const n = [...ns][0], ci = this.info.get(n);
+    if (!ci.counter) return null;
+    const s0 = this.start.get(v), f0 = this.start.get(f), n0 = this.start.get(n);
+    if (s0.k !== 'num' || f0.k !== 'num' || n0.k !== 'num') return null;
+    const t = tn.uni(n), g = G.uni(n), d = ci.counter.step;
+    const D = t.length - g.length; if (D < 0 || D > 12) return null;
+    // columns: (n+d)^j × G(n) − n^j ;  want  sum a_j col_j = −t
+    const shift = [d, Q1]; const cols = []; let pw = [Q1];
+    for (let j = 0; j <= D; j++) { const col = U.add(U.mul(pw, g), U.scale(Array(j).fill(Q0).concat([Q1]), Q(-1n))); cols.push(col); pw = U.mul(pw, shift); }
+    const rows = Math.max(t.length, ...cols.map((c) => c.length));
+    const M = []; for (let i = 0; i < rows; i++) M.push(cols.map((c) => c[i] || Q0).concat([qneg(t[i] || Q0)]));
+    const piv = []; let r = 0;
+    for (let c = 0; c <= D && r < rows; c++) {
+      let p = r; while (p < rows && qzero(M[p][c])) p++;
+      if (p === rows) continue;
+      [M[r], M[p]] = [M[p], M[r]];
+      const inv = qdiv(Q1, M[r][c]); M[r] = M[r].map((x) => qmul(x, inv));
+      for (let i = 0; i < rows; i++) if (i !== r && !qzero(M[i][c])) { const k = M[i][c]; M[i] = M[i].map((x, jj) => qsub(x, qmul(k, M[r][jj]))); }
+      piv.push(c); r++;
+    }
+    for (let i = r; i < rows; i++) if (!qzero(M[i][D + 1])) return null;
+    const a = Array(D + 1).fill(Q0); piv.forEach((c, i) => { a[c] = M[i][D + 1]; });
+    let An0 = Q0; for (let j = D; j >= 0; j--) An0 = qadd(qmul(An0, n0.q), a[j]);
+    const total = qadd(s0.q, qmul(An0, f0.q));
+    if (!tenIntegral(total)) return null;
+    const A = new Poly(); a.forEach((c, j) => { if (!qzero(c)) A.put(j ? { [n]: j } : {}, c); });
+    return { q: total, text: v + ' + (' + A.text() + ') × ' + f };
+  }
+  // v = v × G(others)
+  multiplier(v, g) {
+    const parts = [];
+    for (const { c, e } of g.t.values()) { if (e[v] !== 1) return null; const ne = { ...e }; delete ne[v]; parts.push({ c, e: ne }); }
+    const G = new Poly(); for (const { c, e } of parts) G.put(e, c);
+    const deps = [...G.names()];
+    const x0 = this.start.get(v);
+    if (x0.k === 'num' && qzero(x0.q)) return this.constInfo(v);
+    // how many tens does one round of the multipliers give?  (works when they are counters or fixed)
+    if (!deps.every((d) => { const i = this.info.get(d); return i.counter || i.type === 'const'; })) return null;
+    const o = this.orbit(deps.length ? deps : [v], 10n, 1);
+    if (!o) return null;
+    let twos = 0, fives = 0; const first = o.first, period = o.period;
+    this.orbit(deps.length ? deps : [v], 10n, 1, (st, step) => {
+      if (step < first) return;
+      const val = G.evalMod(st, 10n);
+      if (val % 2n === 0n) twos++; if (val % 5n === 0n) fives++;
+    });
+    const gain = Math.min(twos, fives);
+    if (gain < 1) return null;
+    const conv = (n) => Math.floor(Math.max(0, n - first) / period) * gain;
+    return {
+      type: 'settled', conv, mult: { G },
+      value: num(Q0, 'every ' + plural(period, 'step') + ' it gets multiplied by at least ' + plural(gain, 'more ten') + ', so one digit after another turns to 0 and stays 0'),
+    };
+  }
+  // several names feeding each other
+  groupPull(group) {
+    for (const v of group) for (const d of this.F.get(v).names()) if (!group.includes(d)) { const i = this.info.get(d); if (!(i.type === 'const' && i.value.k === 'num')) return null; }
+    const sub = new Map();
+    for (const v of group) for (const d of this.F.get(v).names()) if (!group.includes(d)) sub.set(d, Poly.num(this.info.get(d).value.q));
+    const G = new Map(group.map((v) => [v, this.F.get(v).subst(sub)]));
+    const o = this.orbit(group, 10n, 1);
+    if (!o || o.period !== 1) return null;
+    const N = o.first, r = this.digitsAfter(group, 1, N);
+    const n = group.length;
+    let J = group.map((v) => group.map((w) => G.get(v).deriv(w).evalMod(r, 10n)));
+    let P = J;
+    const mul = (A, B) => A.map((row, i) => B[0].map((_, j) => row.reduce((s, _, k) => (s + A[i][k] * B[k][j]) % 10n, 0n)));
+    for (let i = 1; i < n; i++) P = mul(P, J);
+    if (!P.every((row) => row.every((x) => x === 0n))) return null;
+    const conv = (s) => (s < N ? 0 : Math.floor((s - N) / n) + 1);
+    const out = new Map();
+    for (const v of group) {
+      const modfn = (k) => this.digitsAfter(group, k, N + n * k).get(v);
+      out.set(v, { type: 'settled', conv, value: endGeneric(modfn, 'from step ' + N + ' on the last digits of ' + group.join(', ') + ' stop changing, and from there every ' + plural(n, 'step') + ' locks at least one more digit of each for good') });
+    }
+    return out;
+  }
+  // no proof of settling: look for proof of NOT settling (last digits going round), else say so
+  byCycling(group) {
+    const out = new Map();
+    for (const v of group) {
+      let found = null, looked = 0;
+      for (let k = 1; k <= 9 && !found; k++) {
+        const vals = []; const o = this.orbit([v], pow10(k), k, (st) => vals.push(st.get(v)));
+        if (!o) break;
+        looked = k;
+        const cyc = vals.slice(o.first);
+        if (!cyc.every((x) => x === cyc[0])) {
+          const list = cyc.slice(0, 6).map((x) => String(x).padStart(k, '0')).join(', ') + (cyc.length > 6 ? ', …' : '');
+          // look deeper: how long do the last 1, 2, 3… digits take to come round?  (a ring keeps one number; a liar grows late)
+          const pers = []; for (let j = 1; j <= DEEP; j++) { const oj = j === k ? o : this.orbit([v], pow10(j), j, () => {}); if (!oj) break; pers.push(oj.period); if (oj.period > 3000) break; }
+          const same = pers.every((x) => x === pers[0]);
+          const deeper = pers.length < 3 ? '' : same
+            ? '. Looking deeper, the last 1 to ' + pers.length + ' digits all come round every ' + plural(pers[0], 'step') + ' too. As far as I can see, ' + v + ' is going round a ring of ' + pers[0] + ' endless numbers'
+            : '. Looking deeper, the last 1, 2, 3… digits take ' + pers.join(', ') + ' steps to come round';
+          found = restless((k === 1 ? 'the last digit of ' + v + ' goes round ' : 'the last ' + k + ' digits of ' + v + ' go round ') + list + ' every ' + plural(o.period, 'step') + (k === 1 ? ' and never stops' : ' and never stop') + deeper);
+          if (pers.length >= 3) { if (same) found.ring = pers[0]; else found.wild = pers; }
+        }
+      }
+      out.set(v, found ? { type: 'restless', value: found } : { type: 'unknown', value: unknown(looked ? 'the last ' + plural(looked, 'digit') + ' of ' + v + ' do stop changing, but I have no proof that the rest do' : 'I found no rule that fits ' + v) });
+    }
+    return out;
+  }
+  // does a test ever hold on some step?  -> {ever: true|false|undefined, why, before, inCycle}
+  everTrue(cond) {
+    const vs = [...cond.p.names()];
+    const check = (M, k) => {
+      let before = 0, inCycle = 0, firstHit = -1; const hits = [];
+      const o = this.orbit(vs, M, k, (st, step) => { const r = cond.p.evalMod(st, M); hits.push(cond.kind === 'eq' ? r === 0n : cond.rs ? cond.rs.includes(r) : r === cond.r); });
+      if (!o) return null;
+      hits.forEach((h, i) => { if (h) { if (firstHit < 0) firstHit = i; if (i < o.first) before++; else inCycle++; } });
+      return { o, before, inCycle, firstHit, total: hits.length };
+    };
+    if (cond.kind === 'ends') {
+      const k = String(cond.m).length - 1, c = check(cond.m, k);
+      if (!c) return { why: 'the last digits take too long to come round for me to check them all' };
+      const cover = (k === 1 ? 'the last digit comes' : 'the last ' + k + ' digits come') + ' round again every ' + plural(c.o.period, 'step') + ', so ' + plural(c.total, 'case') + ' cover forever';
+      if (c.firstHit < 0) return { ever: false, before: 0, inCycle: 0, why: cover + ', and none of them ' + cond.text };
+      return { ever: true, before: c.before, inCycle: c.inCycle, why: cover + ', and it first ' + cond.text + ' at step ' + c.firstHit };
+    }
+    // two things being equal: if their last digits (or remainders) never match, they never match
+    for (const [M, k, label] of [[10n, 1, 'last digit'], [100n, 2, 'last 2 digits'], [1000n, 3, 'last 3 digits'], [7n, 1, 'remainders on dividing by 7'], [9n, 1, 'remainders on dividing by 9'], [11n, 2, 'remainders on dividing by 11'], [13n, 2, 'remainders on dividing by 13'], [16n, 4, 'remainders on dividing by 16']]) {
+      let c = null;
+      try { c = M % 10n === 0n ? check(M, k) : this.checkOther(cond, vs, M); } catch (e) { c = null; }
+      if (c && c.firstHit < 0) return { ever: false, before: 0, inCycle: 0, why: 'the ' + label + ' of the two sides come round again every ' + plural(c.o.period, 'step') + ', and in all ' + plural(c.total, 'case') + ' they differ, so the two sides are never the same' };
+    }
+    return { why: 'the two sides agree on every small test I tried, so I can neither find a match nor rule one out' };
+  }
+  checkOther(cond, vs, M) {            // same as check, for a remainder that is not a power of ten
+    for (const v of this.closure(vs)) { const x = this.start.get(v); if (x.k !== 'num' || qmod(x.q, M) === null) return null; }
+    const cl = this.closure(vs);
+    let st = new Map(cl.map((v) => [v, qmod(this.start.get(v).q, M)]));
+    const seen = new Map(); let step = 0, firstHit = -1;
+    for (;;) {
+      const key = cl.map((v) => st.get(v)).join(',');
+      if (seen.has(key)) return { o: { first: seen.get(key), period: step - seen.get(key) }, firstHit, total: step };
+      if (step > LIMITS.orbit) return null;
+      seen.set(key, step);
+      const r = cond.p.evalMod(st, M); if (r === null) return null;
+      if (r === 0n && firstHit < 0) firstHit = step;
+      const nx = new Map();
+      for (const v of cl) { const y = this.F.get(v).evalMod(st, M); if (y === null) return null; nx.set(v, y); }
+      st = nx; step++;
+    }
+  }
+}
+function withWhy(v, why) { const x = { ...v }; x.why = why; return x; }
+function divisors(n) { n = abs(n); const out = []; for (let i = 1n; i * i <= n; i++) if (n % i === 0n) { out.push(i); if (i * i !== n) out.push(n / i); } return out; }
+function rationalRoots(P) {            // fractions p/q with P(p/q) = 0
+  P = U.trim(P); if (P.length < 2) return [];
+  const out = [];
+  let lo = 0; while (qzero(P[lo])) lo++;
+  if (lo > 0) { out.push(Q0); P = P.slice(lo); if (P.length < 2) return out; }
+  let den = 1n; for (const c of P) den = den * c.d / gcd(den, c.d);
+  const ints = P.map((c) => c.n * (den / c.d));
+  const a0 = ints[0], an = ints[ints.length - 1];
+  if (abs(a0) > 10n ** 12n || abs(an) > 10n ** 12n) return out;
+  for (const p of divisors(a0)) for (const q of divisors(an)) for (const s of [1n, -1n]) {
+    const cand = Q(s * p, q);
+    let v = Q0; for (let i = P.length - 1; i >= 0; i--) v = qadd(qmul(v, cand), P[i]);
+    if (qzero(v) && !out.some((x) => qeq(x, cand))) out.push(cand);
+  }
+  return out;
+}
+
+// ───────────────────────── front door ─────────────────────────
+function run(src, opts) {
+  const m = new Machine(opts);
+  ATOMS = [];
+  let error = null;
+  try { m.run(parse(src)); }
+  catch (e) {
+    if (e instanceof LangError) error = e.message;
+    else if (e instanceof Unseen) error = "an if needed a yes or a no, but got something I can't see the end of";
+    else if (e instanceof RangeError) error = 'that number got too big for this machine';
+    else throw e;
+  }
+  return { lines: m.out, error, env: m.env };
+}
+function text(src, opts = {}) {
+  const r = run(src, opts);
+  const out = r.lines.map((l) => l.text + (opts.why && l.why ? '\n    why: ' + l.why : ''));
+  if (r.error) out.push('stopped: ' + r.error);
+  return out.join('\n');
+}
+
+const api = { run, text, parse, O, Q, Poly, LangError, version: '0.2' };
+if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Forever = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+const EXAMPLES = [
+  ['Hunt', '# stripes: the last digit of c sets the last digit of x at every step\nhunt c from 0 to 399:\n    x = 0\n    forever: x = x × x + c\n    show x'],
+  ['Own square', 'x = 5\nforever: x = x × x\nshow x\nshow x × x = x'],
+  ['Minus one', 'x = 0   step = 9\nforever: x = x + step   step = step × 10\nshow x\nshow x + 1'],
+  ['One third', 'x = 7\nforever: x = x × (2 − 3 × x)\nshow x\nshow x × 3'],
+  ['Past forever', 'count n = 0\nforever: n = n + 1\nn = n + 1\nshow n\nforever: n = n + 1\nshow n\nshow 1 + forever = forever'],
+  ['Endless search', 'found = no   n = 0\nforever: n = n + 1   if n × n ends in 7: found = yes\nshow found'],
+  ['196', 'x = 196   found = no\nforever: x = x + backwards(x)   if x is a palindrome: found = yes\nshow found'],
+  ['6 squared', 'x = 6\nforever: x = x × x\nshow x'],
+  ['Twins', 'a = 5\nforever: a = a × a\nb = 6\nforever: b = 3 × b × b − 2 × b × b × b\nshow b\nshow a + b\nshow a × b'],
+  ['All factorials', 'n = 0   f = 1   s = 0\nforever: n = n + 1   f = f × n   s = s + f\nshow f\nshow 30 digits of s'],
+  ['Adds to −1', 'n = 0   f = 1   s = 0\nforever: n = n + 1   f = f × n   s = s + n × f\nshow s\nwhy s'],
+  ['Exactly 3', 'n = 0   f = 1   s = 0\nforever: s = s + (n^3 − 4 × n + 1) × f   n = n + 1   f = f × n × n\nshow s\nwhy s'],
+  ['Ring of six', 'x = 0\nforever: x = x × x + 1\nshow x\nwhy x'],
+  ['The liar', 'x = 0\nforever: x = x × x + 14557\nshow x\nwhy x'],
+  ['The lamp', 'lamp = no\nforever: lamp = not lamp\nshow lamp'],
+  ['Collatz 27', 'x = 27   found = no\nforever:\n    if x is even: x = x / 2\n    else: x = 3 × x + 1\n    if x = 1: found = yes\nshow found\nshow x'],
+  ['Forever twice', 'count n = 0\nforever:\n    forever: n = n + 1\nshow n'],
+  ['Hunt squares', 'hunt c from 0 to 99:\n    x = c\n    forever: x = x × x\n    show x'],
+  ['Hunt thirds', 'hunt c from 0 to 99:\n    x = c\n    forever: x = x × (2 − 3 × x)\n    show x'],
+  ['Powers of 2', 'found = no   p = 1\nforever: p = p × 2   if p ends in 2024: found = yes\nshow found'],
+];
+const $ = (id) => document.getElementById(id);
+const code = $('code'), out = $('out');
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function pick(i) {
+  code.value = EXAMPLES[i][1];
+  [...$('chips').children].forEach((c, j) => c.setAttribute('aria-pressed', j === i ? 'true' : 'false'));
+  go();
+}
+EXAMPLES.forEach(([name], i) => { const b = el('button', 'chip', name); b.type = 'button'; b.onclick = () => pick(i); $('chips').appendChild(b); });
+['×', '−', 'forever: ', 'show ', 'why '].forEach((k) => {
+  const b = el('button', 'key', k.trim()); b.type = 'button';
+  b.onclick = () => { const s = code.selectionStart, e = code.selectionEnd; code.setRangeText(k, s, e, 'end'); code.focus(); save(); };
+  $('keys').appendChild(b);
+});
+function save() { try { localStorage.setItem('pf-code', code.value); } catch (e) {} }
+function go() {
+  save();
+  out.textContent = ''; out.appendChild(el('div', 'empty', 'Running…')); $('time').textContent = '';
+  setTimeout(() => {
+    const t0 = performance.now(); let r;
+    try { r = Forever.run(code.value, { huntMs: 8000 }); } catch (e) { r = { lines: [], error: 'the language itself broke here: ' + e.message }; }
+    const ms = Math.round(performance.now() - t0);
+    out.textContent = '';
+    for (const l of r.lines) {
+      if (l.hunt) { out.appendChild(huntRow(l)); continue; }
+      const row = el('div', 'row' + (/^(never settles|can't see the end)/.test(l.text) ? ' dim' : ''));
+      const top = el('div', 'ans'); top.appendChild(el('div', 'val', l.text));
+      if (l.why) {
+        const b = el('button', 'whyb', 'why?'); b.type = 'button';
+        const w = el('div', 'why', l.why); w.hidden = true;
+        b.onclick = () => { w.hidden = !w.hidden; b.textContent = w.hidden ? 'why?' : 'hide'; };
+        top.appendChild(b); row.appendChild(top); row.appendChild(w);
+      } else row.appendChild(top);
+      out.appendChild(row);
+    }
+    if (r.error) { const row = el('div', 'row bad'); row.appendChild(el('div', 'val', 'stopped: ' + r.error)); out.appendChild(row); }
+    if (!r.lines.length && !r.error) out.appendChild(el('div', 'empty', 'Nothing was shown. Add a line like: show x'));
+    $('time').textContent = '· ' + ms + ' ms';
+  }, 20);
+}
+const HUES = { 'settles': 'var(--gold)', 'goes wild': 'var(--bad)', 'never settles': '#6b7280', "can't see the end": '#2a3340', 'yes': 'var(--ok)', 'no': '#6b7280', 'stops with an error': '#a34b5a' };
+const RINGS = ['var(--blue)', '#2dd4bf', '#c084fc', '#38bdf8', '#a3e635', '#fb923c'];
+function hueFor(label, rings) {
+  if (HUES[label]) return HUES[label];
+  if (!rings.has(label)) rings.set(label, RINGS[rings.size % RINGS.length]);
+  return rings.get(label);
+}
+function huntRow(l) {
+  const h = l.hunt, rings = new Map();
+  const row = el('div', 'row hunt');
+  const top = el('div', 'ans'); top.appendChild(el('div', 'head', l.text.split('\n').filter((x) => !/^  [^(]/.test(x)).join('\n')));
+  const wb = el('button', 'whyb', 'why?'); wb.type = 'button'; top.appendChild(wb); row.appendChild(top);
+  const w = el('div', 'why', l.why); w.hidden = true; row.appendChild(w);
+  wb.onclick = () => { w.hidden = !w.hidden; wb.textContent = w.hidden ? 'why?' : 'hide'; };
+  const legend = el('div', 'legend');
+  for (const g of h.groups) { const d = el('span', 'lg'); const i = el('i'); i.style.background = hueFor(g.label, rings); d.appendChild(i); d.appendChild(el('span', '', g.label + ' ')); d.appendChild(el('b', '', String(g.count))); legend.appendChild(d); }
+  row.appendChild(legend);
+  const tameOf = (it) => { let t = 0; if (it.wild) while (t < it.wild.length && it.wild[t] === it.wild[0]) t++; return t; };
+  const tames = h.items.filter((it) => it.wild).map(tameOf), tLo = Math.min(...tames), tHi = Math.max(...tames);
+  if (tames.length) row.appendChild(el('div', 'why', 'Brighter red squares are liars: they look calm for a while, then go wild. Tap the brightest one and Zoom in to chase it.'));
+  const n = h.items.length, per = n <= 200 ? 10 : n <= 800 ? 20 : 40;
+  const grid = el('div', 'grid'); grid.style.gridTemplateColumns = 'repeat(' + per + ', 1fr)';
+  const lo = BigInt(h.lo);
+  const pad = Number(lo % BigInt(per));         // line the squares up so each column shares a last digit
+  for (let i = 0; i < pad; i++) grid.appendChild(el('span'));
+  const detail = el('div', 'pickd'); detail.hidden = true;
+  h.items.forEach((it) => {
+    const b = el('button', 'sq'); b.type = 'button'; b.style.background = hueFor(it.group, rings);
+    // a wild loop whose last digits sat still in a ring for a while is a liar: the longer it fooled you, the brighter
+    const tame = tameOf(it); if (it.wild) b.style.opacity = String(tHi > tLo ? 0.25 + 0.75 * (tame - tLo) / (tHi - tLo) : 0.6);
+    const label = it.group + (tame >= 2 ? ', but looked calm for ' + tame + ' digits first' : '');
+    b.setAttribute('aria-label', h.name + ' = ' + it.c + ': ' + label); b.title = h.name + ' = ' + it.c + ': ' + label;
+    b.onclick = () => {
+      grid.querySelectorAll('.sq').forEach((x) => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true');
+      detail.textContent = ''; detail.hidden = false;
+      detail.appendChild(el('span', '', h.name + ' = ' + it.c + ': ' + label + (it.value ? '  ' + it.value : '')));
+      const ob = el('button', 'open', 'Open this loop'); ob.type = 'button'; ob.onclick = () => openOne(h.name, it.c); detail.appendChild(ob);
+      const zEnd = h.end ? String((BigInt(it.c) - BigInt(h.end)) / 10n ** BigInt(h.end.length)).padStart(2, '0') + h.end : String(it.c).padStart(2, '0');
+      if (zEnd.length <= 12) { const zb = el('button', 'open', 'Zoom in'); zb.type = 'button'; zb.onclick = () => zoom(h, zEnd); detail.appendChild(zb); }
+    };
+    grid.appendChild(b);
+  });
+  row.appendChild(grid);
+  if (per === 10) { const cols = el('div', 'cols'); cols.style.gridTemplateColumns = 'repeat(10, 1fr)'; for (let i = 0; i < 10; i++) cols.appendChild(el('span', '', h.end ? String(i) : '…' + i)); row.appendChild(cols); }
+  if (h.end) row.appendChild(el('div', 'why', 'Every number here ends in ' + h.end + '. Each column is the digit just before ' + h.end + ', each row the digit before that.'));
+  else if (per <= 20) row.appendChild(el('div', 'why', 'Each column holds numbers with the same last digit (like 7, 17, 27…). Solid stripes mean the last digit alone decides the answer.'));
+  if (h.end) { const zo = el('button', 'open', 'Zoom out'); zo.type = 'button'; zo.style.marginTop = '10px'; zo.onclick = () => zoom(h, h.end.length > 2 ? h.end.slice(2) : ''); row.appendChild(zo); }
+  row.appendChild(detail);
+  return row;
+}
+// rewrite the hunt line to look only at numbers ending in the given digits (or at all numbers, for '')
+function zoom(h, end) {
+  const re = new RegExp('^(\\s*hunt\\s+' + h.name + '\\s+from\\s+)[^:]*:', 'm');
+  code.value = code.value.replace(re, (all, start) => start + '0 to ' + (end ? '99 ends in ' + end : '399') + ':');
+  [...$('chips').children].forEach((x) => x.setAttribute('aria-pressed', 'false'));
+  go();
+}
+// turn "hunt c from A to B:" plus its pushed-in lines into "c = N" plus the same lines, not pushed in
+function openOne(name, c) {
+  const lines = code.value.split('\n'); const outL = []; let inHunt = false, ind = 0, base = 0, done = false;
+  for (const line of lines) {
+    const m = !done && line.match(new RegExp('^(\\s*)hunt\\s+' + name + '\\s+from\\b.*:\\s*(.*)$'));
+    if (m) { inHunt = true; done = true; base = m[1].length; ind = -1; outL.push(m[1] + name + ' = ' + c); if (m[2].trim()) { outL.push(m[1] + m[2]); inHunt = false; } continue; }
+    if (inHunt) {
+      const lead = line.length - line.trimStart().length;
+      if (line.trim() && lead <= base) inHunt = false;
+      else { if (ind < 0 && line.trim()) ind = lead - base; outL.push(line.trim() ? line.slice(0, base) + line.slice(base + Math.max(ind, 0)) : line); continue; }
+    }
+    outL.push(line);
+  }
+  code.value = outL.join('\n'); if (!/\nwhy |^why /.test(code.value)) { const sh = code.value.match(/show\s+([A-Za-z_]\w*)\s*$/m); if (sh) code.value += '\nwhy ' + sh[1]; }
+  [...$('chips').children].forEach((x) => x.setAttribute('aria-pressed', 'false'));
+  window.scrollTo({ top: 0, behavior: 'smooth' }); go();
+}
+$('run').onclick = go;
+code.addEventListener('input', () => { save(); [...$('chips').children].forEach((c) => c.setAttribute('aria-pressed', 'false')); });
+let saved = null; try { saved = localStorage.getItem('pf-code'); } catch (e) {}
+if (saved && saved.trim()) { code.value = saved; go(); } else pick(0);
+</script>
+
+</body></html>

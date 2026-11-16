@@ -1,0 +1,5 @@
+# a liar: its last 13 digits go round a ring of 2, then it goes wild
+x = 0
+forever: x = x × x + 85205078123
+show x
+why x

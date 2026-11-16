@@ -1,0 +1,237 @@
+<title>Past Forever</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* layout: one column, a strip of examples, the program, one big Run button, answers below */
+:root{
+  color-scheme:dark;
+  --bg:#0b0e14; --panel:#111620; --line:#1f2733; --ink:#e6edf3; --soft:#8b95a3; --dim:#5c6673;
+  --gold:#f2c14e; --blue:#7aa2f7; --bad:#f7768e; --ok:#4ade80;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;
+}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--sans);font-size:16px;padding-block:22px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font:600 26px/1.1 var(--sans);margin:0;letter-spacing:-.01em}
+h1 span{color:var(--gold)}
+.sub{color:var(--soft);font-size:15px;line-height:1.45;margin:6px 0 0;max-width:60ch}
+.label{font:600 12px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.chip{flex:none;font:500 14px var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--line);
+  border-radius:999px;padding:9px 14px;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+.chip:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.edit{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+textarea{display:block;width:100%;box-sizing:border-box;min-height:190px;resize:vertical;background:transparent;border:0;
+  color:var(--ink);font:400 16px/1.6 var(--mono);padding:14px 16px;tab-size:4;white-space:pre;overflow:auto}
+.keys{display:flex;gap:8px;flex-wrap:wrap;padding:0 12px 12px}
+.key{font:600 15px var(--mono);color:var(--blue);background:transparent;border:1px solid var(--line);border-radius:8px;
+  padding:7px 12px;cursor:pointer}
+.run{font:600 17px var(--sans);color:#14110a;background:var(--gold);border:0;border-radius:12px;padding:15px;cursor:pointer}
+.run:active{transform:translateY(1px)}
+.out{display:flex;flex-direction:column;gap:8px;min-height:60px}
+.row{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 14px;min-width:0}
+.ans{display:flex;gap:10px;align-items:baseline;justify-content:space-between}
+.val{font:600 17px/1.5 var(--mono);color:var(--gold);overflow-wrap:anywhere;min-width:0}
+.row.dim .val{color:var(--soft)}
+.row.bad .val{color:var(--bad)}
+.whyb{flex:none;font:500 13px var(--sans);color:var(--blue);background:transparent;border:0;padding:4px 2px;cursor:pointer}
+.why{color:var(--soft);font-size:14.5px;line-height:1.5;margin:8px 0 2px}
+.empty{color:var(--dim);font-size:15px}
+.time{color:var(--dim);font-size:13px}
+details{border-top:1px solid var(--line);padding-top:14px;color:var(--soft);font-size:15px;line-height:1.55}
+summary{cursor:pointer;color:var(--ink);font-weight:600}
+details code{font-family:var(--mono);color:var(--ink);font-size:14px}
+/* hunt map */
+.hunt .head{font:600 15px/1.45 var(--mono);color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0}
+.lg{display:flex;align-items:center;gap:6px;font:500 14px var(--sans);color:var(--soft)}
+.lg i{width:12px;height:12px;border-radius:3px;flex:none}
+.lg b{font-weight:600;color:var(--ink)}
+.grid{display:grid;gap:3px}
+.sq{aspect-ratio:1;border:0;border-radius:3px;padding:0;cursor:pointer;min-width:0}
+.sq[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:1px}
+.cols{display:grid;gap:3px;margin-top:4px}
+.cols span{font:400 11px var(--mono);color:var(--dim);text-align:center}
+.pickd{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;font:500 15px var(--mono);color:var(--ink)}
+.open{font:600 14px var(--sans);color:var(--blue);background:transparent;border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+details ul{padding-left:18px;margin:10px 0 0;display:flex;flex-direction:column;gap:6px}
+</style>
+<div class="wrap">
+  <header>
+    <h1>Past <span>Forever</span></h1>
+    <p class="sub">A language where a loop can run forever, and the program carries on afterwards. It only says a number settled when it can prove it.</p>
+  </header>
+  <div>
+    <div class="label" style="margin-bottom:8px">Try one</div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="edit">
+    <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Program"></textarea>
+    <div class="keys" id="keys"></div>
+  </div>
+  <button class="run" id="run">Run</button>
+  <div>
+    <div class="label" style="margin-bottom:8px">Answers <span class="time" id="time"></span></div>
+    <div class="out" id="out"></div>
+  </div>
+  <details>
+    <summary>Words it knows</summary>
+    <ul>
+      <li><code>x = 5</code> gives a name a number. <code>count n = 0</code> makes a count that can go past forever.</li>
+      <li><code>forever: x = x × x</code> runs the rest of the line without end. Lines pushed in below it work too.</li>
+      <li><code>show x</code>, <code>show 40 digits of x</code>, and <code>why x</code> for the reason.</li>
+      <li><code>if x ends in 7: found = yes</code>, with <code>else:</code>. Also <code>is even</code>, <code>is odd</code>, <code>is a palindrome</code>, <code>=</code>, <code>&lt;</code>, <code>&gt;</code>.</li>
+      <li><code>+ − × /</code>, powers like <code>x^5</code>, and <code>mod</code>, <code>backwards(x)</code>, <code>digitsum(x)</code>, <code>repeat 10:</code>, and <code>forever</code> as a number for counts.</li>
+      <li><code>hunt c from 0 to 99:</code> runs the lines pushed in below it once for every number, and sorts the numbers by what their last <code>show</code> said. Tap a square to open that one loop. Add <code>ends in 57</code> before the colon to look only at numbers ending in 57 (that is what Zoom in does). Rings and liars are checked 40 digits deep.</li>
+      <li>You can divide by anything that has no 2 or 5 in it. There is no one half here.</li>
+    </ul>
+  </details>
+</div>
+<script>
+/*ENGINE*/
+</script>
+<script>
+const EXAMPLES = [
+  ['Hunt', '# stripes: the last digit of c sets the last digit of x at every step\nhunt c from 0 to 399:\n    x = 0\n    forever: x = x × x + c\n    show x'],
+  ['Own square', 'x = 5\nforever: x = x × x\nshow x\nshow x × x = x'],
+  ['Minus one', 'x = 0   step = 9\nforever: x = x + step   step = step × 10\nshow x\nshow x + 1'],
+  ['One third', 'x = 7\nforever: x = x × (2 − 3 × x)\nshow x\nshow x × 3'],
+  ['Past forever', 'count n = 0\nforever: n = n + 1\nn = n + 1\nshow n\nforever: n = n + 1\nshow n\nshow 1 + forever = forever'],
+  ['Endless search', 'found = no   n = 0\nforever: n = n + 1   if n × n ends in 7: found = yes\nshow found'],
+  ['196', 'x = 196   found = no\nforever: x = x + backwards(x)   if x is a palindrome: found = yes\nshow found'],
+  ['6 squared', 'x = 6\nforever: x = x × x\nshow x'],
+  ['Twins', 'a = 5\nforever: a = a × a\nb = 6\nforever: b = 3 × b × b − 2 × b × b × b\nshow b\nshow a + b\nshow a × b'],
+  ['All factorials', 'n = 0   f = 1   s = 0\nforever: n = n + 1   f = f × n   s = s + f\nshow f\nshow 30 digits of s'],
+  ['Adds to −1', 'n = 0   f = 1   s = 0\nforever: n = n + 1   f = f × n   s = s + n × f\nshow s\nwhy s'],
+  ['Exactly 3', 'n = 0   f = 1   s = 0\nforever: s = s + (n^3 − 4 × n + 1) × f   n = n + 1   f = f × n × n\nshow s\nwhy s'],
+  ['Ring of six', 'x = 0\nforever: x = x × x + 1\nshow x\nwhy x'],
+  ['The liar', 'x = 0\nforever: x = x × x + 14557\nshow x\nwhy x'],
+  ['The lamp', 'lamp = no\nforever: lamp = not lamp\nshow lamp'],
+  ['Collatz 27', 'x = 27   found = no\nforever:\n    if x is even: x = x / 2\n    else: x = 3 × x + 1\n    if x = 1: found = yes\nshow found\nshow x'],
+  ['Forever twice', 'count n = 0\nforever:\n    forever: n = n + 1\nshow n'],
+  ['Hunt squares', 'hunt c from 0 to 99:\n    x = c\n    forever: x = x × x\n    show x'],
+  ['Hunt thirds', 'hunt c from 0 to 99:\n    x = c\n    forever: x = x × (2 − 3 × x)\n    show x'],
+  ['Powers of 2', 'found = no   p = 1\nforever: p = p × 2   if p ends in 2024: found = yes\nshow found'],
+];
+const $ = (id) => document.getElementById(id);
+const code = $('code'), out = $('out');
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function pick(i) {
+  code.value = EXAMPLES[i][1];
+  [...$('chips').children].forEach((c, j) => c.setAttribute('aria-pressed', j === i ? 'true' : 'false'));
+  go();
+}
+EXAMPLES.forEach(([name], i) => { const b = el('button', 'chip', name); b.type = 'button'; b.onclick = () => pick(i); $('chips').appendChild(b); });
+['×', '−', 'forever: ', 'show ', 'why '].forEach((k) => {
+  const b = el('button', 'key', k.trim()); b.type = 'button';
+  b.onclick = () => { const s = code.selectionStart, e = code.selectionEnd; code.setRangeText(k, s, e, 'end'); code.focus(); save(); };
+  $('keys').appendChild(b);
+});
+function save() { try { localStorage.setItem('pf-code', code.value); } catch (e) {} }
+function go() {
+  save();
+  out.textContent = ''; out.appendChild(el('div', 'empty', 'Running…')); $('time').textContent = '';
+  setTimeout(() => {
+    const t0 = performance.now(); let r;
+    try { r = Forever.run(code.value, { huntMs: 8000 }); } catch (e) { r = { lines: [], error: 'the language itself broke here: ' + e.message }; }
+    const ms = Math.round(performance.now() - t0);
+    out.textContent = '';
+    for (const l of r.lines) {
+      if (l.hunt) { out.appendChild(huntRow(l)); continue; }
+      const row = el('div', 'row' + (/^(never settles|can't see the end)/.test(l.text) ? ' dim' : ''));
+      const top = el('div', 'ans'); top.appendChild(el('div', 'val', l.text));
+      if (l.why) {
+        const b = el('button', 'whyb', 'why?'); b.type = 'button';
+        const w = el('div', 'why', l.why); w.hidden = true;
+        b.onclick = () => { w.hidden = !w.hidden; b.textContent = w.hidden ? 'why?' : 'hide'; };
+        top.appendChild(b); row.appendChild(top); row.appendChild(w);
+      } else row.appendChild(top);
+      out.appendChild(row);
+    }
+    if (r.error) { const row = el('div', 'row bad'); row.appendChild(el('div', 'val', 'stopped: ' + r.error)); out.appendChild(row); }
+    if (!r.lines.length && !r.error) out.appendChild(el('div', 'empty', 'Nothing was shown. Add a line like: show x'));
+    $('time').textContent = '· ' + ms + ' ms';
+  }, 20);
+}
+const HUES = { 'settles': 'var(--gold)', 'goes wild': 'var(--bad)', 'never settles': '#6b7280', "can't see the end": '#2a3340', 'yes': 'var(--ok)', 'no': '#6b7280', 'stops with an error': '#a34b5a' };
+const RINGS = ['var(--blue)', '#2dd4bf', '#c084fc', '#38bdf8', '#a3e635', '#fb923c'];
+function hueFor(label, rings) {
+  if (HUES[label]) return HUES[label];
+  if (!rings.has(label)) rings.set(label, RINGS[rings.size % RINGS.length]);
+  return rings.get(label);
+}
+function huntRow(l) {
+  const h = l.hunt, rings = new Map();
+  const row = el('div', 'row hunt');
+  const top = el('div', 'ans'); top.appendChild(el('div', 'head', l.text.split('\n').filter((x) => !/^  [^(]/.test(x)).join('\n')));
+  const wb = el('button', 'whyb', 'why?'); wb.type = 'button'; top.appendChild(wb); row.appendChild(top);
+  const w = el('div', 'why', l.why); w.hidden = true; row.appendChild(w);
+  wb.onclick = () => { w.hidden = !w.hidden; wb.textContent = w.hidden ? 'why?' : 'hide'; };
+  const legend = el('div', 'legend');
+  for (const g of h.groups) { const d = el('span', 'lg'); const i = el('i'); i.style.background = hueFor(g.label, rings); d.appendChild(i); d.appendChild(el('span', '', g.label + ' ')); d.appendChild(el('b', '', String(g.count))); legend.appendChild(d); }
+  row.appendChild(legend);
+  const tameOf = (it) => { let t = 0; if (it.wild) while (t < it.wild.length && it.wild[t] === it.wild[0]) t++; return t; };
+  const tames = h.items.filter((it) => it.wild).map(tameOf), tLo = Math.min(...tames), tHi = Math.max(...tames);
+  if (tames.length) row.appendChild(el('div', 'why', 'Brighter red squares are liars: they look calm for a while, then go wild. Tap the brightest one and Zoom in to chase it.'));
+  const n = h.items.length, per = n <= 200 ? 10 : n <= 800 ? 20 : 40;
+  const grid = el('div', 'grid'); grid.style.gridTemplateColumns = 'repeat(' + per + ', 1fr)';
+  const lo = BigInt(h.lo);
+  const pad = Number(lo % BigInt(per));         // line the squares up so each column shares a last digit
+  for (let i = 0; i < pad; i++) grid.appendChild(el('span'));
+  const detail = el('div', 'pickd'); detail.hidden = true;
+  h.items.forEach((it) => {
+    const b = el('button', 'sq'); b.type = 'button'; b.style.background = hueFor(it.group, rings);
+    // a wild loop whose last digits sat still in a ring for a while is a liar: the longer it fooled you, the brighter
+    const tame = tameOf(it); if (it.wild) b.style.opacity = String(tHi > tLo ? 0.25 + 0.75 * (tame - tLo) / (tHi - tLo) : 0.6);
+    const label = it.group + (tame >= 2 ? ', but looked calm for ' + tame + ' digits first' : '');
+    b.setAttribute('aria-label', h.name + ' = ' + it.c + ': ' + label); b.title = h.name + ' = ' + it.c + ': ' + label;
+    b.onclick = () => {
+      grid.querySelectorAll('.sq').forEach((x) => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true');
+      detail.textContent = ''; detail.hidden = false;
+      detail.appendChild(el('span', '', h.name + ' = ' + it.c + ': ' + label + (it.value ? '  ' + it.value : '')));
+      const ob = el('button', 'open', 'Open this loop'); ob.type = 'button'; ob.onclick = () => openOne(h.name, it.c); detail.appendChild(ob);
+      const zEnd = h.end ? String((BigInt(it.c) - BigInt(h.end)) / 10n ** BigInt(h.end.length)).padStart(2, '0') + h.end : String(it.c).padStart(2, '0');
+      if (zEnd.length <= 12) { const zb = el('button', 'open', 'Zoom in'); zb.type = 'button'; zb.onclick = () => zoom(h, zEnd); detail.appendChild(zb); }
+    };
+    grid.appendChild(b);
+  });
+  row.appendChild(grid);
+  if (per === 10) { const cols = el('div', 'cols'); cols.style.gridTemplateColumns = 'repeat(10, 1fr)'; for (let i = 0; i < 10; i++) cols.appendChild(el('span', '', h.end ? String(i) : '…' + i)); row.appendChild(cols); }
+  if (h.end) row.appendChild(el('div', 'why', 'Every number here ends in ' + h.end + '. Each column is the digit just before ' + h.end + ', each row the digit before that.'));
+  else if (per <= 20) row.appendChild(el('div', 'why', 'Each column holds numbers with the same last digit (like 7, 17, 27…). Solid stripes mean the last digit alone decides the answer.'));
+  if (h.end) { const zo = el('button', 'open', 'Zoom out'); zo.type = 'button'; zo.style.marginTop = '10px'; zo.onclick = () => zoom(h, h.end.length > 2 ? h.end.slice(2) : ''); row.appendChild(zo); }
+  row.appendChild(detail);
+  return row;
+}
+// rewrite the hunt line to look only at numbers ending in the given digits (or at all numbers, for '')
+function zoom(h, end) {
+  const re = new RegExp('^(\\s*hunt\\s+' + h.name + '\\s+from\\s+)[^:]*:', 'm');
+  code.value = code.value.replace(re, (all, start) => start + '0 to ' + (end ? '99 ends in ' + end : '399') + ':');
+  [...$('chips').children].forEach((x) => x.setAttribute('aria-pressed', 'false'));
+  go();
+}
+// turn "hunt c from A to B:" plus its pushed-in lines into "c = N" plus the same lines, not pushed in
+function openOne(name, c) {
+  const lines = code.value.split('\n'); const outL = []; let inHunt = false, ind = 0, base = 0, done = false;
+  for (const line of lines) {
+    const m = !done && line.match(new RegExp('^(\\s*)hunt\\s+' + name + '\\s+from\\b.*:\\s*(.*)$'));
+    if (m) { inHunt = true; done = true; base = m[1].length; ind = -1; outL.push(m[1] + name + ' = ' + c); if (m[2].trim()) { outL.push(m[1] + m[2]); inHunt = false; } continue; }
+    if (inHunt) {
+      const lead = line.length - line.trimStart().length;
+      if (line.trim() && lead <= base) inHunt = false;
+      else { if (ind < 0 && line.trim()) ind = lead - base; outL.push(line.trim() ? line.slice(0, base) + line.slice(base + Math.max(ind, 0)) : line); continue; }
+    }
+    outL.push(line);
+  }
+  code.value = outL.join('\n'); if (!/\nwhy |^why /.test(code.value)) { const sh = code.value.match(/show\s+([A-Za-z_]\w*)\s*$/m); if (sh) code.value += '\nwhy ' + sh[1]; }
+  [...$('chips').children].forEach((x) => x.setAttribute('aria-pressed', 'false'));
+  window.scrollTo({ top: 0, behavior: 'smooth' }); go();
+}
+$('run').onclick = go;
+code.addEventListener('input', () => { save(); [...$('chips').children].forEach((c) => c.setAttribute('aria-pressed', 'false')); });
+let saved = null; try { saved = localStorage.getItem('pf-code'); } catch (e) {}
+if (saved && saved.trim()) { code.value = saved; go(); } else pick(0);
+</script>

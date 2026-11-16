@@ -1,0 +1,4 @@
+x = 0   step = 9
+forever: x = x + step   step = step × 10
+show x
+show x + 1

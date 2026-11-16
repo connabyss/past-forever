@@ -1,0 +1,7 @@
+found = no   n = 0
+forever: n = n + 1   if n × n ends in 7: found = yes
+show found
+
+x = 196
+forever: x = x + backwards(x)   if x is a palindrome: found = yes
+show found

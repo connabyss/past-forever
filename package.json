@@ -1,0 +1,10 @@
+{
+  "name": "past-forever",
+  "version": "0.2.0",
+  "description": "A small language where a loop can run forever, and the program carries on afterwards.",
+  "main": "forever.js",
+  "bin": { "past-forever": "cli.js" },
+  "scripts": { "test": "node tests/run.js", "build": "python3 page/build.py" },
+  "license": "MIT",
+  "private": true
+}
