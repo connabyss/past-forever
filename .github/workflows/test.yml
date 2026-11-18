@@ -14,6 +14,9 @@ jobs:
       - name: second opinion (an independent checker in Python re-proves 300 answers, fails on any it can't prove)
         shell: bash
         run: node tests/certify_gen.js 300 2027 | python3 tests/certify.py
+      - name: second opinion on every tower x = b ^ x (b = 2..40) and every x = x ^ x (from 2..40)
+        shell: bash
+        run: node tests/certify_gen.js towers | python3 tests/certify.py
       - name: the ten hand-written certificates (tests/certificates.md), run through the same checker
         shell: bash
         run: node tests/certify_gen.js tests/certificates.jsonl | python3 tests/certify.py

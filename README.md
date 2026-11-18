@@ -106,11 +106,16 @@ list in November 2026 and didn't find it, but many of its terms are close cousin
 
 **Don't believe it? Good.** Pick the claim you trust least and check it with your own arithmetic. Then try to
 [break it](#break-it): a wrong `proved` gets your name in the Hall of Fame. Coding agents: [AGENTS.md](AGENTS.md)
-has a dare for you. (A word on `proved`: it means proved by a few hand-written rules, listed in
-[How it knows](#how-it-knows) and tested by a robot referee on every build; the referee is a strong check, not a
-proof. No mathematician has reviewed them yet,
-and no proof assistant has checked them; an independent checker, [tests/certify.py](tests/certify.py), writes its
-own proof for one-name polynomial loops and counts any answer it can't prove as a failure.)
+has a dare for you.
+
+**A word on `proved`.** It means proved by the engine's own hand-written rules, listed in
+[How it knows](#how-it-knows). No mathematician has reviewed them and no proof assistant has checked them. Some kinds
+of answer also get a **second opinion**: a separate checker, [tests/certify.py](tests/certify.py), shares no code with
+the engine, writes its own proof, and fails the build if it can't prove an answer or disagrees. It covers one-name
+polynomial loops like `x = (3 × x × x + 7) / 11`, power towers like `x = 3 ^ x` (any whole number from 2 up), and
+`x = x ^ x`. Every other `proved` (pairs of names, loops with `if`, endless sums, counts past forever, polynomials
+with an endless number in them) rests on the engine's rules alone, plus the robot referee, which tries thousands of
+random loops on every build: a strong check, not a proof. [How it knows](#how-it-knows) marks which is which.
 
 <p align="center"><a href="https://connabyss.github.io/past-forever/"><img src="media/try-it-now.svg" width="300" alt="Try it now: open the playground in your browser"></a></p>
 
@@ -378,16 +383,19 @@ with the code and what it printed.
 
 ## How it knows
 
-There is no magic, only a few rules in [forever.js](forever.js), and each answer says which one it used:
+There is no magic, only a few rules in [forever.js](forever.js), and each answer says which one it used. **(2nd)**
+marks the rules whose answers the separate checker, [tests/certify.py](tests/certify.py), proves again on every build;
+the rest are checked by the robot referee only.
 
-- The whole state comes back: from then on it repeats forever.
-- A digit stops changing, and the rule pulls nearby numbers together: one more digit locks in every step.
+- The whole state comes back: from then on it repeats forever. **(2nd)** for one-name polynomial loops.
+- A digit stops changing, and the rule pulls nearby numbers together: one more digit locks in every step. **(2nd)** for one-name
+  polynomial loops.
 - A sum whose pieces end in more and more zeros settles.
 - A power tower like `x = 3 ^ x`: when two tops share their last k digits, the powers share k + 1 (the bottom
-  number must have no 2 or 5 in it). So once the last 2 digits stop changing, it settles.
+  number must have no 2 or 5 in it). So once the last 2 digits stop changing, it settles. **(2nd)**
 - A tower on 2, 5, 10 or any other whole number from 2 up, like `x = 2 ^ x` from an ordinary whole number: every
   step is a whole number and they grow, so soon every top is bigger than any number of digits you ask for. Then the
-  same lock-one-more rule holds, and it settles.
+  same lock-one-more rule holds, and it settles. **(2nd)**
 - A loop whose `if`s only test its last digits (`is even`, `is odd`, `ends in …`): the last few digits of every name
   then only depend on their last few digits, so they must come round. If a name's digits keep going round, it never
   settles. If the digits the tests read freeze, every test gives the same answer forever, and the loop is a plain one.
@@ -397,11 +405,13 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   and adding a count made by an earlier loop works like adding a number. (`d = d × forever` climbs to forever ^
   forever, which the language can't write yet, so it says `can't see the end` and tells you why.)
 - `x = x ^ x` from a whole number of 2 or more: the numbers grow, and once x is big, the last k digits of x ^ x only
-  depend on the last k digits of x. So if those go round a ring, it never settles.
+  depend on the last k digits of x. So if those go round a ring, it never settles. If x ends in 0, x ^ x ends in at
+  least x zeros, so it settles on exactly 0. **(2nd)**
 - Any polynomial rule whose other names are fixed endless numbers, like `y = 70 × y − 8 × y × y − 3 × x − 7`: if the
   last digit freezes where the rule's slope ends in 0, one more digit locks every step. Towers work the same way with
   extra parts times a number ending in 0, like `x = 3 ^ x − 10 × x`.
-- The last digits go round a ring that never stops: proved never to settle.
+- The last digits go round a ring that never stops: proved never to settle. **(2nd)** for one-name polynomial loops
+  and `x = x ^ x`.
 - None of these fit: `can't see the end`.
 
 ## Honest notes
@@ -414,8 +424,8 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
 - **The referee and the tests are strong checks, not proofs.** Everything below that says "checked" or "tested"
   means tried, not proved.
 - **"proved" means proved by the rules above**, as written in forever.js. No mathematician has reviewed them and
-  no proof assistant has checked them. For one-name polynomial loops, an independent checker writes its own proof
-  of each answer (below), and the build fails if it can't prove one.
+  no proof assistant has checked them. For one-name polynomial loops, power towers and `x = x ^ x`, an independent
+  checker writes its own proof of each answer (below), and the build fails if it can't prove one.
 - **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 4,311 random loops
   (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers, towers on
   2, 5 and 10, loops that branch on their last digits, and y = 10 × y + an endless number, polynomials with an endless number in them, towers plus 10 × x) and checks
@@ -428,7 +438,8 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   It prints how many of Past Forever's answers it proved again, how many it couldn't decide, and how many loops
   Past Forever gave no answer for. The build fails on any disagreement and on any answer it couldn't prove. On
   5,000 random loops it proved all 5,000 answers again, 0 undecided, 0 disagreements, all 60 digits matching. Every
-  build re-runs 300 of them, plus the ten loops in [tests/certificates.jsonl](tests/certificates.jsonl), whose
+  build re-runs 300 of them, every tower `x = b ^ x` for b from 2 to 40 and every `x = x ^ x` from 2 to 40 (all 60
+  digits compared), plus the ten loops in [tests/certificates.jsonl](tests/certificates.jsonl), whose
   proofs are written out by hand in [tests/certificates.md](tests/certificates.md). (Written by an explorer agent in a GitHub Codespace.)
 - Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
 - `can't see the end` comes up a lot. That's the language being honest, not a bug.

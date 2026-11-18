@@ -1046,6 +1046,13 @@ function selfPowerLoop(m, body, pure, start) {
   if (!(e.t === 'bin' && e.op === '^' && e.a.t === 'var' && e.a.name === v && e.b.t === 'var' && e.b.name === v)) return false;
   const x0v = start.get(v);
   if (!x0v || !(x0v.k === 'num' && qint(x0v.q) && x0v.q.n >= 2n)) return false;
+  if (x0v.q.n % 10n === 0n) {
+    // x ends in 0, so x ^ x ends in at least x zeros, and x only grows: the last k digits are all 0 once x ≥ k
+    m.env = new Map(start);
+    m.env.set(v, num(Q0, v + ' ends in 0, so ' + v + ' ^ ' + v + ' ends in at least ' + v + ' zeros, and ' + v + ' grows every step. So every digit turns to 0 and stays 0: after forever ' + v + ' = 0 exactly'));
+    settlePureCounts(m, body, pure, start);
+    return true;
+  }
   // run the real numbers until x is at least 100 (bigger than any digit count looked at below)
   let x = x0v.q.n, n = 0;
   while (x < 100n) { x = x ** x; n++; }
