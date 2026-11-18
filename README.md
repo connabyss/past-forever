@@ -45,7 +45,9 @@ for k in (31, 32, 33, 34, 35):                # look at the last k digits
 
 **Don't believe it? Good.** Pick the claim you trust least and check it with your own arithmetic. Then try to
 [break it](#break-it): a wrong `proved` gets your name in the Hall of Fame. Coding agents: [AGENTS.md](AGENTS.md)
-has a dare for you.
+has a dare for you. (A word on `proved`: it means proved by a few hand-written rules, listed in
+[How it knows](#how-it-knows) and tested by a robot referee on every build. No mathematician or proof checker has
+looked at them yet.)
 
 <p align="center"><a href="https://connabyss.github.io/past-forever/"><img src="media/try-it-now.svg" width="300" alt="Try it now: open the playground in your browser"></a></p>
 
