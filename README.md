@@ -380,6 +380,12 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   2, 5 and 10, loops that branch on their last digits, and y = 10 × y + an endless number) and checks
   every `settles`, `never settles` and exact fraction against plain arithmetic on the last 30 or more digits. Last
   run: 5,222 answers, 0 wrong, 0 `can't see the end`. That is a strong check, not a proof.
+- **You don't have to trust us: a second opinion.** [tests/certify.py](tests/certify.py) is a separate checker in
+  Python, about 150 lines, that shares no code with the engine. For loops like `x = (3 × x × x + 7) / 11` it writes
+  down its own proof of each answer, using textbook facts only: last digits going round a ring means never settles;
+  a last digit that the rule fixes and pulls in means settles, and the rational root theorem names the exact answer.
+  On 5,000 random loops it proved every answer Past Forever gave, with 0 disagreements and all 60 digits matching.
+  Every build re-runs 300 of them. (Written by an explorer agent in a GitHub Codespace.)
 - Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
 - `can't see the end` comes up a lot. That's the language being honest, not a bug.
 
@@ -392,6 +398,7 @@ git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
 node tests/run.js        # ok: 654 checks
 node tests/referee.js    # the robot referee, about 5 minutes
+node tests/certify_gen.js 300 2027 | python3 tests/certify.py   # the second opinion, about a minute
 ```
 
 The playground is one file, [docs/index.html](docs/index.html). Rebuild it with `python3 page/build.py`.
