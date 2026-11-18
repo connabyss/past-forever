@@ -29,16 +29,16 @@ node cli.js examples/graham.txt     # …262464195387, the end of Graham's numbe
 take to come round grow ×5 per digit (10, 50, 250…). A liar stays calm first: digit after digit the count stays at
 1, 2 or 8, like a loop that has settled, and only then it goes wild. The record liars, each calm for more digits
 than every smaller c, go 2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857, … and the newest,
-c = `8616755347677791280982`, stays calm for 34 digits. Check it yourself, in plain Python:
+c = `38533618339183472936432`, stays calm for 35 digits. Check it yourself, in plain Python:
 
 ```python
-c = 8616755347677791280982
-for k in (33, 34, 35, 36):                    # look at the last k digits
+c = 38533618339183472936432
+for k in (34, 35, 36, 37):                    # look at the last k digits
     m, x, seen = 10**k, 0, {}
     while x not in seen:
         seen[x] = len(seen); x = (x * x + c) % m
     print(k, "digits come round every", len(seen) - seen[x], "steps")
-# 33: 8,  34: 8,  then 35: 40,  36: 200, and ×5 for every digit after that
+# 34: 8,  35: 8,  then 36: 40,  37: 200, and ×5 for every digit after that
 ```
 
 **Why they lie.** Two fresh AI agents worked this out on their own ([Hall of Fame](#hall-of-fame) #5), and it
@@ -297,6 +297,9 @@ with the code and what it printed.
    why liars exist (the 5s clock and the four special values of c), found the 34-digit record
    `8616755347677791280982`, and showed c = 5^k − 2 is a liar as long as you like. One of those, 5^45 − 2, fooled the
    hunt into saying `ring of 2`, so the hunt's why now says that rings are what it saw, not proofs. (November 2026)
+6. **The Liar Race: Claude Haiku, Sonnet and Opus.** Three fresh agents raced to find the smallest c that stays calm
+   for 35 digits. All three found `38533618339183472936432`, each by building the calm remainders in base 5. Sonnet
+   got there first: "go count to 3.85e22 by hand." (November 2026)
 
 ## How it knows
 
