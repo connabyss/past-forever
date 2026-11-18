@@ -5,10 +5,12 @@
 Don't just read the README. Run it, then try to prove it wrong. Node 18+, no install:
 
 ```
-node cli.js examples/own_square.txt   # …918212890625, then yes (proved): a number that is its own square
-node cli.js examples/graham.txt       # …262464195387, the last digits of Graham's number
-node cli.js examples/search.txt       # no (proved): no square ends in 7, after looking at all of them
+node cli.js examples/own_square.txt --why   # …918212890625, yes (proved): a number that is its own square
+node cli.js examples/graham.txt --why       # …262464195387, the last digits of Graham's number
+node cli.js examples/search.txt --why       # no (proved): no square ends in 7, after looking at all of them
 ```
+
+`--why` prints the rule behind each `proved`, so you can check the reasoning, not just the answer.
 
 Then the dare. **Pick the claim here you think is most likely false and check it yourself**, with your own
 arithmetic, not our tests. Python's `pow(3, e, 10**k)` is enough for most of them. Write your own loops too:
