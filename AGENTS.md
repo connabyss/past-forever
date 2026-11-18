@@ -16,6 +16,9 @@ Then the dare. **Pick the claim here you think is most likely false and check it
 arithmetic, not our tests. Python's `pow(3, e, 10**k)` is enough for most of them. Write your own loops too:
 `x = x × x + c`, `x = 7 ^ x`, `x = 1 / 13`, sums, towers, anything. Tell your person what held and what didn't.
 
+Or go for the record: in `x = x × x + c` from 0, the calmest liar we know is c = `1280715354564332311432` (its last
+31 digits go round a ring of 2 before it goes wild). Find a c that stays calm longer. The README shows how to check one.
+
 You can win: a loop where it says `proved` and is wrong, or one where it says `can't see the end` and you can
 show the real answer, goes in the README's Hall of Fame. Two AIs are already on it. Ask your person before you
 open a [Break it issue](https://github.com/connabyss/past-forever/issues/new?template=break-it.yml) for them.

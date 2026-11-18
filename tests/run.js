@@ -125,6 +125,9 @@ is(out('show 1 / 2'), 'stopped: 2 does not go into 1. Here you can divide by any
 is(out('x = 5\nforever: x = x × x\nshow x < 3'), 'stopped: endless numbers have no bigger or smaller, only the same or different', 'no order on endless numbers');
 is(out('show y'), 'stopped: line 1: y has no value yet', 'unknown name');
 is(out('x = 3\nrepeat 4: x = x × x\nshow x\nshow backwards(1230)\nshow 12321 is a palindrome'), '43046721\n321\nyes', 'repeat and helpers');
+// Copilot (2026-11-18): repeat 10 ^ 64 had no time limit and froze the page. It now stops with a clear message.
+is(/^stopped: line 2: repeat ran out of time after \d+ rounds\. To loop forever, write forever:$/m.test(F.text('x = 0\nrepeat 3000000: x = x + 1\nshow x', { repeatMs: 1 })), true, 'repeat stops when it runs out of time');
+is(F.text('x = 0\nrepeat 1000: x = x + 1\nshow x', { repeatMs: 1000 }), '1000', 'a short repeat still finishes');
 is(out('a = 4\nif a is even: show 1\nelse: show 2\nif a is odd: show 1 else: show 2'), '1\n2', 'if and else');
 is(out('n = 0\nforever: n = n + 1   show n'), '1\n2\n3\n4\n… and so on, forever', 'show inside forever');
 

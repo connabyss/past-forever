@@ -554,7 +554,7 @@ const FUNCS = {
 };
 
 // ───────────────────────── running ─────────────────────────
-const LIMITS = { steps: 4000, size: 10n ** 2500n, ms: 1500, orbit: 200000, huntMs: 15000 };
+const LIMITS = { steps: 4000, size: 10n ** 2500n, ms: 1500, orbit: 200000, huntMs: 15000, repeatMs: 15000 };
 
 class Machine {
   constructor(opts = {}) { this.env = new Map(); this.counts = new Set(); this.out = []; this.quiet = 0; this.limits = { ...LIMITS, ...opts }; }
@@ -613,7 +613,11 @@ class Machine {
         const n = this.ev(s.n);
         if (n.k === 'count' && !O.isFin(n.o)) throw new LangError('line ' + s.line + ': to repeat forever, write forever:');
         const k = wholeArg(n.k === 'count' ? num(Q(O.finVal(n.o))) : n, 'repeat');
-        for (let i = 0n; i < k; i++) this.run(s.body);
+        const t0 = Date.now();
+        for (let i = 0n; i < k; i++) {
+          if (Date.now() - t0 > this.limits.repeatMs) throw new LangError('line ' + s.line + ': repeat ran out of time after ' + i + ' rounds. To loop forever, write forever:');
+          this.run(s.body);
+        }
         return;
       }
       case 'forever': return runForever(this, s);

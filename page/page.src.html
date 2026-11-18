@@ -225,7 +225,7 @@ function go() {
   out.textContent = ''; out.appendChild(el('div', 'empty', 'Running…')); $('time').textContent = '';
   setTimeout(() => {
     const t0 = performance.now(); let r;
-    try { r = Forever.run(code.value, { huntMs: 8000 }); } catch (e) { r = { lines: [], error: 'the language itself broke here: ' + e.message }; }
+    try { r = Forever.run(code.value, { huntMs: 8000, repeatMs: 8000 }); } catch (e) { r = { lines: [], error: 'the language itself broke here: ' + e.message }; }
     const ms = Math.round(performance.now() - t0);
     out.textContent = '';
     for (const l of r.lines) {

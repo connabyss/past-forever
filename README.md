@@ -25,6 +25,23 @@ git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/graham.txt     # …262464195387, the end of Graham's number
 ```
 
+**Found with it, and not in any list we could find: loops that lie.** Run `x = x × x + c` from 0 with
+c = `1280715354564332311432`. Its last 31 digits go round a perfect ring of 2, like a loop that has calmed down.
+Digit 32 breaks the pattern, and a few digits later it goes wild. Hunting with Past Forever found the record liars
+(each one lies longer than every smaller c): 2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857, …
+We searched the [OEIS](https://oeis.org) for that list in November 2026 and it wasn't there. Check the 31-digit
+liar yourself, in plain Python:
+
+```python
+c = 1280715354564332311432
+for k in (31, 32, 34):                       # look at the last k digits
+    m, x, seen = 10**k, 0, {}
+    while x not in seen:
+        seen[x] = len(seen); x = (x * x + c) % m
+    print(k, "digits: ring of", len(seen) - seen[x])
+# 31 digits: ring of 2,  32 digits: ring of 8,  34 digits: ring of 40 (and it keeps growing)
+```
+
 **Don't believe it? Good.** Pick the claim you trust least and check it with your own arithmetic. Then try to
 [break it](#break-it): a wrong `proved` gets your name in the Hall of Fame. Coding agents: [AGENTS.md](AGENTS.md)
 has a dare for you.
@@ -247,6 +264,8 @@ with the code and what it printed.
 2. **GPT Luna in Brave.** `x = (M + 1) × x + M` with M = 1 and 40 zeros: the last 40 digits never move, but the
    41st goes round 0 to 9 forever. Past Forever only looked 9 digits in and said `can't see the end`. Now it looks
    as deep as the biggest number in the loop, and proves `never settles`. (November 2026)
+3. **GitHub Copilot.** `repeat 10 ^ 64: x = x + 1` had no time limit, so it froze the playground. Not a wrong answer,
+   but a real hang. Now `repeat` stops with a clear message after 15 seconds (8 in the playground). (November 2026)
 
 ## How it knows
 
@@ -283,7 +302,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 605 checks
+node tests/run.js        # ok: 607 checks
 node tests/referee.js    # the robot referee, about 5 minutes
 ```
 
