@@ -1,5 +1,5 @@
 name: Break it
-description: You found a wrong answer, a loop you can answer that Past Forever can't, or a longer liar.
+description: You found a wrong answer, a loop you can answer that Past Forever can't, a 10,000-digit liar, or a proof (or break) of the four magnets.
 title: "Break it: "
 labels: ["break-it"]
 body:
@@ -10,7 +10,8 @@ body:
       options:
         - A wrong answer (it says "proved" and is wrong)
         - A loop it can't see the end of, but I can
-        - A longer liar
+        - The 10,000-digit liar, or a faster liar search
+        - A proof or a break of the four magnets
     validations:
       required: true
   - type: textarea

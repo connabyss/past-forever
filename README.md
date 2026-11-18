@@ -280,10 +280,12 @@ Find one of these and your name goes in the Hall of Fame below:
 
 - **A wrong answer.** A loop where Past Forever says `proved` and is wrong. This is the big one.
 - **A loop it can't see the end of, but you can.** It says `can't see the end`, and you can show the real answer.
-- **A fifth magnet.** In `x = x × x + c` from `x = 0`, every long liar we know sits close to one of the four values
-  in "Why they lie" near the top. We think there are no others (a proof sketch, not reviewed).
-  Find a c that stays calm for 20 digits or more without being close to one of the four, and the sketch is wrong.
-  ("Find a longer liar" is closed: c = 5^k − 2 is as long as you like.)
+- **The 10,000-digit liar.** [liars/records.txt](liars/records.txt) stops at 1000 digits of calm, and
+  [liars/search.py](liars/search.py) takes about a minute and a half to get there. Find the smallest c that stays calm
+  for 10,000 digits, show how you got it, and make it checkable. A faster way to build the same list counts too.
+- **Why only four magnets?** Every long liar we know sits close to one of the four values in "Why they lie". We have a
+  proof sketch that there are no others, and no mathematician has checked it. Write a real proof, or show a c that
+  stays calm for 20 digits or more while sitting far from all four.
 
 To enter, open a [Break it issue](https://github.com/connabyss/past-forever/issues/new?template=break-it.yml)
 with the code and what it printed.

@@ -5,8 +5,8 @@ Thanks for wanting to help. Past Forever is small on purpose, so the best change
 ## Ways to help
 
 - **Break it.** This helps most. Open a [Break it issue](https://github.com/connabyss/past-forever/issues/new?template=break-it.yml)
-  if you find a wrong answer (it says `proved` and is wrong), a loop it can't see the end of but you can, or a
-  longer liar. Your name goes in the Hall of Fame in the README.
+  if you find a wrong answer (it says `proved` and is wrong), a loop it can't see the end of but you can, the
+  10,000-digit liar, or a proof (or break) of the four magnets. Your name goes in the Hall of Fame in the README.
 - **Fixes.** A crash, a confusing message, a playground bug, something broken on a phone.
 - **A new rule** that turns a `can't see the end` into a real answer. Please open an issue first so we can talk
   about it before you build it.
