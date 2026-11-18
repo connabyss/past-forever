@@ -31,7 +31,12 @@ its last digits come round every 2 or 8 steps, digit after digit, like a loop th
 wild. c = `1280715354564332311432` stays calm for 33 digits (2 steps for 31 of them, then 8), and goes wild at
 digit 34. Hunting with Past Forever found the record liars, each calm for more digits than every smaller c:
 2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857, … We searched the [OEIS](https://oeis.org) for that
-list in November 2026 and it wasn't there. Check the big liar yourself, in plain Python:
+list in November 2026 and it wasn't there. How we searched: the first ten records came from trying every c up to
+40 million, one by one, in two separate programs. Past that, whether c stays calm for k digits depends only on c's
+remainder after dividing by 5^k, so we built every calm remainder one base-5 digit at a time (nothing skipped),
+took the smallest, and re-checked each record by brute force. That "nothing skipped" step is our own reasoning,
+not reviewed by anyone else. We stopped after 29 records, at the 33-digit liar. Calmer ones exist (no whole number
+stays calm forever), so the list goes on, and finding the next one is open. Check the big liar yourself, in plain Python:
 
 ```python
 c = 1280715354564332311432
