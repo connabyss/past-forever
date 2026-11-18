@@ -312,6 +312,7 @@ is(out('x = 5\nforever: x = x × x\nshow 2000 digits of x').length, 2001, '2000 
   const calm = (c, most) => { for (let j = 1; j <= most; j++) if (per(c, j) % 5 === 0) return j - 1; return most; };
   const wrong = rows.filter(([d]) => d <= 40).filter(([d, c]) => calm(c, d + 1) !== d).map(([d, c]) => d + ':' + c);
   is(wrong.join(' '), '', 'every record liar up to 40 digits is calm exactly as long as the list says');
+  is([1000, 1001, 1002].map((k) => per(rows[rows.length - 1][1], k)).join(', '), '2, 2, 10', 'the README check of the 1000-digit liar prints 2, 2, 10');
 }
 
 // ── the README's zero-twins claim: two non-zero numbers whose product is exactly 0 and whose sum is exactly 1

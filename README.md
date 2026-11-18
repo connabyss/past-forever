@@ -30,13 +30,24 @@ git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/graham.txt     # …262464195387, the end of Graham's number
 ```
 
-**Found with it: loops that lie.** Run `x = x × x + c` from 0. For a wild c, the steps its last 1, 2, 3… digits
+**Found with it: a loop that lies for 1000 digits.** Run `x = x × x + c` from 0. For a wild c, the steps its last 1, 2, 3… digits
 take to come round grow ×5 per digit (10, 50, 250…). A liar stays calm first: digit after digit the count stays at
 1, 2 or 8, like a loop that has settled, and only then it goes wild. The record liars, each calm for more digits
 than every smaller c, go 2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857, … and the list now runs
-to 1000 digits of calm: the smallest c that stays calm for 1000 digits has 698 digits
-([liars/records.txt](liars/records.txt)). Here is a short one, c = `38533618339183472936432`, calm for 35 digits.
-Check it yourself, in plain Python:
+to 1000 digits of calm. The smallest c that stays calm for 1000 digits is 698 digits long, and it holds out for 1001
+before it breaks. Check it yourself in plain Python, from a clone of this repo (it takes a blink):
+
+```python
+c = int(open("liars/records.txt").read().split()[-1])   # the last record in the list
+for k in (1000, 1001, 1002):                             # look at the last k digits
+    m, x, seen = 10**k, 0, {}
+    while x not in seen:
+        seen[x] = len(seen); x = (x * x + c) % m
+    print(k, "digits come round every", len(seen) - seen[x], "steps")
+# 1000: 2,  1001: 2,  then 1002: 10, and ×5 for every digit after that
+```
+
+A short one to check without cloning: c = `38533618339183472936432`, calm for 35 digits.
 
 ```python
 c = 38533618339183472936432
