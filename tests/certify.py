@@ -113,48 +113,53 @@ def limit_digits(L, k):  # last k digits of the limit (valid once SETTLES is cer
     return r
 
 
-tally, problems, examples = {}, [], {}
-for line in sys.stdin:
-    L = json.loads(line)
-    out = L['out']
-    pf = 'never' if out == 'never settles' else 'cant' if out == "can't see the end" else 'other' if out.startswith(('stopped', 'crash')) else 'settles'
-    verdict, val, proof = certify(L)
-    key = f'{pf:8s}/ {verdict}'
-    tally[key] = tally.get(key, 0) + 1
-    examples.setdefault(key, (L['src'], out[:90], proof))
-    if (pf == 'never' and verdict == 'SETTLES') or (pf == 'settles' and verdict == 'NEVER'):
-        problems.append((L['src'], out, proof))
-    if pf == 'settles' and verdict == 'SETTLES':
-        digits = out.lstrip('…').split()[0]
-        if digits.isdigit():
-            k = min(len(digits), 60)
-            if int(digits) % 10 ** k != limit_digits(L, k):
-                problems.append((L['src'], out, 'DIGITS DIFFER'))
-        if '(this is' in out:
-            lab = Fr(out.split('(this is ')[-1].rstrip(')'))
-            if val is not None and lab != val:
-                problems.append((L['src'], out, f'LABEL differs from certified limit {val}'))
-            if val is None and 'irrational' in proof:
-                problems.append((L['src'], out, 'LABEL given, but certificate says irrational'))
-print('Past Forever said  /  independent certificate:')
-for k in sorted(tally):
-    print(f'  {k:22s} {tally[k]}')
-# an answer counts as independently proved only when the checker found its own certificate for the same answer
-proved = sum(v for k, v in tally.items() if k.startswith(('never   / NEVER', 'settles / SETTLES')))
-pf_answers = sum(v for k, v in tally.items() if k.startswith(('never', 'settles')))
-unproved = sum(v for k, v in tally.items() if k.endswith('UNPROVED') and k.startswith(('never', 'settles')))
-engine_open = sum(v for k, v in tally.items() if k.startswith(('cant', 'other')))
-total = sum(tally.values())
-print('loops:', total)
-print("Past Forever's answers proved again by the checker:", proved, 'of', pf_answers)
-print('answers the checker could not decide (UNPROVED):', unproved)
-print("loops where Past Forever gave no answer (can't see the end, stopped):", engine_open)
-print('disagreements:', len(problems))
-for p in problems[:5]:
-    print('  ', p)
-if not problems and unproved:
-    print('INCONCLUSIVE: no disagreement, but', unproved, 'answers have no independent certificate')
-if len(sys.argv) > 1:
-    with open(sys.argv[1], 'w', encoding='utf-8') as fh:
-        json.dump({'tally': tally, 'problems': problems, 'examples': examples}, fh, indent=1)
-sys.exit(1 if problems or unproved else 0)   # CI fails on a disagreement or on any answer left without a certificate
+def main():
+    tally, problems, examples = {}, [], {}
+    for line in sys.stdin:
+        L = json.loads(line)
+        out = L['out']
+        pf = 'never' if out == 'never settles' else 'cant' if out == "can't see the end" else 'other' if out.startswith(('stopped', 'crash')) else 'settles'
+        verdict, val, proof = certify(L)
+        key = f'{pf:8s}/ {verdict}'
+        tally[key] = tally.get(key, 0) + 1
+        examples.setdefault(key, (L['src'], out[:90], proof))
+        if (pf == 'never' and verdict == 'SETTLES') or (pf == 'settles' and verdict == 'NEVER'):
+            problems.append((L['src'], out, proof))
+        if pf == 'settles' and verdict == 'SETTLES':
+            digits = out.lstrip('…').split()[0]
+            if digits.isdigit():
+                k = min(len(digits), 60)
+                if int(digits) % 10 ** k != limit_digits(L, k):
+                    problems.append((L['src'], out, 'DIGITS DIFFER'))
+            if '(this is' in out:
+                lab = Fr(out.split('(this is ')[-1].rstrip(')'))
+                if val is not None and lab != val:
+                    problems.append((L['src'], out, f'LABEL differs from certified limit {val}'))
+                if val is None and 'irrational' in proof:
+                    problems.append((L['src'], out, 'LABEL given, but certificate says irrational'))
+    print('Past Forever said  /  independent certificate:')
+    for k in sorted(tally):
+        print(f'  {k:22s} {tally[k]}')
+    # an answer counts as independently proved only when the checker found its own certificate for the same answer
+    proved = sum(v for k, v in tally.items() if k.startswith(('never   / NEVER', 'settles / SETTLES')))
+    pf_answers = sum(v for k, v in tally.items() if k.startswith(('never', 'settles')))
+    unproved = sum(v for k, v in tally.items() if k.endswith('UNPROVED') and k.startswith(('never', 'settles')))
+    engine_open = sum(v for k, v in tally.items() if k.startswith(('cant', 'other')))
+    total = sum(tally.values())
+    print('loops:', total)
+    print("Past Forever's answers proved again by the checker:", proved, 'of', pf_answers)
+    print('answers the checker could not decide (UNPROVED):', unproved)
+    print("loops where Past Forever gave no answer (can't see the end, stopped):", engine_open)
+    print('disagreements:', len(problems))
+    for p in problems[:5]:
+        print('  ', p)
+    if not problems and unproved:
+        print('INCONCLUSIVE: no disagreement, but', unproved, 'answers have no independent certificate')
+    if len(sys.argv) > 1:
+        with open(sys.argv[1], 'w', encoding='utf-8') as fh:
+            json.dump({'tally': tally, 'problems': problems, 'examples': examples}, fh, indent=1)
+    sys.exit(1 if problems or unproved else 0)   # CI fails on a disagreement or on any answer left without a certificate
+
+
+if __name__ == '__main__':
+    main()

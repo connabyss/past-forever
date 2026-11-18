@@ -67,9 +67,14 @@ for k in (34, 35, 36, 37):                    # look at the last k digits
 **Why they lie.** Two fresh AI agents worked this out on their own ([Hall of Fame](#hall-of-fame) #5), and it
 matches what turned up while hunting. The last k digits run two clocks at once, one for the 2s in 10^k and one for
 the 5s. The 2s clock never lies (proved: there the slope 2x is even, so the ring is 1 or 2 long). The 5s clock does
-all of it. **Conjecture, with a proof sketch nobody has checked:** every long liar sits close, in base 5, to one of four
-special values of c: −2, the two 5-adic square roots of −1, and one more that only a long equation names. Every liar
-we found fits it, and so do all 785 records. Making liars on purpose is checked, not proved: c = 5^k − 2 stayed calm for
+all of it. Every long liar sits close, in base 5, to one of four special values of c, the **magnets**: −2, the two
+5-adic square roots of −1, and M, the other c ending in 2 (base 5) with x·x + c from 0 landing back on its own
+second step after 10 steps (…1001440314111230040323412323104031442412 in base 5). "Close" means exactly this: **a c
+that stays calm for k digits has the same last k − 2 base-5 digits as one of the four magnets**, and from 5 digits
+on, k − 2 can't be raised. For c ending in 3 (base 5) that follows from a short formula, calm for k digits means 5^k
+divides (c + 2)(c·c + 1), inside a proof sketch nobody outside this project has checked. For c ending in 2 it is
+**checked, not proved**: [tests/magnets.py](tests/magnets.py) builds every calm c, digit by digit, and tests the
+statement at every depth from 3 to 1000, on every build. Making liars on purpose is checked, not proved: c = 5^k − 2 stayed calm for
 exactly k + 1 digits for every k we tried (k up to 40).
 
 **Odd powers can't lie (proved, short).** From 0, `x = x × x × x + c` (or the 5th or 7th power) settles into a
@@ -335,9 +340,9 @@ Find one of these and your name goes in the Hall of Fame below:
 - **The 10,000-digit liar.** [liars/records.txt](liars/records.txt) stops at 1000 digits of calm, and
   [liars/search.py](liars/search.py) takes about a minute and a half to get there. Find the smallest c that stays calm
   for 10,000 digits, show how you got it, and make it checkable. A faster way to build the same list counts too.
-- **Why only four magnets?** Every long liar we know sits close to one of the four values in "Why they lie". We have a
-  proof sketch that there are no others, and no mathematician has checked it. Write a real proof, or show a c that
-  stays calm for 20 digits or more while sitting far from all four.
+- **Why only four magnets?** Every c that stays calm for k digits shares its last k − 2 base-5 digits with one of
+  the four magnets in "Why they lie" (checked to 1000 digits by [tests/magnets.py](tests/magnets.py)). Write a real
+  proof for every k, or show a c that stays calm for k digits while sharing fewer than k − 2 with all four.
 
 To enter, open a [Break it issue](https://github.com/connabyss/past-forever/issues/new?template=break-it.yml)
 with the code and what it printed.

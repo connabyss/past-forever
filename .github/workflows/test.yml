@@ -17,6 +17,11 @@ jobs:
       - name: the ten hand-written certificates (tests/certificates.md), run through the same checker
         shell: bash
         run: node tests/certify_gen.js tests/certificates.jsonl | python3 tests/certify.py
+      - name: the certificates page says exactly what the checker and the engine say today
+        shell: bash
+        run: node tests/certify_gen.js tests/certificates.jsonl | python3 tests/certificates_sync.py
+      - name: every calm c sits within k - 2 base-5 digits of one of the four magnets (depths 3 to 1000)
+        run: python3 tests/magnets.py
       - name: the checker must fail when it can't prove an answer (it may never quietly pass)
         shell: bash
         run: "! (node tests/certify_gen.js tests/certify_unproved.jsonl | python3 tests/certify.py)"
