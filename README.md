@@ -16,7 +16,8 @@ show x
 `90625 × 90625 = 8212890625`, which ends in `90625` again. Every digit you keep does the same. It is its own square.
 
 Same trick, other answers: `1 ÷ 7 = …142857143` (check: `142857143 × 7 = 1000000001`, and the more 142857s you
-add, the more zeros), and the last digits of [Graham's number](#the-last-digits-of-grahams-number).
+add, the more zeros), and the last digits of [Graham's number](#the-last-digits-of-grahams-number), which you can
+[hear played on a paper piano roll](https://connabyss.github.io/past-forever/sing.html).
 
 **Two numbers, neither one zero, that multiply to exactly 0.** Run a second loop, `y = 6` then
 `forever: y = y ^ 5`, and it settles to `…081787109376`. Now `show x × y` prints `0`, and `show x + y` prints
@@ -288,7 +289,8 @@ could ask for, so its last k digits are the endless tower's last k digits, for e
 **Hear it.** `sing` plays any answer's digits as music, one note per digit, right to left: the order the digits
 freeze in. Each digit picks a note from a five-note scale (0 lowest, 9 highest), so no order of digits can clash,
 with a bass note every 4th digit and a bell every 10th. In the [playground](https://connabyss.github.io/past-forever/)
-pick **Sing it** and press play. On your own computer, save a minute of Graham's number as a sound file:
+pick **Sing it** and press play, or [watch the last 360 digits of Graham's number go by on a paper piano
+roll](https://connabyss.github.io/past-forever/sing.html) while they play. On your own computer, save a minute of Graham's number as a sound file:
 
 ```
 node cli.js examples/sing.txt --wav graham.wav     # its last 360 digits, about a minute
@@ -467,7 +469,8 @@ node tests/referee.js    # the robot referee, about 5 minutes
 node tests/certify_gen.js 300 2027 | python3 tests/certify.py   # the second opinion, about a minute
 ```
 
-The playground is one file, [docs/index.html](docs/index.html). Rebuild it with `python3 page/build.py`.
+The playground is one file, [docs/index.html](docs/index.html), and the piano roll is [docs/sing.html](docs/sing.html). Rebuild both
+with `python3 page/build.py`. `node tests/sing.js` checks the piano roll in a browser (it needs Playwright).
 
 ## Where it came from
 
@@ -475,4 +478,4 @@ connabyss asked Claude (an AI) for a strange new language that would grow out of
 One idea from that play was a loop that finishes forever, and connabyss picked it. The language was built in a day
 with Claude Code, and the liar loops turned up while hunting with it.
 
-MIT licence.
+MIT licence. The piano roll's paper is Paper 001 from [ambientCG](https://ambientcg.com/view?id=Paper001), CC0.

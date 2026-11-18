@@ -1,0 +1,159 @@
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400;1,6..72,500&display=swap">
+<style>
+/* a paper piano roll: the digits are punched as holes, and the hole on the brass bar is the note you hear */
+html,body{background:#efe6d2}
+body{color:#1b1712;font-family:Newsreader,Georgia,serif;padding:26px 20px 28px}
+main{max-width:390px;margin:0 auto}
+h1{font:600 36px/1.05 Newsreader,Georgia,serif;margin:0 0 12px;letter-spacing:-.4px;text-wrap:balance}
+p{font-size:18px;line-height:1.36;margin:0 0 10px}
+pre{font:15px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:2px 0 14px 18px}
+.row{display:flex;align-items:baseline;gap:12px;margin:0 0 14px}
+.btn{flex:none;width:92px;background:transparent;color:#2a2016;border:1.5px solid #2a2016;border-radius:0;padding:7px 0 6px;
+  font:italic 500 19px Newsreader,Georgia,serif;box-shadow:2px 2px 0 rgba(42,32,22,.85);cursor:pointer}
+.btn:active{transform:translate(2px,2px);box-shadow:none}
+.btn:focus-visible{outline:2px solid #2a2016;outline-offset:3px}
+.meta{font-size:15px;color:#5d4e3b;font-variant-numeric:tabular-nums}
+.machine{position:relative;max-width:354px}
+.win{position:relative;height:296px;overflow:hidden;background:#2b2119 url(felt.jpg) 0 0/354px auto}
+.bar{position:absolute;left:0;right:0;top:191.9px;height:18px;background:linear-gradient(#d0ab63,#a37f40 45%,#6f5529)}
+.bar i{position:absolute;top:6.6px;width:4.8px;height:4.8px;border-radius:50%;background:#5a4220;box-shadow:inset 0 1px 1px rgba(0,0,0,.5)}
+canvas{position:absolute;left:0;top:0;width:100%;height:296px;filter:drop-shadow(0 0 2px rgba(40,25,10,.35))}
+.lift{position:absolute;left:0;right:0;top:183.9px;height:34px;pointer-events:none;
+  background:linear-gradient(rgba(255,250,235,0),rgba(255,250,235,.28) 45%,rgba(60,40,15,.22) 62%,rgba(60,40,15,0))}
+.win:after{content:'';position:absolute;inset:0;pointer-events:none;
+  box-shadow:inset 0 22px 18px -12px rgba(50,32,12,.5),inset 0 -22px 18px -12px rgba(50,32,12,.42),inset 0 0 0 1px rgba(60,40,15,.25)}
+.stub{position:absolute;top:189.9px;width:16px;height:22px;box-shadow:0 4px 5px rgba(40,25,10,.35);
+  background:linear-gradient(#5e4622,#a8844a 14%,#f3dc9e 30%,#c9a35c 42%,#8a6a35 70%,#4a3518)}
+.stub:after{content:'';position:absolute;top:0;width:6px;height:22px;border-radius:50%;background:radial-gradient(ellipse at 40% 35%,#e9cf8c,#9c7a3e 60%,#5e4622)}
+.stub.l{left:-16px}.stub.r{right:-16px}.stub.l:after{left:-3px}.stub.r:after{right:-3px}
+.foot{font-size:15.5px;color:#5d4e3b;margin-top:18px}
+.foot a{color:#2a2016}
+</style>
+<main>
+<h1>The last 360 digits of Graham's number, as music</h1>
+<p>Graham's number is too big to write down. Its last digits never change, though, so this loop can work them out:</p>
+<pre id="src">x = 3
+forever: x = 3 ^ x
+sing 360 digits of x</pre>
+<p>Each hole is one digit, starting from the last. Further right, higher note.</p>
+<div class="row"><button class="btn" id="b" type="button">play</button><span class="meta" id="m" aria-live="polite">one minute, turn the sound on</span></div>
+<div class="machine"><div class="stub l"></div><div class="stub r"></div>
+<div class="win"><div class="bar" id="bar"></div><canvas id="c" aria-label="A paper piano roll with one punched hole per digit"></canvas><div class="lift"></div></div></div>
+<p class="foot" id="foot"></p>
+<p class="foot"><a href="./">Past Forever</a> is a tiny language where a loop can run forever and still hand you an answer. <a href="./">Try your own loop</a>.</p>
+</main>
+<script>
+/*ENGINE*/
+</script>
+<script>
+(() => {
+const $ = (id) => document.getElementById(id);
+// the digits come from running the loop above, here, in this browser
+const t0 = performance.now();
+const r = Forever.run($('src').textContent);
+const line = r.lines.find((l) => l.sing);
+const DIG = line.sing.digits;                  // last digit last
+const D = DIG.split('').reverse();             // D[0] is the very last digit
+const N = D.length, NOTE = Forever.NOTE_SEC;
+$('foot').textContent = 'The loop above worked these ' + N + ' digits out just now, in your browser, in ' + Math.max(1, Math.round(performance.now() - t0)) + ' ms. They end …' + DIG.slice(-12) + '.';
+$('foot').innerHTML = $('foot').textContent.replace(/…\d+\./, (x) => '<span style="white-space:nowrap">' + x + '</span>');
+
+// roll geometry, in roll units (318 across); u turns a unit into screen pixels
+const UW = 318, RHU = 19, LU = 46, RU = UW - 20, COLU = (RU - LU) / 9, LEADU = 11.5, TAILU = 12;
+const BARY = 200.9, WH = 296;
+const cv = $('c'), cx = cv.getContext('2d');
+let u = 1, w = 354, dpr = 1;
+// ten ports in the brass bar, one under each column
+const bar = $('bar');
+// seeded wobble, the same every visit: each hole is punched a little differently
+let seed = 11; const rnd = () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const R = (a, b) => a + (b - a) * rnd();
+const holes = D.map((d) => {
+  const js = Array.from({ length: 12 }, () => R(-1, 1));
+  return { dx: R(-0.5, 0.5), dy: R(-0.4, 0.4), hl: 6.5 + R(-0.8, 0.8), wd: 2.4 + R(-0.35, 0.35), a: R(-1.5, 1.5) * Math.PI / 180, js, ink: 150 + R(-20, 30), tx: R(-0.25, 0.25) };
+});
+function holePath(h, x, y) {                    // a punched hole: a squarish oval with a slightly ragged edge
+  const p = new Path2D(), wd = h.wd * u, hl = h.hl * u, ca = Math.cos(h.a), sa = Math.sin(h.a);
+  for (let k = 0; k < 48; k++) {
+    const t = k / 48 * 2 * Math.PI, c = Math.cos(t), s = Math.sin(t), q = k / 4, i0 = Math.floor(q) % 12, fr = q - Math.floor(q);
+    const j = (h.js[i0] * (1 - fr) + h.js[(i0 + 1) % 12] * fr) * 0.3 * u;
+    const px = wd * Math.sign(c) * Math.abs(c) ** 0.35 + j * c, py = hl * Math.sign(s) * Math.abs(s) ** 0.35 + j * s;
+    const X = x + px * ca - py * sa, Y = y + px * sa + py * ca;
+    k ? p.lineTo(X, Y) : p.moveTo(X, Y);
+  }
+  p.closePath(); return p;
+}
+const paper = new Image(); paper.src = 'paper.jpg';
+let pat = null, at = -0.5;
+paper.onload = () => { pat = cx.createPattern(paper, 'repeat'); draw(at); };
+function size() {
+  w = cv.parentNode.clientWidth; u = w / UW; dpr = Math.min(3, window.devicePixelRatio || 1);
+  cv.width = Math.round(w * dpr); cv.height = Math.round(WH * dpr);
+  bar.innerHTML = '';
+  for (let d = 0; d < 10; d++) { const i = document.createElement('i'); i.style.left = (LU + d * COLU) * u - 2.4 + 'px'; bar.appendChild(i); }
+  draw(at);
+}
+function draw(n) {                               // note n (can be a fraction) sits on the bar
+  at = n;
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, w, WH);
+  const rh = RHU * u, y0 = BARY + n * rh;          // screen y of note 0's centre
+  const top = y0 - (N - 1 + 0.5 + TAILU) * rh, bot = y0 + LEADU * rh;
+  // the paper
+  cx.save();
+  cx.beginPath();
+  cx.moveTo(0, top); cx.lineTo(w, top); cx.lineTo(w, bot - 5 * rh); cx.lineTo(w * 0.62, bot); cx.lineTo(w * 0.38, bot); cx.lineTo(0, bot - 5 * rh); cx.closePath();
+  cx.clip();
+  if (pat) { const s = 0.5566 * u / 1.1132; pat.setTransform(new DOMMatrix([s, 0, 0, s, 0, y0 % (paper.height * s)])); cx.fillStyle = pat; cx.fillRect(0, 0, w, WH); }
+  cx.fillStyle = pat ? 'rgba(240,230,205,.22)' : '#efe3c8'; cx.fillRect(0, 0, w, WH);
+  // digits printed beside each hole, and the holes' shadow and lip
+  const first = Math.max(0, Math.floor(n - (WH - BARY) / rh) - 2), last = Math.min(N - 1, Math.ceil(n + BARY / rh) + 2);
+  cx.font = 14 * u + 'px Newsreader, Georgia, serif'; cx.textBaseline = 'middle';
+  const paths = [];
+  for (let i = first; i <= last; i++) {
+    const h = holes[i], y = y0 - i * rh + h.dy * u, x = (LU + +D[i] * COLU + h.dx) * u;
+    cx.fillStyle = 'rgba(60,45,30,' + (h.ink / 255).toFixed(3) + ')'; cx.fillText(D[i], (14 + h.tx) * u, y + 0.5 * u);
+    const p = holePath(h, x, y); paths.push(p);
+    cx.save(); cx.translate(0, 1); cx.fillStyle = 'rgba(120,100,70,.45)'; cx.filter = 'blur(0.8px)'; cx.fill(p); cx.restore();
+    cx.save(); cx.translate(-0.75, 0.75); cx.fillStyle = 'rgba(255,248,230,.8)'; cx.fill(p); cx.restore();
+  }
+  // the leader, printed the way old rolls were
+  const ly = y0 + 27.5 * u;
+  if (ly < WH + 10) {
+    cx.fillStyle = 'rgba(40,30,22,.84)'; cx.textAlign = 'center'; cx.textBaseline = 'top';
+    cx.font = '600 ' + 20 * u + 'px Newsreader, Georgia, serif'; cx.fillText("GRAHAM'S NUMBER", w / 2, ly + 8 * u);
+    cx.font = 12 * u + 'px Newsreader, Georgia, serif'; cx.fillText('the last ' + N + ' digits, last digit first', w / 2, ly + 38 * u);
+    cx.fillRect(w * 0.3, ly + 60 * u, w * 0.4, u); cx.fillText('Past Forever  ·  roll no. 1', w / 2, ly + 70 * u);
+    cx.textAlign = 'start';
+  }
+  // punch the holes: the felt and the brass show through
+  cx.globalCompositeOperation = 'destination-out'; cx.fillStyle = '#000';
+  for (const p of paths) cx.fill(p);
+  cx.restore();
+}
+function say(i) { const v = (i + 1) % 100, s = ['th', 'st', 'nd', 'rd']; return 'the ' + (i + 1) + (s[(v - 20) % 10] || s[v] || s[0]) + ' digit from the end is a ' + D[i]; }
+const b = $('b'), m = $('m');
+let audio = null, url = null, start = 0, raf = 0;
+function rest() { cancelAnimationFrame(raf); raf = 0; b.textContent = 'play'; m.textContent = 'one minute, turn the sound on'; draw(-0.5); }
+function frame(now) {
+  if (!audio) return;
+  let t = (now - start) / 1000;
+  if (Math.abs(t - audio.currentTime) > 0.15 && audio.currentTime > 0) { start = now - audio.currentTime * 1000; t = audio.currentTime; }
+  const n = t / NOTE;
+  if (n >= N) { draw(N - 0.5); m.textContent = 'that was all ' + N; raf = 0; return; }
+  draw(n - 0.5); m.textContent = say(Math.max(0, Math.floor(n)));
+  raf = requestAnimationFrame(frame);
+}
+b.onclick = () => {
+  if (audio) { audio.pause(); audio = null; rest(); return; }
+  url = url || URL.createObjectURL(new Blob([Forever.wav(DIG)], { type: 'audio/wav' }));
+  const a = new Audio(url); audio = a; b.textContent = 'stop';
+  a.onplaying = () => { if (audio !== a) return; start = performance.now() - a.currentTime * 1000; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); };
+  a.onended = () => { if (audio === a) { audio = null; setTimeout(() => { if (!audio) rest(); }, 1500); } };
+  a.play().catch(() => { if (audio === a) { audio = null; rest(); m.textContent = "couldn't start the sound here"; } });
+};
+window.setT = (t) => { if (t < 0) { rest(); return; } b.textContent = 'stop'; const n = t / NOTE; draw(n - 0.5); m.textContent = say(Math.min(N - 1, Math.floor(n))); };
+window.addEventListener('resize', size);
+if (document.fonts) document.fonts.ready.then(() => draw(at));
+size();
+})();
+</script>
