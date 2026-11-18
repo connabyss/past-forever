@@ -182,6 +182,10 @@ yes  (proved)
 So after forever, `x` is an endless number that runs off to the left, and it is its own square. Ask `why x`
 and it tells you how it knows.
 
+It isn't the only one. 0 and 1 are their own squares, and so is its twin, `…081787109376` (start at 6 and take the
+fifth power forever). Add the twins and you get `…000000000001`, which is 1. That's the `90625 + 9376 = 100001` from
+the calculator steps above. The `why` for `…918212890625` says it is the one ending in 5, not the only one.
+
 ## The last digits of Graham's number
 
 [Graham's number](https://en.wikipedia.org/wiki/Graham%27s_number) can be written as a tower of 3s, `3 ^ 3 ^ … ^ 3`,
