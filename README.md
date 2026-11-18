@@ -439,14 +439,19 @@ the rest are checked by the robot referee only.
   It prints how many of Past Forever's answers it proved again, how many it couldn't decide, and how many loops
   Past Forever gave no answer for. The build fails on any disagreement and on any answer it couldn't prove. On
   5,000 random loops it proved all 5,000 answers again, 0 undecided, 0 disagreements, all 60 digits matching. Every
-  build re-runs 300 of them, every tower `x = b ^ x` for b from 2 to 40 and every `x = x ^ x` from 2 to 40 (all 60
-  digits compared), plus the ten loops in [tests/certificates.jsonl](tests/certificates.jsonl), whose
+  build re-runs 300 of them, every tower `x = b ^ x` for b from 2 to 40 (starts 0 to 3) and every `x = x ^ x` from 2
+  to 40, plus the ten loops in [tests/certificates.jsonl](tests/certificates.jsonl), whose
   proofs are written out by hand in [tests/certificates.md](tests/certificates.md). (Written by an explorer agent in a GitHub Codespace.)
+  For each tower it writes a certificate for that one loop: the step from which x is big enough, the length of the
+  chain 10^60, λ(10^60), …, 1, and so the step by which all 60 digits must be frozen. Then it runs that loop on every
+  level of the chain, checks each level freezes on time, and compares the 60 digits. Its coverage is narrow on
+  purpose (those loop families only): a different loop shape gets no second opinion.
 - **Copilot's three probes.** GitHub Copilot picked the three rules it trusted least: towers on bases with 2 or 5 in
   them, towers mixed with x (like `x = 3 ^ x − 20 × x` from −1), and polynomials that use an endless number
   settled by an earlier loop. [tests/probes.py](tests/probes.py) widens each into a family, 205 loops, and checks
-  every answer against a plain modular simulation 100 digits deep, on every build. 0 wrong; 18 of the third kind
-  say `can't see the end` (honest, but a gap).
+  every answer against a plain modular simulation, up to 110 digits deep, on every build. 0 wrong; 18 of the third
+  kind say `can't see the end` (honest, but a gap). That is a finite check, not a proof: it looks at a fixed set of
+  depths and loop families, and a loop shape it doesn't try could still hide a bug.
 - Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
 - `can't see the end` comes up a lot. That's the language being honest, not a bug.
 
