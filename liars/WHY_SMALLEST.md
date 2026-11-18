@@ -33,6 +33,9 @@ How it is checked, by two programs that share no code:
   base-5 step at all, and gets the first ten records. Every build on GitHub runs it.
 - The same program checks the last record, the 698-digit one, the plain way in base 10 at every depth from 1 to
   1001 digits, one at a time, and sees it go wild at 1002.
+- It also tries every remainder of c after dividing by 5^k, for k = 1 to 6 (15,625 of them at k = 6), decides calm
+  for each one directly with its own ring finder, and checks that the tree keeps exactly those, no more, no fewer
+  (60 at depth 6). It also checks that the 2s side never adds a 5 to any ring at those depths.
 - [check.py](check.py) re-checks every record's calm length digit by digit in base 10 (about 8 minutes).
 
 What this does not give you: a proof checked by a proof assistant, or a mathematician's review. Steps 1 to 4 are

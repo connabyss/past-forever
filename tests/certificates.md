@@ -13,7 +13,10 @@ off to the left (10-adic integers), stated here once:
   answer is exactly L (the rational root theorem finds every such L).
 
 The checker is [tests/certify.py](certify.py); `node tests/certify_gen.js 300 2027 | python3 tests/certify.py` runs it on
-300 random loops, and every build does that. The ten below were picked by the explorer agent that wrote it.
+300 random loops, and every build does that. The ten below were picked by the explorer agent that wrote it. They
+are also stored as machine-readable inputs in [certificates.jsonl](certificates.jsonl), and every build runs them through the
+same checker: `node tests/certify_gen.js tests/certificates.jsonl | python3 tests/certify.py`. The build fails if the
+checker disagrees with Past Forever or can't prove an answer.
 
 ## 1. x = 5, then forever x = x^2
 

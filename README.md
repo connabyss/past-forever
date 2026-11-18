@@ -66,12 +66,26 @@ for k in (34, 35, 36, 37):                    # look at the last k digits
 
 **Why they lie.** Two fresh AI agents worked this out on their own ([Hall of Fame](#hall-of-fame) #5), and it
 matches what turned up while hunting. The last k digits run two clocks at once, one for the 2s in 10^k and one for
-the 5s. The 2s clock never lies. The 5s clock does all of it, and every liar sits close, in base 5, to one of four
-special values of c: −2, the two 5-adic square roots of −1, and one more that only a long equation names. So you
-can make liars on purpose: c = 5^k − 2 stays calm for k + 1 digits. And odd powers can't lie at all: from 0,
-`x = x × x × x + c` (or the 5th or 7th power) never goes wild, for any c. An odd power shuffles the last digits
-0 to 9 without losing any, so the loop's last digit comes back to 0, where the rule pulls everything in, at every
-depth. (Checked for every c below 200 with powers 3, 5 and 7: none goes wild. Squares and 4th powers: plenty.)
+the 5s. The 2s clock never lies (proved: there the slope 2x is even, so the ring is 1 or 2 long). The 5s clock does
+all of it. **Conjecture, with a proof sketch nobody has checked:** every long liar sits close, in base 5, to one of four
+special values of c: −2, the two 5-adic square roots of −1, and one more that only a long equation names. Every liar
+we found fits it, and so do all 785 records. Making liars on purpose is checked, not proved: c = 5^k − 2 stayed calm for
+exactly k + 1 digits for every k we tried (k up to 40).
+
+**Odd powers can't lie (proved, short).** From 0, `x = x × x × x + c` (or the 5th or 7th power) settles into a
+ring whose length never changes with depth: however many digits you watch, it comes round in the same number of
+steps as its last digit does. For example `x = x × x × x + 1` goes 0, 1, 2, 9, 0 on the last digit, and on the last
+30 digits it still comes round every 4 steps. The proof, for f(x) = x^p + c with p = 3, 5 or 7:
+1. On one digit, f shuffles 0 to 9 without losing any (x^p mod 2 is x, and x^p mod 5 is a shuffle because p shares
+   no factor with 4). So 0's last digit comes back to 0, after r steps, and r is the ring's length on one digit.
+2. Let g be f done r times. Its slope at 0 is a product of f's slopes round the ring, and one of them is f'(0) =
+   p × 0^(p−1) = 0. So for any two numbers ending in 0, g(x) − g(y) = (x − y) × (a multiple of 10): if they share
+   k digits, g of them share k + 1.
+3. So g, started at 0, freezes one more digit every round and has one limit z ending in 0, with g(z) = z. f's ring
+   through z is r long on every depth (it can't be shorter, because on the last digit it is r long), and 0's path
+   falls into it. Squares are different: the same step only works when the ring's slopes multiply to a multiple
+   of 10, and for most c they don't. (Also checked by machine: every c below 200 with powers 3, 5 and 7, on 1 digit and on 30, comes round in the same
+   number of steps.)
 
 **How we searched.** The first ten records came from trying every c up to 40 million, one by one, in two separate
 programs. Past that, whether c stays calm for k digits depends only on c's remainder after dividing by 5^k, so the
@@ -88,9 +102,10 @@ list in November 2026 and didn't find it, but many of its terms are close cousin
 **Don't believe it? Good.** Pick the claim you trust least and check it with your own arithmetic. Then try to
 [break it](#break-it): a wrong `proved` gets your name in the Hall of Fame. Coding agents: [AGENTS.md](AGENTS.md)
 has a dare for you. (A word on `proved`: it means proved by a few hand-written rules, listed in
-[How it knows](#how-it-knows) and tested by a robot referee on every build. No mathematician has reviewed them yet,
-and no proof assistant has checked them; an independent checker, [tests/certify.py](tests/certify.py), re-proves
-every answer for one-name polynomial loops.)
+[How it knows](#how-it-knows) and tested by a robot referee on every build; the referee is a strong check, not a
+proof. No mathematician has reviewed them yet,
+and no proof assistant has checked them; an independent checker, [tests/certify.py](tests/certify.py), writes its
+own proof for one-name polynomial loops and counts any answer it can't prove as a failure.)
 
 <p align="center"><a href="https://connabyss.github.io/past-forever/"><img src="media/try-it-now.svg" width="300" alt="Try it now: open the playground in your browser"></a></p>
 
@@ -233,8 +248,8 @@ the calculator steps above. The `why` for `…918212890625` says it is the one e
 
 ## The last digits of Graham's number
 
-[Graham's number](https://en.wikipedia.org/wiki/Graham%27s_number) can be written as a tower of 3s, `3 ^ 3 ^ … ^ 3`,
-so tall that the universe is too small to hold its digits. The tower does end somewhere, but nobody knows its first
+[Graham's number](https://en.wikipedia.org/wiki/Graham%27s_number) is defined with Knuth's up-arrows, 64 layers of
+them. Unfold the last layer and it is a tower of 3s, `3 ^ 3 ^ … ^ 3`, so tall that the universe is too small to hold its digits. The tower does end somewhere, but nobody knows its first
 digit. Past Forever can show you its last ones, by building the tower forever:
 
 ```
@@ -251,8 +266,12 @@ yes  (proved)
 
 <p align="center"><img src="media/tower.gif" width="520" alt="A tower of 3s, one floor at a time: 3, 27, 7625597484987, and then numbers too long to write down. The digits on the right freeze in gold, one more each floor, and after forever the ending is ...262464195387"></p>
 
-Once the tower is a few floors tall, every new floor freezes one more digit on the right. Graham's number is a
-finite tower, but far taller than any number of digits you could ask for, so it ends the same way as the endless one. Ask for `show 105 digits of x` and all 105 match the digits listed in the
+Once the tower is a few floors tall, every new floor freezes one more digit on the right. Why, in one line: two
+powers 3^a and 3^b share their last k + 1 digits whenever a and b share their last k digits (for k ≥ 2), because 3
+to the power 10^k ends in …0001 on its last k + 1 digits (Euler's theorem: λ(10^(k+1)) divides 10^k). So once two
+floors in a row share their last 2 digits, each floor after that shares one more, and the last k digits stop
+changing for good. Graham's number is a finite tower of 3s, far taller than any number of digits you
+could ask for, so its last k digits are the endless tower's last k digits, for every k you can write down. Ask for `show 105 digits of x` and all 105 match the digits listed in the
 [OEIS (A133613)](https://oeis.org/A133613). The tests check them on every build.
 
 **Hear it.** `sing` plays any answer's digits as music, one note per digit, right to left: the order the digits
@@ -387,9 +406,11 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   is a language you can actually run where code keeps going after a forever loop. Closest cousins: the
   Zeno esolang (an imaginary machine) and infinite time Turing machines
   (theory, not a language). Not finding one is not proof there isn't one.
+- **The referee and the tests are strong checks, not proofs.** Everything below that says "checked" or "tested"
+  means tried, not proved.
 - **"proved" means proved by the rules above**, as written in forever.js. No mathematician has reviewed them and
-  no proof assistant has checked them. For one-name polynomial loops, an independent checker re-proves every answer
-  (below).
+  no proof assistant has checked them. For one-name polynomial loops, an independent checker writes its own proof
+  of each answer (below), and the build fails if it can't prove one.
 - **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 4,311 random loops
   (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers, towers on
   2, 5 and 10, loops that branch on their last digits, and y = 10 × y + an endless number, polynomials with an endless number in them, towers plus 10 × x) and checks
@@ -399,9 +420,11 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   Python, about 150 lines, that shares no code with the engine. For loops like `x = (3 × x × x + 7) / 11` it writes
   down its own proof of each answer, using textbook facts only: last digits going round a ring means never settles;
   a last digit that the rule fixes and pulls in means settles, and the rational root theorem names the exact answer.
-  On 5,000 random loops it proved every answer Past Forever gave, with 0 disagreements and all 60 digits matching.
-  Every build re-runs 300 of them. Ten of its proofs, written out so you can check them by hand:
-  [tests/certificates.md](tests/certificates.md). (Written by an explorer agent in a GitHub Codespace.)
+  It prints how many of Past Forever's answers it proved again, how many it couldn't decide, and how many loops
+  Past Forever gave no answer for. The build fails on any disagreement and on any answer it couldn't prove. On
+  5,000 random loops it proved all 5,000 answers again, 0 undecided, 0 disagreements, all 60 digits matching. Every
+  build re-runs 300 of them, plus the ten loops in [tests/certificates.jsonl](tests/certificates.jsonl), whose
+  proofs are written out by hand in [tests/certificates.md](tests/certificates.md). (Written by an explorer agent in a GitHub Codespace.)
 - Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
 - `can't see the end` comes up a lot. That's the language being honest, not a bug.
 

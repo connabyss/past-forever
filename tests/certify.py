@@ -13,7 +13,8 @@ answer from textbook facts, and writes the proof down:
                          L = r (mod 10) exists (rational root theorem), the limit is exactly L.
   EXACT                  x_n lands exactly on a fixed point (f(x_N) = x_N as fractions).
 Otherwise UNPROVED: an honest "no certificate", not a disagreement.
-Then it compares with what Past Forever said, and exits with 1 if they disagree anywhere.
+Then it compares with what Past Forever said. It exits with 1 if they disagree anywhere, or if any answer Past
+Forever gave is left without a certificate (inconclusive), and it prints how many answers it proved again.
 
     node tests/certify_gen.js 300 2027 | python3 tests/certify.py            # the CI-sized run, about a minute
     node tests/certify_gen.js 5000 2027 | python3 tests/certify.py report.json   # the full run, about 20 minutes
@@ -138,10 +139,22 @@ for line in sys.stdin:
 print('Past Forever said  /  independent certificate:')
 for k in sorted(tally):
     print(f'  {k:22s} {tally[k]}')
+# an answer counts as independently proved only when the checker found its own certificate for the same answer
+proved = sum(v for k, v in tally.items() if k.startswith(('never   / NEVER', 'settles / SETTLES')))
+pf_answers = sum(v for k, v in tally.items() if k.startswith(('never', 'settles')))
+unproved = sum(v for k, v in tally.items() if k.endswith('UNPROVED') and k.startswith(('never', 'settles')))
+engine_open = sum(v for k, v in tally.items() if k.startswith(('cant', 'other')))
+total = sum(tally.values())
+print('loops:', total)
+print("Past Forever's answers proved again by the checker:", proved, 'of', pf_answers)
+print('answers the checker could not decide (UNPROVED):', unproved)
+print("loops where Past Forever gave no answer (can't see the end, stopped):", engine_open)
 print('disagreements:', len(problems))
 for p in problems[:5]:
     print('  ', p)
+if not problems and unproved:
+    print('INCONCLUSIVE: no disagreement, but', unproved, 'answers have no independent certificate')
 if len(sys.argv) > 1:
     with open(sys.argv[1], 'w', encoding='utf-8') as fh:
         json.dump({'tally': tally, 'problems': problems, 'examples': examples}, fh, indent=1)
-sys.exit(1 if problems else 0)
+sys.exit(1 if problems or unproved else 0)   # CI fails on a disagreement or on any answer left without a certificate
