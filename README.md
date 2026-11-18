@@ -23,6 +23,11 @@ add, the more zeros), and the last digits of [Graham's number](#the-last-digits-
 `1`. Check the last 4 digits by hand: `0625 × 9376 = 5860000` (four zeros) and `0625 + 9376 = 10001`. Take more
 digits and you get more zeros. In these numbers, 0 has two non-zero factors (`node cli.js examples/zero_twins.txt`).
 
+**What it can and can't do.** Past Forever answers loops of plain arithmetic on one or a few numbers: adding,
+multiplying, fractions, powers, tests like `is even`. For each it either proves the answer, proves the loop never
+settles, or says `can't see the end`. It does not solve any infinite program you could write, and it tells you
+when it can't.
+
 **Try it in 10 seconds** (Node 18+, no dependencies):
 
 ```
@@ -73,7 +78,9 @@ programs. Past that, whether c stays calm for k digits depends only on c's remai
 calm remainders can be built one base-5 digit at a time, with nothing skipped (there are exactly 60 at every depth
 from 5 on). The smallest one is the record, and each record was re-checked by brute force. Rebuild the list yourself with
 [liars/search.py](liars/search.py) (`python3 liars/search.py 1000`, about a minute and a half) and re-check it the
-slow way, digit by digit in base 10, with [liars/check.py](liars/check.py) (all 785 records, about 8 minutes, 0 wrong). "Nothing skipped" rests
+slow way, digit by digit in base 10, with [liars/check.py](liars/check.py) (all 785 records, about 8 minutes, 0 wrong). Why each one is the
+smallest, in four steps you can check by reading, and how a second program and a brute force below 10 million confirm
+it on every build: [liars/WHY_SMALLEST.md](liars/WHY_SMALLEST.md). "Nothing skipped" rests
 on our reasoning and the agents', not on anyone's review. We searched the [OEIS](https://oeis.org) for the record
 list in November 2026 and didn't find it, but many of its terms are close cousins of lists that are there: the
 5-adic square roots of −1 ([A048898](https://oeis.org/A048898), [A048899](https://oeis.org/A048899)).

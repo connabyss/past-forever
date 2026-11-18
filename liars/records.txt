@@ -1,6 +1,7 @@
 # The record liars of x = x × x + c, starting from x = 0.
 # Each line: how many digits it stays calm for, then c. Each c is the smallest positive c that stays calm that long,
 # and calm for more digits than every smaller c. Found by liars/search.py; check them with liars/check.py.
+# Why each one is the smallest, and how that is checked twice: liars/WHY_SMALLEST.md
 2 2
 4 7
 5 57

@@ -9,6 +9,8 @@ jobs:
         with: { node-version: 20 }
       - run: node tests/run.js
       - run: node tests/referee.js 3000
+      - name: record liars, re-found by a second program and by brute force below 10 million
+        run: node tests/liars.js
       - name: second opinion (an independent checker in Python re-proves 300 answers)
         shell: bash
         run: node tests/certify_gen.js 300 2027 | python3 tests/certify.py
