@@ -1,9 +1,51 @@
 # Past Forever
 
-## 1 ÷ 7 = …142857143. A whole number.
+**Write a loop that never ends. Get its answer anyway, exactly.** This loop never stops, and the program runs on past it:
 
-**(Here's the world where that's true.)** Past Forever is a small language where infinite loops finish with an answer. It can even tell you
-[how Graham's number ends](#the-last-digits-of-grahams-number).
+```
+x = 5
+forever: x = x × x
+show x
+```
+
+```
+…918212890625
+```
+
+5, 25, 625, 390625… squared forever, and the digits on the right freeze. **Check it on any calculator:**
+`918212890625 × 918212890625` ends in `…918212890625`. It is its own square.
+
+Same trick, other answers: `1 ÷ 7 = …142857143` (check: `142857143 × 7 = 1000000001`, and the more 142857s you
+add, the more zeros), and the last digits of [Graham's number](#the-last-digits-of-grahams-number).
+
+**Try it in 10 seconds** (Node 18+, no dependencies):
+
+```
+git clone https://github.com/connabyss/past-forever && cd past-forever
+node cli.js examples/graham.txt     # …262464195387, the end of Graham's number
+```
+
+**Found with it, and not in any list we could find: loops that lie.** Run `x = x × x + c` from 0. For a wild c,
+the steps its last 1, 2, 3… digits take to come round grow ×5 per digit (10, 50, 250…). A liar stays calm first:
+its last digits come round every 2 or 8 steps, digit after digit, like a loop that has settled, and only then goes
+wild. c = `1280715354564332311432` stays calm for 33 digits (2 steps for 31 of them, then 8), and goes wild at
+digit 34. Hunting with Past Forever found the record liars, each calm for more digits than every smaller c:
+2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857, … We searched the [OEIS](https://oeis.org) for that
+list in November 2026 and it wasn't there. Check the big liar yourself, in plain Python:
+
+```python
+c = 1280715354564332311432
+for k in (31, 32, 33, 34, 35):                # look at the last k digits
+    m, x, seen = 10**k, 0, {}
+    while x not in seen:
+        seen[x] = len(seen); x = (x * x + c) % m
+    print(k, "digits come round every", len(seen) - seen[x], "steps")
+# 31: 2,  32: 8,  33: 8,  then 34: 40,  35: 200, and ×5 for every digit after that
+```
+
+**Don't believe it? Good.** Pick the claim you trust least and check it with your own arithmetic. Then try to
+[break it](#break-it): a wrong `proved` gets your name in the Hall of Fame. Coding agents: [AGENTS.md](AGENTS.md)
+has a dare for you.
 
 <p align="center"><a href="https://connabyss.github.io/past-forever/"><img src="media/try-it-now.svg" width="300" alt="Try it now: open the playground in your browser"></a></p>
 
@@ -140,10 +182,15 @@ yes  (proved)
 So after forever, `x` is an endless number that runs off to the left, and it is its own square. Ask `why x`
 and it tells you how it knows.
 
+It isn't the only one. 0 and 1 are their own squares, and so is its twin, `…081787109376` (start at 6 and take the
+fifth power forever). Add the twins and you get `…000000000001`, which is 1. That's the `90625 + 9376 = 100001` from
+the calculator steps above. The `why` for `…918212890625` says it is the one ending in 5, not the only one.
+
 ## The last digits of Graham's number
 
-[Graham's number](https://en.wikipedia.org/wiki/Graham%27s_number) is a tower of 3s, `3 ^ 3 ^ 3 ^ …`, so tall that
-the universe is too small to hold its digits. Nobody knows its first digit. Past Forever can show you its last ones:
+[Graham's number](https://en.wikipedia.org/wiki/Graham%27s_number) can be written as a tower of 3s, `3 ^ 3 ^ … ^ 3`,
+so tall that the universe is too small to hold its digits. The tower does end somewhere, but nobody knows its first
+digit. Past Forever can show you its last ones, by building the tower forever:
 
 ```
 x = 3
@@ -159,8 +206,8 @@ yes  (proved)
 
 <p align="center"><img src="media/tower.gif" width="520" alt="A tower of 3s, one floor at a time: 3, 27, 7625597484987, and then numbers too long to write down. The digits on the right freeze in gold, one more each floor, and after forever the ending is ...262464195387"></p>
 
-Once the tower is a few floors tall, every new floor freezes one more digit on the right, and Graham's number is far
-taller than that. Ask for `show 105 digits of x` and all 105 match the digits listed in the
+Once the tower is a few floors tall, every new floor freezes one more digit on the right. Graham's number is a
+finite tower, but far taller than any number of digits you could ask for, so it ends the same way as the endless one. Ask for `show 105 digits of x` and all 105 match the digits listed in the
 [OEIS (A133613)](https://oeis.org/A133613). The tests check them on every build.
 
 ## Three honest answers
@@ -208,7 +255,7 @@ Find one of these and your name goes in the Hall of Fame below:
 - **A wrong answer.** A loop where Past Forever says `proved` and is wrong. This is the big one.
 - **A loop it can't see the end of, but you can.** It says `can't see the end`, and you can show the real answer.
 - **A longer liar.** In `x = x × x + c` from `x = 0`, the calmest liar we know is c = `1280715354564332311432`:
-  its last 31 digits go round a ring of 2 before it goes wild. Find a c that stays calm longer
+  its last 33 digits stay calm (they come round every 2 or 8 steps) before it goes wild. Find a c that stays calm longer
   (Past Forever looks 40 digits deep).
 
 To enter, open a [Break it issue](https://github.com/connabyss/past-forever/issues/new?template=break-it.yml)
@@ -222,6 +269,12 @@ with the code and what it printed.
 2. **GPT Luna in Brave.** `x = (M + 1) × x + M` with M = 1 and 40 zeros: the last 40 digits never move, but the
    41st goes round 0 to 9 forever. Past Forever only looked 9 digits in and said `can't see the end`. Now it looks
    as deep as the biggest number in the loop, and proves `never settles`. (November 2026)
+3. **GitHub Copilot.** `repeat 10 ^ 64: x = x + 1` had no time limit, so it froze the playground. Not a wrong answer,
+   but a real hang. Now `repeat` stops with a clear message after 15 seconds (8 in the playground). (November 2026)
+4. **A fresh Claude Opus agent, and GitHub Copilot.** Asked only to take a look, Opus tried a tower of 2s,
+   `x = 2 ^ x`, where Past Forever said `can't see the end`. It settles, on …075353432948736. Copilot found the same
+   gap with `x = 10 ^ x`, which settles on 0. Now every tower on a whole number from 2 up settles by its own rule.
+   (November 2026)
 
 ## How it knows
 
@@ -232,6 +285,9 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
 - A sum whose pieces end in more and more zeros settles.
 - A power tower like `x = 3 ^ x`: when two tops share their last k digits, the powers share k + 1 (the bottom
   number must have no 2 or 5 in it). So once the last 2 digits stop changing, it settles.
+- A tower on 2, 5, 10 or any other whole number from 2 up, like `x = 2 ^ x` from an ordinary whole number: every
+  step is a whole number and they grow, so soon every top is bigger than any number of digits you ask for. Then the
+  same lock-one-more rule holds, and it settles.
 - The last digits go round a ring that never stops: proved never to settle.
 - None of these fit: `can't see the end`.
 
@@ -244,10 +300,11 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   (theory, not a language). Not finding one is not proof there isn't one.
 - **"proved" means proved by the rules above**, as written in forever.js. They are not machine-checked, and no
   mathematician has reviewed them.
-- **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 3,000 random loops
-  (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers) and checks
+- **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 3,375 random loops
+  (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers, towers on
+  2, 5 and 10) and checks
   every `settles`, `never settles` and exact fraction against plain arithmetic on the last 30 or more digits. Last
-  run: 4,285 answers, 0 wrong, 11 `can't see the end`. That is a strong check, not a proof.
+  run: 4,660 answers, 0 wrong, 11 `can't see the end`. That is a strong check, not a proof.
 - Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
 - `can't see the end` comes up a lot. That's the language being honest, not a bug.
 
@@ -258,7 +315,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 605 checks
+node tests/run.js        # ok: 614 checks
 node tests/referee.js    # the robot referee, about 5 minutes
 ```
 

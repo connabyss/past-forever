@@ -275,7 +275,13 @@ function powArith(a, b) {
       return r;
     }
   }
-  if (!unitBase(a)) throw new LangError(TOWER_BOTTOM);
+  if (!unitBase(a)) {
+    // a bottom with a 2 or 5 in it works only on top of a number known to be bigger than any count of digits
+    if (!(b.hugeTop && a.k === 'num' && qint(a.q) && a.q.n >= 2n)) throw new LangError(TOWER_BOTTOM);
+    const r = endGeneric((k) => { const K = Math.max(k, 2); return powmod(a.q.n, valMod(b, K) + pow10(K), pow10(k)); });
+    r.powOf = { base: a.q.n, top: b }; r.hugeTop = true;
+    return r;
+  }
   const r = endGeneric((k) => powmod(a.q.n, valMod(b, Math.max(k, 2)), pow10(k)));
   r.powOf = { base: a.q.n, top: b }; if (b.maxDigits) r.maxDigits = b.maxDigits;
   return r;
@@ -554,7 +560,7 @@ const FUNCS = {
 };
 
 // ───────────────────────── running ─────────────────────────
-const LIMITS = { steps: 4000, size: 10n ** 2500n, ms: 1500, orbit: 200000, huntMs: 15000 };
+const LIMITS = { steps: 4000, size: 10n ** 2500n, ms: 1500, orbit: 200000, huntMs: 15000, repeatMs: 15000 };
 
 class Machine {
   constructor(opts = {}) { this.env = new Map(); this.counts = new Set(); this.out = []; this.quiet = 0; this.limits = { ...LIMITS, ...opts }; }
@@ -613,7 +619,11 @@ class Machine {
         const n = this.ev(s.n);
         if (n.k === 'count' && !O.isFin(n.o)) throw new LangError('line ' + s.line + ': to repeat forever, write forever:');
         const k = wholeArg(n.k === 'count' ? num(Q(O.finVal(n.o))) : n, 'repeat');
-        for (let i = 0n; i < k; i++) this.run(s.body);
+        const t0 = Date.now();
+        for (let i = 0n; i < k; i++) {
+          if (Date.now() - t0 > this.limits.repeatMs) throw new LangError('line ' + s.line + ': repeat ran out of time after ' + i + ' rounds. To loop forever, write forever:');
+          this.run(s.body);
+        }
         return;
       }
       case 'forever': return runForever(this, s);
@@ -753,6 +763,8 @@ function runForever(m, loop) {
   if (B) return;
   // ── B2. towers: x = 3 ^ x and other loops with the loop's own number on top of a power
   if (towerLoop(m, body, pure, start)) return;
+  // ── B3. towers on 2, 5, 10 …: x = 2 ^ x from an ordinary whole number
+  if (bigTowerLoop(m, body, pure, start)) return;
   // ── C. give up honestly
   m.env = new Map(start);
   const note = 'I watched ' + plural(A.steps, 'step') + ' and the loop never came back to a state it had been in, and none of the rules I can prove things with fit this loop';
@@ -762,6 +774,52 @@ function runForever(m, loop) {
     else m.env.set(v, unknown(note));
   }
   settlePureCounts(m, body, pure, start);
+}
+
+// ── B3. towers whose bottom has a 2 or 5 in it ──
+// x = B ^ x with B an ordinary whole number of 2 or more (2, 5, 6, 10 …), from an ordinary whole number of 0 or more.
+// Then every step is an ordinary whole number, and the numbers grow: B ^ x is bigger than x.  Once x is bigger than
+// k, the last k digits of B ^ x only depend on the last k digits of x (k ≥ 2): on the 2-and-5 side B ^ x is a
+// multiple of 2^k or 5^k (or B comes back to 1 after a number of steps that divides 2^k or 4 × 5^(k−1)), and on the
+// other side B comes back to 1 after a number of steps that divides 10^k.  When two tops are bigger than k + 1 and
+// share their last k digits, the powers share k + 1.  So once the last 2 digits stop changing, it settles.
+// (Found by a fresh Claude Opus agent, x = 2 ^ x, and GitHub Copilot, x = 10 ^ x, in November 2026.)
+function bigTowerLoop(m, body, pure, start) {
+  const sets = body.filter((s) => s.t === 'set' && !pure.has(s.name));
+  if (sets.length !== 1 || body.some((s) => s.t !== 'set')) return false;
+  const v = sets[0].name, e = sets[0].e;
+  if (body.some((s) => s.t === 'set' && s.name !== v && !pure.has(s.name))) return false;
+  if (!(e.t === 'bin' && e.op === '^' && e.b.t === 'var' && e.b.name === v)) return false;
+  if (readsIn(e.a, new Set()).size) return false;
+  let b; try { b = new Machine().ev(e.a); } catch (err) { return false; }
+  if (b.k !== 'num' || !qint(b.q) || b.q.n < 2n || unitBase(b)) return false;
+  const B = b.q.n, x0v = start.get(v);
+  if (x0v && !(x0v.k === 'num' && qint(x0v.q) && x0v.q.n >= 0n)) return false;
+  // run the real numbers while they are small, until the next one, B ^ x, is at least 10^5; every later one is far bigger
+  let x = x0v ? x0v.q.n : 0n, n = 0;
+  while (lg(B) * Number(x) < 5) { x = B ** x; n++; if (n > 50) return false; }
+  // from step n + 1 on every top is at least 10^5, more than any number of digits asked for
+  const first = n + 1, M2 = 100n;
+  const f = (r, K) => { const M = pow10(K); return powmod(B, r + M, M); };   // valid while the true top is ≥ K
+  let r2 = powmod(B, x, M2), s2 = first;
+  const seen = new Map();
+  while (!seen.has(r2)) { seen.set(r2, s2); r2 = f(r2, 2); s2++; }
+  const period = s2 - seen.get(r2);
+  m.env = new Map(start);
+  const finish = (val) => { m.env.set(v, val); settlePureCounts(m, body, pure, start); return true; };
+  if (period > 1) return finish(restless('the last 2 digits of ' + v + ' go round every ' + period + ' steps and never stop'));
+  const settledAt = seen.get(r2);
+  const digits = (N) => {
+    if (N > 50000) throw new LangError('I can only work out the last 50000 digits of ' + v);
+    const K = Math.max(N, 2), M = pow10(K);
+    let r = powmod(B, x, M);
+    for (let i = 0; i < K + 5; i++) r = f(r, K);
+    if (f(r, K) !== r) throw new LangError('internal: tower did not settle');
+    return mod(r, pow10(N));
+  };
+  const why = 'every step is a whole number, and they grow (' + B + ' ^ x is bigger than x). The last 2 digits of ' + v + ' stop changing after step ' + settledAt + '. After that, every step locks in one more digit for good: when two tops are bigger than k + 1 and share their last k digits, ' + B + ' ^ those tops share k + 1. So ' + v + ' settles, and after forever ' + v + ' = ' + B + ' ^ ' + v;
+  const val = endGeneric(digits, why); val.selfPow = B; val.hugeTop = true;
+  return finish(val);
 }
 
 // ── B2. towers ──

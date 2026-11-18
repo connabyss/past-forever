@@ -36,6 +36,12 @@ const families = {
     return { vars: ['x'], start: { x: x0 }, src, tower: B,
       step: (s, m) => { const t = shape === 0 ? s.x : a * s.x + b; const p = powmodR(B, mod(t, m), m); s.x = shape === 0 ? p : mod(p * c + d + (shape === 2 ? s.x : 0n), m); } }; },
 };
+// towers whose bottom has a 2 or 5 in it (x = 2 ^ x, 10 ^ x …), run as extra loops on top of the families above.
+// The numbers grow past any digit count after a few steps, and for a top t ≥ D, B ^ t has the same last D digits as
+// B ^ (t mod λ + 10^D), with λ = λ(10^D) dividing 10^D.  That fact is checked for every loop here, not assumed.
+const bigTower = () => { const B = pick([2n, 4n, 5n, 6n, 8n, 10n, 12n, 15n, 20n, 25n, 2n, 5n]), x0 = BigInt(rnd(11));
+  return { vars: ['x'], start: { x: x0 }, src: 'x = ' + x0 + '\nforever: x = ' + B + ' ^ x', bigTower: B,
+    step: (s, m) => { s.x = powmodR(B, s.x + m, m); } }; };
 function powmodR(b, e, m) { let r = 1n; b = mod(b, m); while (e > 0n) { if (e & 1n) r = r * b % m; b = b * b % m; e >>= 1n; } return r; }
 function carmichael10(D) { const two = D >= 3 ? 2n ** BigInt(D - 2) : D === 2 ? 2n : 1n, five = 4n * 5n ** BigInt(D - 1); const g = (x, y) => (y ? g(y, x % y) : x); return two * five / g(two, five); }
 function mod(a, m) { const r = a % m; return r < 0n ? r + m : r; }
@@ -45,10 +51,12 @@ const tally = { settles: 0, 'never settles': 0, "can't see the end": 0, labels: 
 let bad = 0;
 const t0 = Date.now();
 const names = Object.keys(families);
-for (let i = 0; i < LOOPS; i++) {
-  const fam = names[i % names.length], L = families[fam]();
+const EXTRA = Math.floor(LOOPS / 8);
+for (let i = 0; i < LOOPS + EXTRA; i++) {
+  const fam = i < LOOPS ? names[i % names.length] : 'bigtower', L = i < LOOPS ? families[fam]() : bigTower();
   const bigLen = Math.max(...(L.src.match(/\d+/g) || ['0']).map((d) => d.length));
   const D = 30 + bigLen, m = 10n ** BigInt(D);
+  if (L.bigTower) { const lam = carmichael10(D); if (m % lam !== 0n || powmodR(L.bigTower, m + lam, m) !== powmodR(L.bigTower, m, m)) { bad++; console.log('LEMMA FAILS for ' + L.bigTower + ' at ' + D + ' digits'); continue; } }
   if (L.tower) { const lam = carmichael10(D); if (m % lam !== 0n || powmodR(L.tower, lam, m) !== 1n) { bad++; console.log('LEMMA FAILS for ' + L.tower + ' at ' + D + ' digits'); continue; } }
   const src = L.src + '\n' + L.vars.map((v) => 'show ' + v).join('\n');
   let lines; try { lines = F.run(src, { huntMs: 2000 }).lines; } catch (e) { bad++; console.log('CRASH ' + e.message + '\n' + src); continue; }
@@ -75,6 +83,6 @@ for (let i = 0; i < LOOPS; i++) {
   });
 }
 const total = tally.settles + tally['never settles'] + tally["can't see the end"];
-console.log('referee: ' + LOOPS + ' random loops, ' + total + ' answers: ' + tally.settles + ' settle, ' + tally['never settles'] + ' never settle, ' + tally["can't see the end"] + " can't see the end; " + tally.labels + ' exact fractions checked; ' + bad + ' wrong (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)');
-for (const f of names) console.log('  ' + f.padEnd(7) + JSON.stringify(byFam[f]));
+console.log('referee: ' + (LOOPS + EXTRA) + ' random loops, ' + total + ' answers: ' + tally.settles + ' settle, ' + tally['never settles'] + ' never settle, ' + tally["can't see the end"] + " can't see the end; " + tally.labels + ' exact fractions checked; ' + bad + ' wrong (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)');
+for (const f of [...names, 'bigtower']) console.log('  ' + f.padEnd(7) + JSON.stringify(byFam[f]));
 process.exit(bad ? 1 : 0);

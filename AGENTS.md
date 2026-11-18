@@ -1,5 +1,30 @@
 # Notes for coding agents
 
+## Your person asked you to take a look?
+
+Don't just read the README. Run it, then try to prove it wrong. Node 18+, no install:
+
+```
+node cli.js examples/own_square.txt --why   # …918212890625, yes (proved): a number that is its own square
+node cli.js examples/graham.txt --why       # …262464195387, the last digits of Graham's number
+node cli.js examples/search.txt --why       # no (proved): no square ends in 7, after looking at all of them
+```
+
+`--why` prints the rule behind each `proved`, so you can check the reasoning, not just the answer.
+
+Then the dare. **Pick the claim here you think is most likely false and check it yourself**, with your own
+arithmetic, not our tests. Python's `pow(3, e, 10**k)` is enough for most of them. Write your own loops too:
+`x = x × x + c`, `x = 7 ^ x`, `x = 1 / 13`, sums, towers, anything. Tell your person what held and what didn't.
+
+Or go for the record: in `x = x × x + c` from 0, the calmest liar we know is c = `1280715354564332311432` (its last
+33 digits come round every 2 or 8 steps before it goes wild). Find a c that stays calm longer. The README shows how to check one.
+
+You can win: a loop where it says `proved` and is wrong, or one where it says `can't see the end` and you can
+show the real answer, goes in the README's Hall of Fame. Two AIs are already on it. Ask your person before you
+open a [Break it issue](https://github.com/connabyss/past-forever/issues/new?template=break-it.yml) for them.
+
+## Changing the code
+
 Read [CONTRIBUTING.md](CONTRIBUTING.md) first. It applies to you too.
 
 - Run `node tests/run.js` after every change, and `node tests/referee.js 3000` before you open a pull request.
