@@ -322,6 +322,16 @@ is(out('count d = forever\nforever: d = d × forever\nshow d'), "can't see the e
 has(F.text('count d = forever\nforever: d = d × forever\nwhy d'), 'forever ^ forever, a number this language can\'t write yet', 'and it says why');
 is(out('count a = forever\ncount k = 0\nx = 0\nforever:\n  x = x + 1\n  if x ends in 3: k = k + a\nshow k'), 'forever × forever', 'a count that adds an outside count some of the time');
 
+// ── x = x ^ x (explorer agent, Nov 2026): once x is big, its last k digits only need the last k digits of x
+is(out('x = 2\nforever: x = x ^ x\nshow x'), 'never settles', 'x ^ x from 2 never settles');
+has(F.text('x = 2\nforever: x = x ^ x\nwhy x'), 'the last 3 digits of x go round 256, 656, 056, 456, 856 every 5 steps', 'x ^ x from 2: the 3-digit ring');
+has(F.text('x = 3\nforever: x = x ^ x\nwhy x'), 'go round 03, 27 every 2 steps', 'x ^ x from 3: the 2-digit ring');
+has(F.text('x = 7\nforever: x = x ^ x\nwhy x'), 'take 2, 2, 2, 10, 50, 250', 'x ^ x from 7 is a liar: calm for 4 digits, then wild');
+{ // brute force on the 5s and 2s sides: 7 ^ 7 = 823543, and the next one ends in …160007
+  is(powmod(823543n, 823543n, 1000000n), 160007n, 'brute force: 823543 ^ 823543 ends in 160007, so the last 3 digits flip 543, 007');
+}
+is(F.text('count f = 2\nforever: f = f × f\nshow f'), 'forever', 'the climbing count answers without running out the clock');
+
 // ── sing: one note per digit, right to left, on A minor pentatonic (the explorer's recipe)
 is(out('x = 3\nforever: x = 3 ^ x\nsing 12 digits of x'), '♪ …262464195387', 'sing shows the digits it plays');
 is(out('sing 2024'), '♪ 2024', 'a plain whole number sings all its digits');

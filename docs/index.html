@@ -989,6 +989,9 @@ function runForever(m, loop) {
   const stateNames = [...assigned].filter((v) => !pure.has(v)).sort();
   const start = new Map(m.env);
 
+  // ── B5 first: a count that only climbs ends at the top of its climb (checked before running, because running
+  // f = f × f for real makes numbers too big to watch)
+  if (countLoop(m, body, pure, start)) return;
   // ── A. just run it and watch for the whole state coming round again
   const A = watch(m, body, stateNames, pure, start);
   if (A.done) return;
@@ -1002,8 +1005,8 @@ function runForever(m, loop) {
   if (towerLoop(m, body, pure, start)) return;
   // ── B3. towers on 2, 5, 10 …: x = 2 ^ x from an ordinary whole number
   if (bigTowerLoop(m, body, pure, start)) return;
-  // ── B5. a count that only climbs: after forever it is the top of its climb
-  if (countLoop(m, body, pure, start)) return;
+  // ── B3b. x = x ^ x from a whole number of 2 or more
+  if (selfPowerLoop(m, body, pure, start)) return;
   // ── B4. loops that branch on their own last digits (if … is even / ends in …, else …)
   if (branchLoop(m, loop, pure, start)) return;
   // ── C. give up honestly
@@ -1206,6 +1209,45 @@ function bigTowerLoop(m, body, pure, start) {
   const why = 'every step is a whole number, and they grow (' + B + ' ^ x is bigger than x). The last 2 digits of ' + v + ' stop changing after step ' + settledAt + '. After that, every step locks in one more digit for good: when two tops are bigger than k + 1 and share their last k digits, ' + B + ' ^ those tops share k + 1. So ' + v + ' settles, and after forever ' + v + ' = ' + B + ' ^ ' + v;
   const val = endGeneric(digits, why); val.selfPow = B; val.hugeTop = true;
   return finish(val);
+}
+
+// ── B3b. x = x ^ x ──
+// From a whole number of 2 or more the numbers grow (x ^ x is bigger than x), so soon every x is at least k. Then the
+// last k digits of x ^ x depend only on the last k digits of x (k ≥ 2): on the 2s side an even x ≥ k gives a multiple
+// of 2^k, and an odd one only needs its exponent up to a number of steps that divides 2^k; on the 5s side the same with
+// 5^k and 4 × 5^(k−1), which divides 10^k. So r → r ^ (r + 10^k), on the last k digits, is exact, and if those digits go
+// round a ring of more than one value, x never settles. (Found by an explorer agent in a GitHub Codespace, Nov 2026.)
+function selfPowerLoop(m, body, pure, start) {
+  const sets = body.filter((st) => st.t === 'set' && !pure.has(st.name));
+  if (sets.length !== 1 || body.some((st) => st.t !== 'set')) return false;
+  const v = sets[0].name, e = sets[0].e;
+  if (!(e.t === 'bin' && e.op === '^' && e.a.t === 'var' && e.a.name === v && e.b.t === 'var' && e.b.name === v)) return false;
+  const x0v = start.get(v);
+  if (!x0v || !(x0v.k === 'num' && qint(x0v.q) && x0v.q.n >= 2n)) return false;
+  // run the real numbers until x is at least 100 (bigger than any digit count looked at below)
+  let x = x0v.q.n, n = 0;
+  while (x < 100n) { x = x ** x; n++; }
+  const deep = 14, pers = [];
+  let found = null;
+  for (let k = 2; k <= deep; k++) {
+    const M = pow10(k), seen = new Map(), vals = [];
+    let r = mod(x, M), step = n;
+    let cut = false;
+    while (!seen.has(r)) { seen.set(r, step); vals.push(r); r = powmod(r, r + M, M); step++; if (step - n > 20000) { cut = true; break; } }
+    if (cut) break;
+    const first = seen.get(r), period = step - first;
+    pers.push(period);
+    if (period > 1 && !found) {
+      const cyc = vals.slice(first - n).map((y) => String(y).padStart(k, '0'));
+      found = { k, first, period, list: cyc.slice(0, 6).join(', ') + (cyc.length > 6 ? ', …' : '') };
+    }
+  }
+  if (!found) return false;
+  m.env = new Map(start);
+  const deeper = ' Looking deeper, the last 2, 3, 4… digits take ' + pers.join(', ') + ' steps to come round';
+  m.env.set(v, restless('every step is a whole number and they grow, so from step ' + n + ' on x is bigger than any digit count I look at, and then the last k digits of x ^ x depend only on the last k digits of x. From step ' + found.first + ' the last ' + found.k + ' digits of ' + v + ' go round ' + found.list + ' every ' + plural(found.period, 'step') + ' and never stop.' + deeper));
+  settlePureCounts(m, body, pure, start);
+  return true;
 }
 
 // ── B2. towers ──

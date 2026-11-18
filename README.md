@@ -81,8 +81,9 @@ list in November 2026 and didn't find it, but many of its terms are close cousin
 **Don't believe it? Good.** Pick the claim you trust least and check it with your own arithmetic. Then try to
 [break it](#break-it): a wrong `proved` gets your name in the Hall of Fame. Coding agents: [AGENTS.md](AGENTS.md)
 has a dare for you. (A word on `proved`: it means proved by a few hand-written rules, listed in
-[How it knows](#how-it-knows) and tested by a robot referee on every build. No mathematician or proof checker has
-looked at them yet.)
+[How it knows](#how-it-knows) and tested by a robot referee on every build. No mathematician has reviewed them yet,
+and no proof assistant has checked them; an independent checker, [tests/certify.py](tests/certify.py), re-proves
+every answer for one-name polynomial loops.)
 
 <p align="center"><a href="https://connabyss.github.io/past-forever/"><img src="media/try-it-now.svg" width="300" alt="Try it now: open the playground in your browser"></a></p>
 
@@ -340,7 +341,8 @@ with the code and what it printed.
    `can't see the end`: `if x is even: x = x + 1, else: x = x + 3` (its last digit goes round all ten digits forever),
    and `y = 10 × y + x` with x the endless …918212890625 (it settles on −x ÷ 9). Both are now proved, with two new
    rules below and two new families of loops for the robot referee. It also turned the last 360 digits of Graham's
-   number into a song, which became `sing`, and found counts that climb, like `f = f × f`, that it couldn't finish.
+   number into a song, which became `sing`, found counts that climb, like `f = f × f`, that it couldn't finish, and `x = x ^ x`, which provably never settles
+   (from 7 it's a liar: its last 2 to 4 digits flip between two values, then the 5th goes wild).
    (November 2026)
 
 ## How it knows
@@ -363,6 +365,8 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
 - A count that only climbs ends at the top of its climb: `count f = 2` then `forever: f = f × f` ends at `forever`,
   and adding a count made by an earlier loop works like adding a number. (`d = d × forever` climbs to forever ^
   forever, which the language can't write yet, so it says `can't see the end` and tells you why.)
+- `x = x ^ x` from a whole number of 2 or more: the numbers grow, and once x is big, the last k digits of x ^ x only
+  depend on the last k digits of x. So if those go round a ring, it never settles.
 - The last digits go round a ring that never stops: proved never to settle.
 - None of these fit: `can't see the end`.
 
@@ -373,8 +377,9 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   is a language you can actually run where code keeps going after a forever loop. Closest cousins: the
   Zeno esolang (an imaginary machine) and infinite time Turing machines
   (theory, not a language). Not finding one is not proof there isn't one.
-- **"proved" means proved by the rules above**, as written in forever.js. They are not machine-checked, and no
-  mathematician has reviewed them.
+- **"proved" means proved by the rules above**, as written in forever.js. No mathematician has reviewed them and
+  no proof assistant has checked them. For one-name polynomial loops, an independent checker re-proves every answer
+  (below).
 - **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 3,937 random loops
   (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers, towers on
   2, 5 and 10, loops that branch on their last digits, and y = 10 × y + an endless number) and checks
@@ -385,7 +390,8 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   down its own proof of each answer, using textbook facts only: last digits going round a ring means never settles;
   a last digit that the rule fixes and pulls in means settles, and the rational root theorem names the exact answer.
   On 5,000 random loops it proved every answer Past Forever gave, with 0 disagreements and all 60 digits matching.
-  Every build re-runs 300 of them. (Written by an explorer agent in a GitHub Codespace.)
+  Every build re-runs 300 of them. Ten of its proofs, written out so you can check them by hand:
+  [tests/certificates.md](tests/certificates.md). (Written by an explorer agent in a GitHub Codespace.)
 - Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
 - `can't see the end` comes up a lot. That's the language being honest, not a bug.
 
@@ -396,7 +402,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 654 checks
+node tests/run.js        # ok: 660 checks
 node tests/referee.js    # the robot referee, about 5 minutes
 node tests/certify_gen.js 300 2027 | python3 tests/certify.py   # the second opinion, about a minute
 ```
