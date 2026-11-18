@@ -18,6 +18,11 @@ show x
 Same trick, other answers: `1 ÷ 7 = …142857143` (check: `142857143 × 7 = 1000000001`, and the more 142857s you
 add, the more zeros), and the last digits of [Graham's number](#the-last-digits-of-grahams-number).
 
+**Two numbers, neither one zero, that multiply to exactly 0.** Run a second loop, `y = 6` then
+`forever: y = y ^ 5`, and it settles to `…081787109376`. Now `show x × y` prints `0`, and `show x + y` prints
+`1`. Check the last 4 digits by hand: `0625 × 9376 = 5860000` (four zeros) and `0625 + 9376 = 10001`. Take more
+digits and you get more zeros. In these numbers, 0 has two non-zero factors (`node cli.js examples/zero_twins.txt`).
+
 **Try it in 10 seconds** (Node 18+, no dependencies):
 
 ```
@@ -340,7 +345,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 615 checks
+node tests/run.js        # ok: 618 checks
 node tests/referee.js    # the robot referee, about 5 minutes
 ```
 

@@ -1,0 +1,10 @@
+# Two numbers, neither one zero, that multiply to exactly 0.
+# Check the last 4 digits by hand: 0625 x 9376 = 5860000, and 0625 + 9376 = 10001.
+x = 5
+forever: x = x × x
+y = 6
+forever: y = y ^ 5
+show x
+show y
+show x × y
+show x + y

@@ -299,5 +299,10 @@ is(out('x = 1\nforever: x = x + 0.1\nshow x'), 'stopped: line 2: there are no de
 is(out('x = 5\nforever: x = x × x\nshow 100000 digits of x'), 'stopped: line 3: I show at most 2000 digits at a time', 'a digit count that would freeze the page gets a clear answer');
 is(out('x = 5\nforever: x = x × x\nshow 2000 digits of x').length, 2001, '2000 digits still work');
 
+// ── the README's zero-twins claim: two non-zero numbers whose product is exactly 0 and whose sum is exactly 1
+is(ex('zero_twins.txt'), '…918212890625\n…081787109376\n0\n1', 'the README zero-twins example prints its two numbers, then 0 and 1');
+is(out('x = 5\nforever: x = x × x\ny = 6\nforever: y = y ^ 5\nshow x × y = 0\nshow x = 0\nshow y = 0'), 'yes\nno  (proved)\nno  (proved)', 'the twins multiply to exactly 0, and neither one is 0');
+is(BigInt(625) * 9376n, 5860000n, 'the hand check in the README is right');
+
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);
