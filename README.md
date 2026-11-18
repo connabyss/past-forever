@@ -94,6 +94,43 @@ steps as its last digit does. For example `x = x × x × x + 1` goes 0, 1, 2, 9,
    of 10, and for most c they don't. (Also checked by machine: every c below 200 with powers 3, 5 and 7, on 1 digit and on 30, comes round in the same
    number of steps.)
 
+**Even powers: some lie, some can't.** Squares aren't the only liars. `x = x ^ 4 + c`, from 0, lies too, and its
+record liars are a different list: 1, 7, 11, 61, 211, 836, 1061, 5348, 366461, 3110436, … ([liars/records4.txt](liars/records4.txt),
+to 1000 digits of calm). Check one in plain Python:
+
+```python
+c = 366461
+for k in (10, 11, 12, 13):                    # look at the last k digits
+    m, x, seen = 10**k, 0, {}
+    while x not in seen:
+        seen[x] = len(seen); x = (x**4 + c) % m
+    print(k, "digits come round every", len(seen) - seen[x], "steps")
+# 10: 4,  11: 4,  then 12: 20,  13: 100, and ×5 for every digit after that
+```
+
+Going up the even powers, they split three ways ([liars/powers.py](liars/powers.py) `table`):
+
+| power | what its loops do |
+|---|---|
+| 2, 4, 8, 12, 14, 18, 22, 24 | can lie: calm for 25 digits and more before going wild (squares and 4th powers: 1000) |
+| 6 and 16 | go wild by their 3rd digit or never (26: by the 4th) |
+| 10 and 20 | never go wild |
+
+- **10 and 20 (proved, short).** The slope of x^10 is 10 × x^9, a multiple of 5 and of 2 for every x, so every
+  ring pulls digits together the way 0 does in "Odd powers can't lie": however deep you look, it comes round in
+  the same number of steps.
+- **6, 16 and 26 (proved, by a finite check).** For an even power the 2s clock never lies (the slope p × x^(p−1)
+  is even), and whether c stays calm for k digits depends only on c's remainder after dividing by 5^k. A c that
+  leaves 0, 1 or 4 after dividing by 5 (for the 16th power, 0 or 4) can never go wild, because then, on the last
+  base-5 digit, the loop comes back round to 0 itself, where the slope is 0. So it is enough to try the 125
+  remainders (625 for the 26th) of the others, and none stays calm. [tests/powers.py](tests/powers.py) also
+  checks every c below 15,625 the slow way in base 10.
+- **The liars.** That 2, 4, 8… can lie is shown by the liars themselves. How many calm remainders each keeps
+  (deep down, 60 for squares, 61 for 4th powers, 21 for 8th powers) is checked to 25 digits, not proved, and so
+  is that they can lie for as long as you like.
+  Nobody outside this project has checked any of this, and we haven't been able to search the
+  [OEIS](https://oeis.org) for the 4th-power list yet.
+
 **How we searched.** The first ten records came from trying every c up to 40 million, one by one, in two separate
 programs. Past that, whether c stays calm for k digits depends only on c's remainder after dividing by 5^k, so the
 calm remainders can be built one base-5 digit at a time, with nothing skipped (there are exactly 60 at every depth
@@ -348,6 +385,9 @@ Find one of these and your name goes in the Hall of Fame below:
 - **The 10,000-digit liar.** [liars/records.txt](liars/records.txt) stops at 1000 digits of calm, and
   [liars/search.py](liars/search.py) takes about a minute and a half to get there. Find the smallest c that stays calm
   for 10,000 digits, show how you got it, and make it checkable. A faster way to build the same list counts too.
+- **Why 60, 61, 21?** Deep down, squares keep exactly 60 calm remainders at every depth, 4th powers 61,
+  8th powers 21, 14th powers 20 ([liars/powers.py](liars/powers.py) `table`, checked to 25 digits). Explain where
+  those numbers come from, or show one that changes further down.
 - **Why only four magnets?** Every c that stays calm for k digits shares its last k − 2 base-5 digits with one of
   the four magnets in "Why they lie" (checked to 1000 digits by [tests/magnets.py](tests/magnets.py)). Write a real
   proof for every k, or show a c that stays calm for k digits while sharing fewer than k − 2 with all four.
