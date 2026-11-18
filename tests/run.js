@@ -327,6 +327,8 @@ is(out('x = 2\nforever: x = x ^ x\nshow x'), 'never settles', 'x ^ x from 2 neve
 has(F.text('x = 2\nforever: x = x ^ x\nwhy x'), 'the last 3 digits of x go round 256, 656, 056, 456, 856 every 5 steps', 'x ^ x from 2: the 3-digit ring');
 has(F.text('x = 3\nforever: x = x ^ x\nwhy x'), 'go round 03, 27 every 2 steps', 'x ^ x from 3: the 2-digit ring');
 has(F.text('x = 7\nforever: x = x ^ x\nwhy x'), 'take 2, 2, 2, 10, 50, 250', 'x ^ x from 7 is a liar: calm for 4 digits, then wild');
+is(out('x = 10\nforever: x = x ^ x\nshow x'), '0', 'x ^ x from 10 settles on exactly 0 (it used to say can\'t see the end; found by certify.py)');
+is(out('x = 30\nforever: x = x ^ x\nshow x = 0'), 'yes', 'x ^ x from 30 is 0');
 { // brute force on the 5s and 2s sides: 7 ^ 7 = 823543, and the next one ends in …160007
   is(powmod(823543n, 823543n, 1000000n), 160007n, 'brute force: 823543 ^ 823543 ends in 160007, so the last 3 digits flip 543, 007');
 }

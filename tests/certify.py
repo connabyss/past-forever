@@ -1,4 +1,13 @@
-"""Independent certificate checker for Past Forever's answers on one-number polynomial loops.
+"""Independent certificate checker for Past Forever's answers on one-number polynomial loops, power towers
+x = b ^ x (b a whole number from 2 up, started at a whole number) and x = x ^ x (started at a whole number >= 2).
+
+Towers: SETTLES (Euler) b ^ e mod m only depends on e mod lambda(m) once e is past the biggest power of 2 or 5 in m,
+and the chain m, lambda(m), lambda(lambda(m)), ... reaches 1; x grows past every bound, so its last k digits freeze.
+The digits are worked out from that chain and compared with all 60 Past Forever printed.
+x = x ^ x: NEVER (ring) once x >= k, x ^ x mod 10^k only depends on x mod 10^k, so a ring of length > 1 in the last
+k digits means it never settles. SETTLES (zeros) a start ending in 0: x ^ x is a multiple of 10 ^ x, limit 0.
+
+Polynomial loops:
 
 Shares no code with the engine (different language, own arithmetic). For each loop x -> f(x) = (sum c_j x^j)/q,
 with q and the start's denominator free of 2 and 5 (so every value is a 10-adic integer), it tries to PROVE an
@@ -17,6 +26,7 @@ Then it compares with what Past Forever said. It exits with 1 if they disagree a
 Forever gave is left without a certificate (inconclusive), and it prints how many answers it proved again.
 
     node tests/certify_gen.js 300 2027 | python3 tests/certify.py            # the CI-sized run, about a minute
+    node tests/certify_gen.js towers | python3 tests/certify.py              # towers and x ^ x, a few seconds
     node tests/certify_gen.js 5000 2027 | python3 tests/certify.py report.json   # the full run, about 20 minutes
 
 Written by an explorer agent in a GitHub Codespace, November 2026, as a second opinion that doesn't trust the engine.
@@ -75,7 +85,59 @@ def rational_fixed_points(cs, q):  # rational roots of (sum c_j x^j) - q x
     return roots
 
 
+def carmichael(m):  # lambda(m) for m = 2^a 5^b (every modulus here is one)
+    a = b = 0
+    while m % 2 == 0:
+        m //= 2; a += 1
+    while m % 5 == 0:
+        m //= 5; b += 1
+    assert m == 1
+    la = 1 if a <= 1 else 2 if a == 2 else 2 ** (a - 2)
+    lb = 1 if b == 0 else 4 * 5 ** (b - 1)
+    return la * lb // __import__('math').gcd(la, lb)
+
+
+def tower_mod(b, m):  # last digits of b ^ b ^ b ^ ... (tall enough), mod m
+    if m == 1:
+        return 0
+    lam = carmichael(m)
+    # b ^ e mod m depends only on e mod lam once e is at least the biggest power of 2 or 5 in m (< m.bit_length())
+    e = tower_mod(b, lam) + lam * m.bit_length()
+    return pow(b, e, m)
+
+
+def certify_tower(L):  # x = b ^ x from a whole number x0 >= 0, b >= 2
+    b, x0 = L['b'], L['x0']
+    return 'SETTLES', None, (f'TOWER: x grows past every bound, and b ^ e mod 10^k only depends on e mod lambda(10^k) '
+                             f'once e is big (Euler); the lambda chain of 10^k reaches 1, so the last k digits freeze')
+
+
+def certify_selfpower(L):  # x = x ^ x from a whole number x0 >= 2
+    x = L['x0']
+    if x % 10 == 0:
+        return 'SETTLES', Fr(0), 'ZEROS: x ends in 0, so x ^ x is a multiple of 10 ^ x, and x grows: every digit becomes 0; limit = 0 exactly'
+    while x < 1000:  # a few real steps first, so x is bigger than every k below
+        x = x ** x
+    for k in range(2, 9):
+        m = 10 ** k
+        # once x >= k, x ^ x mod 10^k only depends on x mod 10^k (lambda(10^k) divides 10^k for k >= 2)
+        seen, r, n = {}, x % m, 0
+        while r not in seen and n < 200000:
+            seen[r] = n
+            r = pow(r, r + m, m)
+            n += 1
+        if r not in seen:
+            return 'UNPROVED', None, 'orbit too long'
+        if n - seen[r] > 1:
+            return 'NEVER', None, f'RING: once x is big, the last {k} digits repeat every {n - seen[r]} steps'
+    return 'UNPROVED', None, 'no ring in 8 digits'
+
+
 def certify(L):
+    if L.get('kind') == 'tower':
+        return certify_tower(L)
+    if L.get('kind') == 'selfpower':
+        return certify_selfpower(L)
     cs, q = L['cs'], L['q']
     x0 = Fr(L['p0'], L['q0'])
     x = x0
@@ -105,6 +167,10 @@ def certify(L):
 
 
 def limit_digits(L, k):  # last k digits of the limit (valid once SETTLES is certified)
+    if L.get('kind') == 'tower':
+        return tower_mod(L['b'], 10 ** k)
+    if L.get('kind') == 'selfpower':
+        return 0
     cs, q = L['cs'], L['q']
     m = 10 ** k
     r = res(Fr(L['p0'], L['q0']), m)
@@ -113,48 +179,53 @@ def limit_digits(L, k):  # last k digits of the limit (valid once SETTLES is cer
     return r
 
 
-tally, problems, examples = {}, [], {}
-for line in sys.stdin:
-    L = json.loads(line)
-    out = L['out']
-    pf = 'never' if out == 'never settles' else 'cant' if out == "can't see the end" else 'other' if out.startswith(('stopped', 'crash')) else 'settles'
-    verdict, val, proof = certify(L)
-    key = f'{pf:8s}/ {verdict}'
-    tally[key] = tally.get(key, 0) + 1
-    examples.setdefault(key, (L['src'], out[:90], proof))
-    if (pf == 'never' and verdict == 'SETTLES') or (pf == 'settles' and verdict == 'NEVER'):
-        problems.append((L['src'], out, proof))
-    if pf == 'settles' and verdict == 'SETTLES':
-        digits = out.lstrip('…').split()[0]
-        if digits.isdigit():
-            k = min(len(digits), 60)
-            if int(digits) % 10 ** k != limit_digits(L, k):
-                problems.append((L['src'], out, 'DIGITS DIFFER'))
-        if '(this is' in out:
-            lab = Fr(out.split('(this is ')[-1].rstrip(')'))
-            if val is not None and lab != val:
-                problems.append((L['src'], out, f'LABEL differs from certified limit {val}'))
-            if val is None and 'irrational' in proof:
-                problems.append((L['src'], out, 'LABEL given, but certificate says irrational'))
-print('Past Forever said  /  independent certificate:')
-for k in sorted(tally):
-    print(f'  {k:22s} {tally[k]}')
-# an answer counts as independently proved only when the checker found its own certificate for the same answer
-proved = sum(v for k, v in tally.items() if k.startswith(('never   / NEVER', 'settles / SETTLES')))
-pf_answers = sum(v for k, v in tally.items() if k.startswith(('never', 'settles')))
-unproved = sum(v for k, v in tally.items() if k.endswith('UNPROVED') and k.startswith(('never', 'settles')))
-engine_open = sum(v for k, v in tally.items() if k.startswith(('cant', 'other')))
-total = sum(tally.values())
-print('loops:', total)
-print("Past Forever's answers proved again by the checker:", proved, 'of', pf_answers)
-print('answers the checker could not decide (UNPROVED):', unproved)
-print("loops where Past Forever gave no answer (can't see the end, stopped):", engine_open)
-print('disagreements:', len(problems))
-for p in problems[:5]:
-    print('  ', p)
-if not problems and unproved:
-    print('INCONCLUSIVE: no disagreement, but', unproved, 'answers have no independent certificate')
-if len(sys.argv) > 1:
-    with open(sys.argv[1], 'w', encoding='utf-8') as fh:
-        json.dump({'tally': tally, 'problems': problems, 'examples': examples}, fh, indent=1)
-sys.exit(1 if problems or unproved else 0)   # CI fails on a disagreement or on any answer left without a certificate
+def main():
+    tally, problems, examples = {}, [], {}
+    for line in sys.stdin:
+        L = json.loads(line)
+        out = L['out']
+        pf = 'never' if out == 'never settles' else 'cant' if out == "can't see the end" else 'other' if out.startswith(('stopped', 'crash')) else 'settles'
+        verdict, val, proof = certify(L)
+        key = f'{pf:8s}/ {verdict}'
+        tally[key] = tally.get(key, 0) + 1
+        examples.setdefault(key, (L['src'], out[:90], proof))
+        if (pf == 'never' and verdict == 'SETTLES') or (pf == 'settles' and verdict == 'NEVER'):
+            problems.append((L['src'], out, proof))
+        if pf == 'settles' and verdict == 'SETTLES':
+            digits = out.lstrip('…').split()[0]
+            if digits.isdigit():
+                k = min(len(digits), 60)
+                if int(digits) % 10 ** k != limit_digits(L, k):
+                    problems.append((L['src'], out, 'DIGITS DIFFER'))
+            if '(this is' in out:
+                lab = Fr(out.split('(this is ')[-1].rstrip(')'))
+                if val is not None and lab != val:
+                    problems.append((L['src'], out, f'LABEL differs from certified limit {val}'))
+                if val is None and 'irrational' in proof:
+                    problems.append((L['src'], out, 'LABEL given, but certificate says irrational'))
+    print('Past Forever said  /  independent certificate:')
+    for k in sorted(tally):
+        print(f'  {k:22s} {tally[k]}')
+    # an answer counts as independently proved only when the checker found its own certificate for the same answer
+    proved = sum(v for k, v in tally.items() if k.startswith(('never   / NEVER', 'settles / SETTLES')))
+    pf_answers = sum(v for k, v in tally.items() if k.startswith(('never', 'settles')))
+    unproved = sum(v for k, v in tally.items() if k.endswith('UNPROVED') and k.startswith(('never', 'settles')))
+    engine_open = sum(v for k, v in tally.items() if k.startswith(('cant', 'other')))
+    total = sum(tally.values())
+    print('loops:', total)
+    print("Past Forever's answers proved again by the checker:", proved, 'of', pf_answers)
+    print('answers the checker could not decide (UNPROVED):', unproved)
+    print("loops where Past Forever gave no answer (can't see the end, stopped):", engine_open)
+    print('disagreements:', len(problems))
+    for p in problems[:5]:
+        print('  ', p)
+    if not problems and unproved:
+        print('INCONCLUSIVE: no disagreement, but', unproved, 'answers have no independent certificate')
+    if len(sys.argv) > 1:
+        with open(sys.argv[1], 'w', encoding='utf-8') as fh:
+            json.dump({'tally': tally, 'problems': problems, 'examples': examples}, fh, indent=1)
+    sys.exit(1 if problems or unproved else 0)   # CI fails on a disagreement or on any answer left without a certificate
+
+
+if __name__ == '__main__':
+    main()

@@ -21,7 +21,8 @@ add, the more zeros), and the last digits of [Graham's number](#the-last-digits-
 **Two numbers, neither one zero, that multiply to exactly 0.** Run a second loop, `y = 6` then
 `forever: y = y ^ 5`, and it settles to `…081787109376`. Now `show x × y` prints `0`, and `show x + y` prints
 `1`. Check the last 4 digits by hand: `0625 × 9376 = 5860000` (four zeros) and `0625 + 9376 = 10001`. Take more
-digits and you get more zeros. In these numbers, 0 has two non-zero factors (`node cli.js examples/zero_twins.txt`).
+digits and you get more zeros. In these numbers, 0 has two non-zero factors (`node cli.js examples/zero_twins.txt`, or tap Wonder 2 in
+the [playground](https://connabyss.github.io/past-forever/)).
 
 **What it can and can't do.** Past Forever answers loops of plain arithmetic on one or a few numbers: adding,
 multiplying, fractions, powers, tests like `is even`. For each it either proves the answer, proves the loop never
@@ -67,9 +68,14 @@ for k in (34, 35, 36, 37):                    # look at the last k digits
 **Why they lie.** Two fresh AI agents worked this out on their own ([Hall of Fame](#hall-of-fame) #5), and it
 matches what turned up while hunting. The last k digits run two clocks at once, one for the 2s in 10^k and one for
 the 5s. The 2s clock never lies (proved: there the slope 2x is even, so the ring is 1 or 2 long). The 5s clock does
-all of it. **Conjecture, with a proof sketch nobody has checked:** every long liar sits close, in base 5, to one of four
-special values of c: −2, the two 5-adic square roots of −1, and one more that only a long equation names. Every liar
-we found fits it, and so do all 785 records. Making liars on purpose is checked, not proved: c = 5^k − 2 stayed calm for
+all of it. Every long liar sits close, in base 5, to one of four special values of c, the **magnets**: −2, the two
+5-adic square roots of −1, and M, the other c ending in 2 (base 5) with x·x + c from 0 landing back on its own
+second step after 10 steps (…1001440314111230040323412323104031442412 in base 5). "Close" means exactly this: **a c
+that stays calm for k digits has the same last k − 2 base-5 digits as one of the four magnets**, and from 5 digits
+on, k − 2 can't be raised. For c ending in 3 (base 5) that follows from a short formula, calm for k digits means 5^k
+divides (c + 2)(c·c + 1), inside a proof sketch nobody outside this project has checked. For c ending in 2 it is
+**checked, not proved**: [tests/magnets.py](tests/magnets.py) builds every calm c, digit by digit, and tests the
+statement at every depth from 3 to 1000, on every build. Making liars on purpose is checked, not proved: c = 5^k − 2 stayed calm for
 exactly k + 1 digits for every k we tried (k up to 40).
 
 **Odd powers can't lie (proved, short).** From 0, `x = x × x × x + c` (or the 5th or 7th power) settles into a
@@ -101,11 +107,16 @@ list in November 2026 and didn't find it, but many of its terms are close cousin
 
 **Don't believe it? Good.** Pick the claim you trust least and check it with your own arithmetic. Then try to
 [break it](#break-it): a wrong `proved` gets your name in the Hall of Fame. Coding agents: [AGENTS.md](AGENTS.md)
-has a dare for you. (A word on `proved`: it means proved by a few hand-written rules, listed in
-[How it knows](#how-it-knows) and tested by a robot referee on every build; the referee is a strong check, not a
-proof. No mathematician has reviewed them yet,
-and no proof assistant has checked them; an independent checker, [tests/certify.py](tests/certify.py), writes its
-own proof for one-name polynomial loops and counts any answer it can't prove as a failure.)
+has a dare for you.
+
+**A word on `proved`.** It means proved by the engine's own hand-written rules, listed in
+[How it knows](#how-it-knows). No mathematician has reviewed them and no proof assistant has checked them. Some kinds
+of answer also get a **second opinion**: a separate checker, [tests/certify.py](tests/certify.py), shares no code with
+the engine, writes its own proof, and fails the build if it can't prove an answer or disagrees. It covers one-name
+polynomial loops like `x = (3 × x × x + 7) / 11`, power towers like `x = 3 ^ x` (any whole number from 2 up), and
+`x = x ^ x`. Every other `proved` (pairs of names, loops with `if`, endless sums, counts past forever, polynomials
+with an endless number in them) rests on the engine's rules alone, plus the robot referee, which tries thousands of
+random loops on every build: a strong check, not a proof. [How it knows](#how-it-knows) marks which is which.
 
 <p align="center"><a href="https://connabyss.github.io/past-forever/"><img src="media/try-it-now.svg" width="300" alt="Try it now: open the playground in your browser"></a></p>
 
@@ -335,9 +346,9 @@ Find one of these and your name goes in the Hall of Fame below:
 - **The 10,000-digit liar.** [liars/records.txt](liars/records.txt) stops at 1000 digits of calm, and
   [liars/search.py](liars/search.py) takes about a minute and a half to get there. Find the smallest c that stays calm
   for 10,000 digits, show how you got it, and make it checkable. A faster way to build the same list counts too.
-- **Why only four magnets?** Every long liar we know sits close to one of the four values in "Why they lie". We have a
-  proof sketch that there are no others, and no mathematician has checked it. Write a real proof, or show a c that
-  stays calm for 20 digits or more while sitting far from all four.
+- **Why only four magnets?** Every c that stays calm for k digits shares its last k − 2 base-5 digits with one of
+  the four magnets in "Why they lie" (checked to 1000 digits by [tests/magnets.py](tests/magnets.py)). Write a real
+  proof for every k, or show a c that stays calm for k digits while sharing fewer than k − 2 with all four.
 
 To enter, open a [Break it issue](https://github.com/connabyss/past-forever/issues/new?template=break-it.yml)
 with the code and what it printed.
@@ -373,16 +384,19 @@ with the code and what it printed.
 
 ## How it knows
 
-There is no magic, only a few rules in [forever.js](forever.js), and each answer says which one it used:
+There is no magic, only a few rules in [forever.js](forever.js), and each answer says which one it used. **(2nd)**
+marks the rules whose answers the separate checker, [tests/certify.py](tests/certify.py), proves again on every build;
+the rest are checked by the robot referee only.
 
-- The whole state comes back: from then on it repeats forever.
-- A digit stops changing, and the rule pulls nearby numbers together: one more digit locks in every step.
+- The whole state comes back: from then on it repeats forever. **(2nd)** for one-name polynomial loops.
+- A digit stops changing, and the rule pulls nearby numbers together: one more digit locks in every step. **(2nd)** for one-name
+  polynomial loops.
 - A sum whose pieces end in more and more zeros settles.
 - A power tower like `x = 3 ^ x`: when two tops share their last k digits, the powers share k + 1 (the bottom
-  number must have no 2 or 5 in it). So once the last 2 digits stop changing, it settles.
+  number must have no 2 or 5 in it). So once the last 2 digits stop changing, it settles. **(2nd)**
 - A tower on 2, 5, 10 or any other whole number from 2 up, like `x = 2 ^ x` from an ordinary whole number: every
   step is a whole number and they grow, so soon every top is bigger than any number of digits you ask for. Then the
-  same lock-one-more rule holds, and it settles.
+  same lock-one-more rule holds, and it settles. **(2nd)**
 - A loop whose `if`s only test its last digits (`is even`, `is odd`, `ends in …`): the last few digits of every name
   then only depend on their last few digits, so they must come round. If a name's digits keep going round, it never
   settles. If the digits the tests read freeze, every test gives the same answer forever, and the loop is a plain one.
@@ -392,11 +406,13 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   and adding a count made by an earlier loop works like adding a number. (`d = d × forever` climbs to forever ^
   forever, which the language can't write yet, so it says `can't see the end` and tells you why.)
 - `x = x ^ x` from a whole number of 2 or more: the numbers grow, and once x is big, the last k digits of x ^ x only
-  depend on the last k digits of x. So if those go round a ring, it never settles.
+  depend on the last k digits of x. So if those go round a ring, it never settles. If x ends in 0, x ^ x ends in at
+  least x zeros, so it settles on exactly 0. **(2nd)**
 - Any polynomial rule whose other names are fixed endless numbers, like `y = 70 × y − 8 × y × y − 3 × x − 7`: if the
   last digit freezes where the rule's slope ends in 0, one more digit locks every step. Towers work the same way with
   extra parts times a number ending in 0, like `x = 3 ^ x − 10 × x`.
-- The last digits go round a ring that never stops: proved never to settle.
+- The last digits go round a ring that never stops: proved never to settle. **(2nd)** for one-name polynomial loops
+  and `x = x ^ x`.
 - None of these fit: `can't see the end`.
 
 ## Honest notes
@@ -409,8 +425,8 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
 - **The referee and the tests are strong checks, not proofs.** Everything below that says "checked" or "tested"
   means tried, not proved.
 - **"proved" means proved by the rules above**, as written in forever.js. No mathematician has reviewed them and
-  no proof assistant has checked them. For one-name polynomial loops, an independent checker writes its own proof
-  of each answer (below), and the build fails if it can't prove one.
+  no proof assistant has checked them. For one-name polynomial loops, power towers and `x = x ^ x`, an independent
+  checker writes its own proof of each answer (below), and the build fails if it can't prove one.
 - **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 4,311 random loops
   (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers, towers on
   2, 5 and 10, loops that branch on their last digits, and y = 10 × y + an endless number, polynomials with an endless number in them, towers plus 10 × x) and checks
@@ -423,8 +439,14 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   It prints how many of Past Forever's answers it proved again, how many it couldn't decide, and how many loops
   Past Forever gave no answer for. The build fails on any disagreement and on any answer it couldn't prove. On
   5,000 random loops it proved all 5,000 answers again, 0 undecided, 0 disagreements, all 60 digits matching. Every
-  build re-runs 300 of them, plus the ten loops in [tests/certificates.jsonl](tests/certificates.jsonl), whose
+  build re-runs 300 of them, every tower `x = b ^ x` for b from 2 to 40 and every `x = x ^ x` from 2 to 40 (all 60
+  digits compared), plus the ten loops in [tests/certificates.jsonl](tests/certificates.jsonl), whose
   proofs are written out by hand in [tests/certificates.md](tests/certificates.md). (Written by an explorer agent in a GitHub Codespace.)
+- **Copilot's three probes.** GitHub Copilot picked the three rules it trusted least: towers on bases with 2 or 5 in
+  them, towers mixed with x (like `x = 3 ^ x − 20 × x` from −1), and polynomials that use an endless number
+  settled by an earlier loop. [tests/probes.py](tests/probes.py) widens each into a family, 205 loops, and checks
+  every answer against a plain modular simulation 100 digits deep, on every build. 0 wrong; 18 of the third kind
+  say `can't see the end` (honest, but a gap).
 - Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
 - `can't see the end` comes up a lot. That's the language being honest, not a bug.
 

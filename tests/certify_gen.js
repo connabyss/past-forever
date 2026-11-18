@@ -15,6 +15,13 @@ if (/\.jsonl$/.test(process.argv[2] || '')) {
   }
   process.exit(0);
 }
+// node tests/certify_gen.js towers: every tower x = b ^ x (b = 2..40, start 0..3) and every x = x ^ x (start 2..40)
+if (process.argv[2] === 'towers') {
+  const run = (L) => { const r = F.run(L.src, { huntMs: 2000 }); L.out = r.error ? 'stopped: ' + r.error : (r.lines[0] ? r.lines[0].text : ''); console.log(JSON.stringify(L)); };
+  for (let b = 2; b <= 40; b++) for (let x0 = 0; x0 <= 3; x0++) run({ kind: 'tower', b, x0, src: `x = ${x0}\nforever: x = ${b} ^ x\nshow 60 digits of x\n` });
+  for (let x0 = 2; x0 <= 40; x0++) run({ kind: 'selfpower', x0, src: `x = ${x0}\nforever: x = x ^ x\nshow 60 digits of x\n` });
+  process.exit(0);
+}
 for (let i = 0; i < N; i++) {
   const d = 1 + rnd(4), cs = [];
   for (let j = 0; j <= d; j++) cs.push(j === d ? (small() || 1) : pick([0, small(), small(), 10 * small(), 5 * small(), 2 * small()]));
