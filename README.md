@@ -1,6 +1,6 @@
 # Past Forever
 
-**Infinite loops that finish.** This loop never stops, and the program runs on past it anyway:
+**Write a loop that never ends. Get its answer anyway, exactly.** This loop never stops, and the program runs on past it:
 
 ```
 x = 5
