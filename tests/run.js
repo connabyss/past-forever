@@ -133,6 +133,10 @@ is(out('x = 3\nforever: x = 12 ^ x\nshow 30 digits of x'), '…35913584858493171
 is(out('x = 0\nforever: x = 10 ^ x\nshow x'), '…000000000000', 'tower of 10s settles on 0');
 is(out('x = 0\nforever: x = 2 ^ x\nshow 2 ^ (x + 1)').startsWith('stopped: a power with an endless'), true, 'a 2 on the bottom still needs a top known to be huge');
 is(out('x = -3\nforever: x = 2 ^ x\nshow x').startsWith('stopped'), true, 'a tower of 2s from a minus number is refused');
+// two Opus agents (2026-11-18): c = 5^45 − 2 is calm for 46 digits, so the hunt shows ring of 2 though it goes wild
+// at digit 47. The label stays (it is what the hunt saw), but its why must not call it a proof.
+{ const h = F.text('hunt c from 0 to 9:\n    x = 0\n    forever: x = x × x + c\n    show x', { why: true });
+  is(/ring of N: that means every digit I looked at, 40 deep, came round every N steps, which is what I saw, not a proof/.test(h), true, 'a hunt says its rings are not proofs'); }
 // Copilot (2026-11-18): c = 8 looks settled in its last digit (0, 8, 2, 2…) but its last 2 digits go round 72, 92.
 is(out('x = 0\nforever: x = x × x + 8\nshow x'), 'never settles', 'x × x + 8 is not fooled by its calm last digit');
 // Copilot (2026-11-18): repeat 10 ^ 64 had no time limit and froze the page. It now stops with a clear message.

@@ -25,28 +25,35 @@ git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/graham.txt     # …262464195387, the end of Graham's number
 ```
 
-**Found with it, and not in any list we could find: loops that lie.** Run `x = x × x + c` from 0. For a wild c,
-the steps its last 1, 2, 3… digits take to come round grow ×5 per digit (10, 50, 250…). A liar stays calm first:
-its last digits come round every 2 or 8 steps, digit after digit, like a loop that has settled, and only then goes
-wild. c = `1280715354564332311432` stays calm for 33 digits (2 steps for 31 of them, then 8), and goes wild at
-digit 34. Hunting with Past Forever found the record liars, each calm for more digits than every smaller c:
-2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857, … We searched the [OEIS](https://oeis.org) for that
-list in November 2026 and it wasn't there. How we searched: the first ten records came from trying every c up to
-40 million, one by one, in two separate programs. Past that, whether c stays calm for k digits depends only on c's
-remainder after dividing by 5^k, so we built every calm remainder one base-5 digit at a time (nothing skipped),
-took the smallest, and re-checked each record by brute force. That "nothing skipped" step is our own reasoning,
-not reviewed by anyone else. We stopped after 29 records, at the 33-digit liar. Calmer ones exist (no whole number
-stays calm forever), so the list goes on, and finding the next one is open. Check the big liar yourself, in plain Python:
+**Found with it: loops that lie.** Run `x = x × x + c` from 0. For a wild c, the steps its last 1, 2, 3… digits
+take to come round grow ×5 per digit (10, 50, 250…). A liar stays calm first: digit after digit the count stays at
+1, 2 or 8, like a loop that has settled, and only then it goes wild. The record liars, each calm for more digits
+than every smaller c, go 2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857, … and the newest,
+c = `8616755347677791280982`, stays calm for 34 digits. Check it yourself, in plain Python:
 
 ```python
-c = 1280715354564332311432
-for k in (31, 32, 33, 34, 35):                # look at the last k digits
+c = 8616755347677791280982
+for k in (33, 34, 35, 36):                    # look at the last k digits
     m, x, seen = 10**k, 0, {}
     while x not in seen:
         seen[x] = len(seen); x = (x * x + c) % m
     print(k, "digits come round every", len(seen) - seen[x], "steps")
-# 31: 2,  32: 8,  33: 8,  then 34: 40,  35: 200, and ×5 for every digit after that
+# 33: 8,  34: 8,  then 35: 40,  36: 200, and ×5 for every digit after that
 ```
+
+**Why they lie.** Two fresh AI agents worked this out on their own ([Hall of Fame](#hall-of-fame) #5), and it
+matches what turned up while hunting. The last k digits run two clocks at once, one for the 2s in 10^k and one for
+the 5s. The 2s clock never lies. The 5s clock does all of it, and every liar sits close, in base 5, to one of four
+special values of c: −2, the two 5-adic square roots of −1, and one more that only a long equation names. So you
+can make liars on purpose: c = 5^k − 2 stays calm for k + 1 digits.
+
+**How we searched.** The first ten records came from trying every c up to 40 million, one by one, in two separate
+programs. Past that, whether c stays calm for k digits depends only on c's remainder after dividing by 5^k, so the
+calm remainders can be built one base-5 digit at a time, with nothing skipped (there are exactly 60 at every depth
+from 5 on). The smallest one is the record, and each record was re-checked by brute force. "Nothing skipped" rests
+on our reasoning and the agents', not on anyone's review. We searched the [OEIS](https://oeis.org) for the record
+list in November 2026 and didn't find it, but many of its terms are close cousins of lists that are there: the
+5-adic square roots of −1 ([A048898](https://oeis.org/A048898), [A048899](https://oeis.org/A048899)).
 
 **Don't believe it? Good.** Pick the claim you trust least and check it with your own arithmetic. Then try to
 [break it](#break-it): a wrong `proved` gets your name in the Hall of Fame. Coding agents: [AGENTS.md](AGENTS.md)
@@ -250,6 +257,9 @@ hunt c from 0 to 99: tried 100 numbers, 5 kinds of answer
 
 <p align="center"><img src="media/zoom.gif" width="420" alt="The hunt map in the playground, zooming in on liars"></p>
 
+`ring of N` in a hunt means every digit Past Forever looked at, 40 deep, came round every N steps. It is what it
+saw, not a proof, and a liar calmer than that fools it: c = 5^45 − 2 shows `ring of 2` but goes wild at digit 47.
+
 In the playground every number becomes a coloured square. Some wild loops are **liars**: their last digits
 go round a ring of 2 for a while, then the next digit breaks it. Brighter means it lied for longer.
 Tap the brightest square and **Zoom in** (`ends in 123`) to see only numbers ending in those digits.
@@ -261,9 +271,10 @@ Find one of these and your name goes in the Hall of Fame below:
 
 - **A wrong answer.** A loop where Past Forever says `proved` and is wrong. This is the big one.
 - **A loop it can't see the end of, but you can.** It says `can't see the end`, and you can show the real answer.
-- **A longer liar.** In `x = x × x + c` from `x = 0`, the calmest liar we know is c = `1280715354564332311432`:
-  its last 33 digits stay calm (they come round every 2 or 8 steps) before it goes wild. Find a c that stays calm longer
-  (Past Forever looks 40 digits deep).
+- **A fifth magnet.** In `x = x × x + c` from `x = 0`, every long liar we know sits close to one of the four values
+  in "Why they lie" near the top. We think there are no others (a proof sketch, not reviewed).
+  Find a c that stays calm for 20 digits or more without being close to one of the four, and the sketch is wrong.
+  ("Find a longer liar" is closed: c = 5^k − 2 is as long as you like.)
 
 To enter, open a [Break it issue](https://github.com/connabyss/past-forever/issues/new?template=break-it.yml)
 with the code and what it printed.
@@ -282,6 +293,10 @@ with the code and what it printed.
    `x = 2 ^ x`, where Past Forever said `can't see the end`. It settles, on …075353432948736. Copilot found the same
    gap with `x = 10 ^ x`, which settles on 0. Now every tower on a whole number from 2 up settles by its own rule.
    (November 2026)
+5. **Two fresh Claude Opus agents, separately.** Asked to "use this language like a researcher", both worked out
+   why liars exist (the 5s clock and the four special values of c), found the 34-digit record
+   `8616755347677791280982`, and showed c = 5^k − 2 is a liar as long as you like. One of those, 5^45 − 2, fooled the
+   hunt into saying `ring of 2`, so the hunt's why now says that rings are what it saw, not proofs. (November 2026)
 
 ## How it knows
 
@@ -322,7 +337,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 614 checks
+node tests/run.js        # ok: 615 checks
 node tests/referee.js    # the robot referee, about 5 minutes
 ```
 

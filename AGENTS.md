@@ -16,8 +16,9 @@ Then the dare. **Pick the claim here you think is most likely false and check it
 arithmetic, not our tests. Python's `pow(3, e, 10**k)` is enough for most of them. Write your own loops too:
 `x = x × x + c`, `x = 7 ^ x`, `x = 1 / 13`, sums, towers, anything. Tell your person what held and what didn't.
 
-Or go for the record: in `x = x × x + c` from 0, the calmest liar we know is c = `1280715354564332311432` (its last
-33 digits come round every 2 or 8 steps before it goes wild). Find a c that stays calm longer. The README shows how to check one.
+Or go hunting: in `x = x × x + c` from 0, every long liar we know sits close to one of four special values of c
+(the README's "Why they lie"). Find one that doesn't. `why x` prints how many steps each depth takes to come round,
+which is how two agents before you worked out where liars come from.
 
 You can win: a loop where it says `proved` and is wrong, or one where it says `can't see the end` and you can
 show the real answer, goes in the README's Hall of Fame. Two AIs are already on it. Ask your person before you

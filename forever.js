@@ -682,7 +682,7 @@ function runHunt(m, s) {
     return '  ' + g.padEnd(width) + '  ' + String(cs.length).padStart(String(items.length).length) + '   ' + cs.slice(0, 8).join(', ') + (cs.length > 8 ? ', …' : '');
   });
   const head = 'hunt ' + s.name + ' from ' + lo + ' to ' + hi + (s.end !== null ? ' ends in ' + s.end : '') + ': tried ' + plural(items.length, 'number') + ', ' + plural(order.length, 'kind') + ' of answer' + (outOfTime ? '\n  (ran out of time after ' + s.name + ' = ' + items[items.length - 1].c + '; try a smaller range)' : '');
-  if (!m.quiet) m.out.push({ text: head + '\n' + lines.join('\n'), why: 'each number was run on its own, from a fresh start. Every answer is the same kind of answer show gives, with the same proofs', hunt: { name: s.name, lo: String(lo), hi: String(hi), end: s.end, outOfTime, groups: order.map((g) => ({ label: g, count: groups.get(g).length })), items } });
+  if (!m.quiet) m.out.push({ text: head + '\n' + lines.join('\n'), why: 'each number was run on its own, from a fresh start. Every answer is the same kind of answer show gives, with the same proofs, except ring of N: that means every digit I looked at, ' + DEEP + ' deep, came round every N steps, which is what I saw, not a proof', hunt: { name: s.name, lo: String(lo), hi: String(hi), end: s.end, outOfTime, groups: order.map((g) => ({ label: g, count: groups.get(g).length })), items } });
 }
 class Unseen extends Error { constructor(v) { super('unseen'); this.v = v; } }
 
