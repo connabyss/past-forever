@@ -1,9 +1,33 @@
 # Past Forever
 
-## 1 ÷ 7 = …142857143. A whole number.
+**Infinite loops that finish.** This loop never stops, and the program runs on past it anyway:
 
-**(Here's the world where that's true.)** Past Forever is a small language where infinite loops finish with an answer. It can even tell you
-[how Graham's number ends](#the-last-digits-of-grahams-number).
+```
+x = 5
+forever: x = x × x
+show x
+```
+
+```
+…918212890625
+```
+
+5, 25, 625, 390625… squared forever, and the digits on the right freeze. **Check it on any calculator:**
+`918212890625 × 918212890625` ends in `…918212890625`. It is its own square.
+
+Same trick, other answers: `1 ÷ 7 = …142857143` (check: `142857143 × 7 = 1000000001`, and the more 142857s you
+add, the more zeros), and the last digits of [Graham's number](#the-last-digits-of-grahams-number).
+
+**Try it in 10 seconds** (Node 18+, no dependencies):
+
+```
+git clone https://github.com/connabyss/past-forever && cd past-forever
+node cli.js examples/graham.txt     # …262464195387, the end of Graham's number
+```
+
+**Don't believe it? Good.** Pick the claim you trust least and check it with your own arithmetic. Then try to
+[break it](#break-it): a wrong `proved` gets your name in the Hall of Fame. Coding agents: [AGENTS.md](AGENTS.md)
+has a dare for you.
 
 <p align="center"><a href="https://connabyss.github.io/past-forever/"><img src="media/try-it-now.svg" width="300" alt="Try it now: open the playground in your browser"></a></p>
 
@@ -142,8 +166,9 @@ and it tells you how it knows.
 
 ## The last digits of Graham's number
 
-[Graham's number](https://en.wikipedia.org/wiki/Graham%27s_number) is a tower of 3s, `3 ^ 3 ^ 3 ^ …`, so tall that
-the universe is too small to hold its digits. Nobody knows its first digit. Past Forever can show you its last ones:
+[Graham's number](https://en.wikipedia.org/wiki/Graham%27s_number) can be written as a tower of 3s, `3 ^ 3 ^ … ^ 3`,
+so tall that the universe is too small to hold its digits. The tower does end somewhere, but nobody knows its first
+digit. Past Forever can show you its last ones, by building the tower forever:
 
 ```
 x = 3
@@ -159,8 +184,8 @@ yes  (proved)
 
 <p align="center"><img src="media/tower.gif" width="520" alt="A tower of 3s, one floor at a time: 3, 27, 7625597484987, and then numbers too long to write down. The digits on the right freeze in gold, one more each floor, and after forever the ending is ...262464195387"></p>
 
-Once the tower is a few floors tall, every new floor freezes one more digit on the right, and Graham's number is far
-taller than that. Ask for `show 105 digits of x` and all 105 match the digits listed in the
+Once the tower is a few floors tall, every new floor freezes one more digit on the right. Graham's number is a
+finite tower, but far taller than any number of digits you could ask for, so it ends the same way as the endless one. Ask for `show 105 digits of x` and all 105 match the digits listed in the
 [OEIS (A133613)](https://oeis.org/A133613). The tests check them on every build.
 
 ## Three honest answers
