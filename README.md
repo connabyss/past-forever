@@ -340,7 +340,8 @@ with the code and what it printed.
    `can't see the end`: `if x is even: x = x + 1, else: x = x + 3` (its last digit goes round all ten digits forever),
    and `y = 10 × y + x` with x the endless …918212890625 (it settles on −x ÷ 9). Both are now proved, with two new
    rules below and two new families of loops for the robot referee. It also turned the last 360 digits of Graham's
-   number into a song, which became `sing`. (November 2026)
+   number into a song, which became `sing`, and found counts that climb, like `f = f × f`, that it couldn't finish.
+   (November 2026)
 
 ## How it knows
 
@@ -359,6 +360,9 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   settles. If the digits the tests read freeze, every test gives the same answer forever, and the loop is a plain one.
 - `y = 10 × y + x` (or 20, 100, any multiple of 10) with x settling: each step locks one more digit, and the answer
   is exactly x ÷ (1 − 10), so −x ÷ 9.
+- A count that only climbs ends at the top of its climb: `count f = 2` then `forever: f = f × f` ends at `forever`,
+  and adding a count made by an earlier loop works like adding a number. (`d = d × forever` climbs to forever ^
+  forever, which the language can't write yet, so it says `can't see the end` and tells you why.)
 - The last digits go round a ring that never stops: proved never to settle.
 - None of these fit: `can't see the end`.
 
@@ -386,7 +390,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 646 checks
+node tests/run.js        # ok: 654 checks
 node tests/referee.js    # the robot referee, about 5 minutes
 ```
 

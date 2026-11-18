@@ -770,7 +770,8 @@ function allReads(stmts, set = new Set()) {
 // a count is "pure" in this loop if the only place it appears is n = n + (something without names)
 function pureCounts(m, stmts, assigned) {
   const pure = new Set([...assigned].filter((v) => m.counts.has(v)));
-  const noNames = (e) => readsIn(e, new Set()).size === 0;
+  // what gets added may use counts the loop never changes: they are fixed numbers while it runs
+  const noNames = (e) => [...readsIn(e, new Set())].every((v) => !assigned.has(v) && m.counts.has(v) && m.env.has(v) && m.env.get(v).k === 'count');
   (function walk(list) {
     for (const s of list) {
       const isStep = s.t === 'set' && pure.has(s.name) && s.e.t === 'bin' && s.e.op === '+' && s.e.a.t === 'var' && s.e.a.name === s.name && noNames(s.e.b);
@@ -823,6 +824,8 @@ function runForever(m, loop) {
   if (towerLoop(m, body, pure, start)) return;
   // ── B3. towers on 2, 5, 10 …: x = 2 ^ x from an ordinary whole number
   if (bigTowerLoop(m, body, pure, start)) return;
+  // ── B5. a count that only climbs: after forever it is the top of its climb
+  if (countLoop(m, body, pure, start)) return;
   // ── B4. loops that branch on their own last digits (if … is even / ends in …, else …)
   if (branchLoop(m, loop, pure, start)) return;
   // ── C. give up honestly
@@ -834,6 +837,54 @@ function runForever(m, loop) {
     else m.env.set(v, unknown(note));
   }
   settlePureCounts(m, body, pure, start);
+}
+
+// ── B5. a count that only climbs ──
+// One count n, remade each step from itself, numbers and counts the loop never changes. After forever a count is the
+// top of its climb (the same rule that makes n = n + 1 end at forever). (Found by an explorer agent in a GitHub
+// Codespace, November 2026.)
+//  - n = a sum of products of n and ordinary whole numbers, like n × n or 3 × n + 1: if one step makes n bigger and
+//    one more at the start makes the step at least 1 bigger, every later step is bigger too (all the parts only grow),
+//    so n climbs past every ordinary number: forever.
+//  - n = n × E with E an ordinary whole number of 2 or more, from a count past forever: each step multiplies the
+//    front part (forever^a × c becomes forever^a × c × E) and leaves the rest, so the top is forever^(a + 1).
+//  - n = n × E with E past forever: forever^a, forever^(a+1), … the top is forever ^ forever, which this
+//    language can't write yet, so it says so.
+function countLoop(m, body, pure, start) {
+  const sets = body.filter((st) => st.t === 'set');
+  if (sets.length !== 1 || body.length !== 1) return false;
+  const st = sets[0], n = st.name;
+  if (pure.has(n) || !m.counts.has(n) || !start.has(n) || start.get(n).k !== 'count') return false;
+  const n0 = start.get(n).o, fixed = (v) => v !== n && m.counts.has(v) && start.has(v) && start.get(v).k === 'count';
+  // finite climb: a polynomial in n with whole-number parts
+  const fin = (e, x) => {
+    if (e.t === 'num') { const q = Q(e.v); if (!qint(q) || q.n < 0n) return null; return q.n; }
+    if (e.t === 'var') { if (e.name === n) return x; if (fixed(e.name) && O.isFin(start.get(e.name).o)) return O.finVal(start.get(e.name).o); return null; }
+    if (e.t === 'bin' && (e.op === '+' || e.op === '*')) { const a = fin(e.a, x), b = fin(e.b, x); if (a === null || b === null) return null; return e.op === '+' ? a + b : a * b; }
+    return null;
+  };
+  const uses = readsIn(st.e, new Set());
+  if (O.isFin(n0) && uses.has(n)) {
+    const x0 = O.finVal(n0), p0 = fin(st.e, x0), p1 = fin(st.e, x0 + 1n);
+    if (p0 !== null && p1 !== null && p0 > x0 && p1 - p0 >= 1n) {
+      m.env.set(n, count(O.omega, n + ' goes ' + x0 + ', ' + p0 + ', … and every step makes it bigger (one step from ' + x0 + ' adds ' + (p0 - x0) + ', and each step after adds at least that much), so it climbs past every ordinary number: after forever it is forever'));
+      return true;
+    }
+  }
+  // n = n × E, E fixed
+  if (st.e.t === 'bin' && st.e.op === '*' && st.e.a.t === 'var' && st.e.a.name === n && n0.length) {
+    let E; try { const r = readsIn(st.e.b, new Set()); if ([...r].some((v) => !fixed(v))) return false; E = toCount(evFixed(m, start, st.e.b)); } catch (e) { if (e instanceof LangError) return false; throw e; }
+    if (O.isFin(E) && O.finVal(E) >= 2n && !O.isFin(n0)) {
+      const top = [[n0[0][0] + 1, 1n]];
+      m.env.set(n, count(top, 'each step multiplies the front part of ' + n + ' (' + O.show([n0[0]]) + ') by ' + O.finVal(E) + ' and leaves the rest alone, so it climbs ' + O.show(n0) + ', ' + O.show(O.mul(n0, E)) + ', … past every one of those: after forever it is ' + O.show(top)));
+      return true;
+    }
+    if (!O.isFin(E)) {
+      m.env.set(n, unknown(n + ' climbs ' + O.show(n0) + ', ' + O.show(O.mul(n0, E)) + ', ' + O.show(O.mul(O.mul(n0, E), E)) + ', … one more forever on top each step. The top of that climb is forever ^ forever, a number this language can\'t write yet'));
+      return true;
+    }
+  }
+  return false;
 }
 
 // ── B4. loops that branch on their own last digits ──
@@ -1232,12 +1283,14 @@ function watch(m, body, stateNames, pure, start) {
   m.env = final; res.done = true; return res;
 }
 
+// work out an expression from the values before the loop (used for counts the loop never changes)
+function evFixed(m, start, e) { const k = new Machine(); k.env = new Map(start); k.counts = new Set(m.counts); return k.ev(e); }
 // counts that only ever do n = n + c at the top of the loop body
 function settlePureCounts(m, body, pure, start) {
   for (const v of pure) {
     let per = O.zero, ok = true;
     for (const s of body) {
-      if (s.t === 'set' && s.name === v) per = O.add(per, toCount(new Machine().ev(s.e.b)));
+      if (s.t === 'set' && s.name === v) per = O.add(per, toCount(evFixed(m, start, s.e.b)));
       else if (assignedIn([s]).has(v)) ok = false;
     }
     const from = start.get(v).o;
@@ -1301,7 +1354,7 @@ function reason(m, body, assigned, pure, start, A) {
     } else if (s.t === 'if' && !s.else && s.body.length === 1 && s.body[0].t === 'set') {
       const t = s.body[0], k = kinds.get(t.name);
       if ((k === 'flag' || k === 'new') && t.e.t === 'bool' && oneWay.get(t.name) !== 'x' && !reads.has(t.name)) watchers.push({ cond: condOf(s.c), flag: t.name, to: t.e.v });
-      else if (k === 'purecount') watchers.push({ cond: condOf(s.c), count: t.name, by: toCount(new Machine().ev(t.e.b)) });
+      else if (k === 'purecount') watchers.push({ cond: condOf(s.c), count: t.name, by: toCount(evFixed(m, start, t.e.b)) });
       else throw new NotPoly();
     } else throw new NotPoly();
   }

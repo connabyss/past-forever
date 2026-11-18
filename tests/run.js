@@ -312,6 +312,16 @@ has(F.text('x = 5\nforever: x = x × x\ny = 0\nforever: y = 10 × y + x\nwhy y')
 is(out('x = 5\nforever: x = x × x\ny = 3\nforever: y = 20 × y + x × x + 1\nshow y'), '…162199321546', 'y = 20 × y + x × x + 1 settles to the digits Python gets');
 is(out('x = 0\ny = 0\nforever:\n  x = x + 1\n  y = 10 × y + x\nshow y'), 'never settles', 'leaning on a counter still never settles');
 
+// ── counts that only climb (explorer agent, Nov 2026): after forever a count is the top of its climb
+is(out('count f = 2\nforever: f = f × f\nshow f'), 'forever', '2, 4, 16, 256 … squared forever ends at forever');
+is(out('count z = 0\nforever: z = z × z + 1\nshow z'), 'forever', 'z × z + 1 from 0 climbs to forever');
+is(out('count w = 1\nforever: w = w × w\nshow w'), '1', '1 squared forever stays 1');
+is(out('count a = 0\nforever: a = a + 1\ncount b = 0\nforever: b = b + a\nshow b'), 'forever × forever', 'adding a count made by an earlier loop: forever × forever');
+is(out('count x = forever + 3\nforever: x = x × 2\nshow x'), 'forever × forever', 'doubling forever + 3 forever climbs to forever × forever');
+is(out('count d = forever\nforever: d = d × forever\nshow d'), "can't see the end", 'times forever, forever: the top is forever ^ forever, which it cannot write yet');
+has(F.text('count d = forever\nforever: d = d × forever\nwhy d'), 'forever ^ forever, a number this language can\'t write yet', 'and it says why');
+is(out('count a = forever\ncount k = 0\nx = 0\nforever:\n  x = x + 1\n  if x ends in 3: k = k + a\nshow k'), 'forever × forever', 'a count that adds an outside count some of the time');
+
 // ── sing: one note per digit, right to left, on A minor pentatonic (the explorer's recipe)
 is(out('x = 3\nforever: x = 3 ^ x\nsing 12 digits of x'), '♪ …262464195387', 'sing shows the digits it plays');
 is(out('sing 2024'), '♪ 2024', 'a plain whole number sings all its digits');
