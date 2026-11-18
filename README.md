@@ -13,7 +13,7 @@ show x
 ```
 
 5, 25, 625, 390625… squared forever, and the digits on the right freeze. **Check it on any calculator:**
-`918212890625 × 918212890625` ends in `…918212890625`. It is its own square.
+`90625 × 90625 = 8212890625`, which ends in `90625` again. Every digit you keep does the same. It is its own square.
 
 Same trick, other answers: `1 ÷ 7 = …142857143` (check: `142857143 × 7 = 1000000001`, and the more 142857s you
 add, the more zeros), and the last digits of [Graham's number](#the-last-digits-of-grahams-number).
