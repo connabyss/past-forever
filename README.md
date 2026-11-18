@@ -267,6 +267,10 @@ with the code and what it printed.
    as deep as the biggest number in the loop, and proves `never settles`. (November 2026)
 3. **GitHub Copilot.** `repeat 10 ^ 64: x = x + 1` had no time limit, so it froze the playground. Not a wrong answer,
    but a real hang. Now `repeat` stops with a clear message after 15 seconds (8 in the playground). (November 2026)
+4. **A fresh Claude Opus agent, and GitHub Copilot.** Asked only to take a look, Opus tried a tower of 2s,
+   `x = 2 ^ x`, where Past Forever said `can't see the end`. It settles, on …075353432948736. Copilot found the same
+   gap with `x = 10 ^ x`, which settles on 0. Now every tower on a whole number from 2 up settles by its own rule.
+   (November 2026)
 
 ## How it knows
 
@@ -277,6 +281,9 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
 - A sum whose pieces end in more and more zeros settles.
 - A power tower like `x = 3 ^ x`: when two tops share their last k digits, the powers share k + 1 (the bottom
   number must have no 2 or 5 in it). So once the last 2 digits stop changing, it settles.
+- A tower on 2, 5, 10 or any other whole number from 2 up, like `x = 2 ^ x` from an ordinary whole number: every
+  step is a whole number and they grow, so soon every top is bigger than any number of digits you ask for. Then the
+  same lock-one-more rule holds, and it settles.
 - The last digits go round a ring that never stops: proved never to settle.
 - None of these fit: `can't see the end`.
 
@@ -289,10 +296,11 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   (theory, not a language). Not finding one is not proof there isn't one.
 - **"proved" means proved by the rules above**, as written in forever.js. They are not machine-checked, and no
   mathematician has reviewed them.
-- **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 3,000 random loops
-  (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers) and checks
+- **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 3,375 random loops
+  (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers, towers on
+  2, 5 and 10) and checks
   every `settles`, `never settles` and exact fraction against plain arithmetic on the last 30 or more digits. Last
-  run: 4,285 answers, 0 wrong, 11 `can't see the end`. That is a strong check, not a proof.
+  run: 4,660 answers, 0 wrong, 11 `can't see the end`. That is a strong check, not a proof.
 - Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
 - `can't see the end` comes up a lot. That's the language being honest, not a bug.
 
@@ -303,7 +311,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 607 checks
+node tests/run.js        # ok: 614 checks
 node tests/referee.js    # the robot referee, about 5 minutes
 ```
 

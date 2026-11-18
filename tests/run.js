@@ -125,6 +125,16 @@ is(out('show 1 / 2'), 'stopped: 2 does not go into 1. Here you can divide by any
 is(out('x = 5\nforever: x = x × x\nshow x < 3'), 'stopped: endless numbers have no bigger or smaller, only the same or different', 'no order on endless numbers');
 is(out('show y'), 'stopped: line 1: y has no value yet', 'unknown name');
 is(out('x = 3\nrepeat 4: x = x × x\nshow x\nshow backwards(1230)\nshow 12321 is a palindrome'), '43046721\n321\nyes', 'repeat and helpers');
+// towers on 2, 5, 10 … (a fresh Claude Opus agent found x = 2 ^ x, GitHub Copilot found x = 10 ^ x, 2026-11-18).
+// The 30 digits were worked out separately with Euler's theorem in Python.
+is(out('x = 0\nforever: x = 2 ^ x\nshow 30 digits of x\nshow 2 ^ x = x'), '…159853338098615075353432948736\nyes  (proved)', 'tower of 2s settles');
+is(out('x = 0\nforever: x = 5 ^ x\nshow 30 digits of x'), '…159083587117493152618408203125', 'tower of 5s settles');
+is(out('x = 3\nforever: x = 12 ^ x\nshow 30 digits of x'), '…359135848584931714421454012416', 'tower of 12s settles');
+is(out('x = 0\nforever: x = 10 ^ x\nshow x'), '…000000000000', 'tower of 10s settles on 0');
+is(out('x = 0\nforever: x = 2 ^ x\nshow 2 ^ (x + 1)').startsWith('stopped: a power with an endless'), true, 'a 2 on the bottom still needs a top known to be huge');
+is(out('x = -3\nforever: x = 2 ^ x\nshow x').startsWith('stopped'), true, 'a tower of 2s from a minus number is refused');
+// Copilot (2026-11-18): c = 8 looks settled in its last digit (0, 8, 2, 2…) but its last 2 digits go round 72, 92.
+is(out('x = 0\nforever: x = x × x + 8\nshow x'), 'never settles', 'x × x + 8 is not fooled by its calm last digit');
 // Copilot (2026-11-18): repeat 10 ^ 64 had no time limit and froze the page. It now stops with a clear message.
 is(/^stopped: line 2: repeat ran out of time after \d+ rounds\. To loop forever, write forever:$/m.test(F.text('x = 0\nrepeat 3000000: x = x + 1\nshow x', { repeatMs: 1 })), true, 'repeat stops when it runs out of time');
 is(F.text('x = 0\nrepeat 1000: x = x + 1\nshow x', { repeatMs: 1000 }), '1000', 'a short repeat still finishes');
@@ -271,7 +281,8 @@ is(out('x = 1\nforever: x = x + 0.1\nshow x'), 'stopped: line 2: there are no de
   { let y = 1n; const M = 10n ** 40n; for (let i = 0; i < 200; i++) y = (powmod(3n, y, M) + 1n) % M;
     is(out('x = 1\nforever: x = 3 ^ x + 1\nshow 40 digits of x'), '…' + String(y).padStart(40, '0'), 'x = 3 ^ x + 1 settles too (it once said "too big")'); }
   is(out('x = 1\nforever: x = 3 ^ x + 1\nshow 301 digits of x'), 'stopped: I can only work out the last 300 digits of x', 'the slower towers say how far they go');
-  is(out('x = 2\nforever: x = 2 ^ x\nshow x'), "can't see the end", 'a tower of 2s is not claimed (2 never comes back to 1)');
+  // this was "can't see the end" until 2026-11-18: towers on 2, 5, 10 … now settle by their own rule (see bigTowerLoop)
+  is(out('x = 2\nforever: x = 2 ^ x\nshow x'), '…353432948736', 'a tower of 2s settles, from any start');
   is(out('x = 5\nforever: x = x × x\nshow 5 ^ x'), 'stopped: a power with an endless number or a huge number on top needs an ordinary whole number at the bottom with no 2 or 5 in it, like 3, 7 or 11', 'an endless top needs a bottom with no 2 or 5');
   is(out('show 2 ^ 3 ^ 2'), '512', 'towers read from the top down');
   is(out('show 2 ^ 64 ^ 2 = 2 ^ 4096'), 'yes', 'a 1,234-digit power is still worked out exactly');
