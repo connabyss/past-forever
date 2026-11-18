@@ -2,8 +2,9 @@
 x = b ^ x (b a whole number from 2 up, started at a whole number) and x = x ^ x (started at a whole number >= 2).
 
 Towers: SETTLES (Euler) b ^ e mod m only depends on e mod lambda(m) once e is past the biggest power of 2 or 5 in m,
-and the chain m, lambda(m), lambda(lambda(m)), ... reaches 1; x grows past every bound, so its last k digits freeze.
-The digits are worked out from that chain and compared with all 60 Past Forever printed.
+and the chain m, lambda(m), lambda(lambda(m)), ... reaches 1. For each loop it finds the step n0 from which x is
+big enough, so the last 60 digits must freeze by step n0 + (chain length); it then runs that loop on every level of
+the chain and checks each level freezes on time, and compares the 60 digits with what Past Forever printed.
 x = x ^ x: NEVER (ring) once x >= k, x ^ x mod 10^k only depends on x mod 10^k, so a ring of length > 1 in the last
 k digits means it never settles. SETTLES (zeros) a start ending in 0: x ^ x is a multiple of 10 ^ x, limit 0.
 
@@ -106,10 +107,35 @@ def tower_mod(b, m):  # last digits of b ^ b ^ b ^ ... (tall enough), mod m
     return pow(b, e, m)
 
 
-def certify_tower(L):  # x = b ^ x from a whole number x0 >= 0, b >= 2
+def certify_tower(L, K=60):  # x = b ^ x from a whole number x0 >= 0, b >= 2: a certificate for this one loop
     b, x0 = L['b'], L['x0']
-    return 'SETTLES', None, (f'TOWER: x grows past every bound, and b ^ e mod 10^k only depends on e mod lambda(10^k) '
-                             f'once e is big (Euler); the lambda chain of 10^k reaches 1, so the last k digits freeze')
+    M = 10 ** K
+    chain = [M]  # 10^K, lambda(10^K), lambda(lambda(10^K)), ... down to 1
+    while chain[-1] > 1:
+        chain.append(carmichael(chain[-1]))
+    big = M.bit_length()  # past this, b ^ e mod any modulus in the chain only depends on e mod its lambda
+    x, n0 = x0, 0
+    while x < big:  # exact steps; b ^ x > x for b >= 2, so x only grows
+        x, n0 = b ** x, n0 + 1
+    # From step n0 every top is >= big. Then x_(n+1) mod chain[i] is a function of x_n mod chain[i + 1], so x mod
+    # chain[-1] = 1 is frozen at once, x mod chain[-2] one step later, ..., and x mod 10^K from step n0 + len(chain).
+    freeze = n0 + len(chain)
+    # run the loop on all levels of the chain at once, step by step, for this b and x0
+    r, hist = [x % m for m in chain], []
+    for n in range(n0, freeze + 3):
+        hist.append(r)
+        r = [pow(b, r[i + 1] + chain[i + 1] * big, chain[i]) for i in range(len(chain) - 1)] + [0]
+    # level i (counted from the bottom, 1 is level 0) must be frozen from step n0 + level, as the induction says
+    L = len(chain)
+    for i in range(L):
+        start = (L - 1 - i)  # steps after n0
+        if len({h[i] for h in hist[start:]}) != 1:
+            return 'UNPROVED', None, f'level {i} of the chain was still moving after step {n0 + start}'
+    if hist[-1][0] != tower_mod(b, M):
+        return 'UNPROVED', None, 'the frozen digits differ from the tower formula'
+    return 'SETTLES', None, (f'TOWER: the chain 10^{K} -> lambda -> ... reaches 1 in {len(chain) - 1} steps; x is at least '
+                             f'{big} from step {n0}, so its last {K} digits are frozen from step {freeze} (Euler, one '
+                             f'level of the chain per step)')
 
 
 def certify_selfpower(L):  # x = x ^ x from a whole number x0 >= 2

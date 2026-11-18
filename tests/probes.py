@@ -6,6 +6,10 @@
 3. Polynomials with a settled endless number, y = y * y + s * y + t * a after a = a * a forever (fixedPartsMap).
 A "can't see the end" is allowed (it is honest); a wrong "settles", "never settles" or digit is a failure.
 
+This is a FINITE check, not a proof. "Settles" here means the simulation's path came to rest at the depths it looked
+at (10^3 or 10^2 up to 10^110), and liars show that a loop can look calm for many digits and change later. It
+catches wrong answers in the families below; it says nothing about loop shapes it doesn't try.
+
     python3 tests/probes.py
 """
 import json
@@ -82,4 +86,4 @@ for k, v in sorted(tally.items()):
 if bad:
     print('FAILED:', bad, 'of', len(progs), 'answers differ from the modular simulation'); sys.exit(1)
 print(f'ok: {len(progs)} probe loops (Copilot\'s three: towers on any base, towers mixed with x, polynomials with a settled'
-      ' endless number), every answer matches an independent modular simulation, 100 digits deep')
+      ' endless number), every answer matches an independent modular simulation at depths up to 110 digits (a finite check, not a proof)')
