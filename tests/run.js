@@ -299,6 +299,21 @@ is(out('x = 1\nforever: x = x + 0.1\nshow x'), 'stopped: line 2: there are no de
 is(out('x = 5\nforever: x = x × x\nshow 100000 digits of x'), 'stopped: line 3: I show at most 2000 digits at a time', 'a digit count that would freeze the page gets a clear answer');
 is(out('x = 5\nforever: x = x × x\nshow 2000 digits of x').length, 2001, '2000 digits still work');
 
+// ── liars/records.txt: the record liars, 2 up to 1000 digits of calm. Check the file is in order, starts with the
+// list the README quotes, and that every record up to 40 digits really is calm exactly that long (plain base 10).
+{
+  const rows = fs.readFileSync(path.join(__dirname, '..', 'liars', 'records.txt'), 'utf8').split('\n')
+    .filter((l) => l && !l.startsWith('#')).map((l) => l.split(' ')).map(([d, c]) => [Number(d), BigInt(c)]);
+  is(rows.slice(0, 10).map((r) => String(r[1])).join(', '), '2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857', 'the record liars start like the README says');
+  is(rows.every((r, i) => i === 0 || (r[0] > rows[i - 1][0] && r[1] > rows[i - 1][1])), true, 'each record is bigger and calm for longer than the one before');
+  is(rows[rows.length - 1][0] >= 1000, true, 'the list reaches 1000 digits of calm');
+  is(String(rows.find((r) => r[0] === 35)[1]), '38533618339183472936432', 'the README liar is in the list');
+  const per = (c, k) => { const m = 10n ** BigInt(k); let x = 0n, i = 0; const seen = new Map(); while (!seen.has(x)) { seen.set(x, i++); x = (x * x + c) % m; } return i - seen.get(x); };
+  const calm = (c, most) => { for (let j = 1; j <= most; j++) if (per(c, j) % 5 === 0) return j - 1; return most; };
+  const wrong = rows.filter(([d]) => d <= 40).filter(([d, c]) => calm(c, d + 1) !== d).map(([d, c]) => d + ':' + c);
+  is(wrong.join(' '), '', 'every record liar up to 40 digits is calm exactly as long as the list says');
+}
+
 // ── the README's zero-twins claim: two non-zero numbers whose product is exactly 0 and whose sum is exactly 1
 is(ex('zero_twins.txt'), '…918212890625\n…081787109376\n0\n1', 'the README zero-twins example prints its two numbers, then 0 and 1');
 is(out('x = 5\nforever: x = x × x\ny = 6\nforever: y = y ^ 5\nshow x × y = 0\nshow x = 0\nshow y = 0'), 'yes\nno  (proved)\nno  (proved)', 'the twins multiply to exactly 0, and neither one is 0');

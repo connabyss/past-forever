@@ -33,8 +33,10 @@ node cli.js examples/graham.txt     # …262464195387, the end of Graham's numbe
 **Found with it: loops that lie.** Run `x = x × x + c` from 0. For a wild c, the steps its last 1, 2, 3… digits
 take to come round grow ×5 per digit (10, 50, 250…). A liar stays calm first: digit after digit the count stays at
 1, 2 or 8, like a loop that has settled, and only then it goes wild. The record liars, each calm for more digits
-than every smaller c, go 2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857, … and the newest,
-c = `38533618339183472936432`, stays calm for 35 digits. Check it yourself, in plain Python:
+than every smaller c, go 2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857, … and the list now runs
+to 1000 digits of calm: the smallest c that stays calm for 1000 digits has 698 digits
+([liars/records.txt](liars/records.txt)). Here is a short one, c = `38533618339183472936432`, calm for 35 digits.
+Check it yourself, in plain Python:
 
 ```python
 c = 38533618339183472936432
@@ -55,7 +57,9 @@ can make liars on purpose: c = 5^k − 2 stays calm for k + 1 digits.
 **How we searched.** The first ten records came from trying every c up to 40 million, one by one, in two separate
 programs. Past that, whether c stays calm for k digits depends only on c's remainder after dividing by 5^k, so the
 calm remainders can be built one base-5 digit at a time, with nothing skipped (there are exactly 60 at every depth
-from 5 on). The smallest one is the record, and each record was re-checked by brute force. "Nothing skipped" rests
+from 5 on). The smallest one is the record, and each record was re-checked by brute force. Rebuild the list yourself with
+[liars/search.py](liars/search.py) (`python3 liars/search.py 1000`, about a minute and a half) and re-check it the
+slow way, digit by digit in base 10, with [liars/check.py](liars/check.py) (all 785 records, about 8 minutes, 0 wrong). "Nothing skipped" rests
 on our reasoning and the agents', not on anyone's review. We searched the [OEIS](https://oeis.org) for the record
 list in November 2026 and didn't find it, but many of its terms are close cousins of lists that are there: the
 5-adic square roots of −1 ([A048898](https://oeis.org/A048898), [A048899](https://oeis.org/A048899)).
