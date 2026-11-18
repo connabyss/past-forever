@@ -7,6 +7,7 @@
 2. 6th powers: every c below 15,625 either goes wild by its 3rd digit or stays calm for all 7 digits we look at.
 3. 10th powers: no c below 3,125 goes wild in 7 digits.
 4. The table: which even powers up to 26 can lie, as README.md says.
+5. The loners of 4th and 8th powers, depths 5 to 60.
 """
 import sys
 from pathlib import Path
@@ -87,7 +88,33 @@ for p, w in want.items():
     if got != w:
         fail('power', p, 'is', got, 'not', w)
 
+# 5. the loners: for 4th powers the calm remainder with no family is the c with c^3 = i - 1 (i the square root of -1
+#    ending in 3, base 5); for 8th powers it is the c with c^7 = -2. Checked at every depth from 5 to 60.
+def root(f, df, x, M):
+    for _ in range(12):
+        x = (x - f(x) * pow(df(x), -1, M)) % M
+    return x
+for p, k_exp in ((4, 3), (8, 7)):
+    for k, S in powers.calm_sets(p, 60):
+        if k < 5:
+            continue
+        M = 5 ** k
+        i3 = root(lambda x: x * x + 1, lambda x: 2 * x, 3, M)
+        z = (i3 - 1) % M if p == 4 else M - 2
+        groups = {}
+        for c in S:
+            groups.setdefault(c % 5 ** (k - 2), []).append(c)
+        loners = [g[0] for g in groups.values() if len(g) == 1]
+        if len(loners) != 1 or (pow(loners[0], k_exp, M) - z) % M:
+            fail('power', p, 'depth', k, 'loners', loners)
+            break
+        c = loners[0]
+        x2 = (pow(c, p, M) + c) % M
+        if (pow(x2, p, M) + c) % M != x2:
+            fail('power', p, 'depth', k, 'the loner does not settle after two steps')
+            break
+
 if bad:
     print(bad, 'wrong')
     sys.exit(1)
-print('ok: 4th-power records match a brute force below 4,000,000, records4.txt checked to 150 digits, 6th and 10th powers as said, table of 13 powers')
+print('ok: 4th-power records match a brute force below 4,000,000, records4.txt checked to 150 digits, 6th and 10th powers as said, table of 13 powers, the two loners to depth 60')

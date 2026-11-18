@@ -125,6 +125,12 @@ Going up the even powers, they split three ways ([liars/powers.py](liars/powers.
   base-5 digit, the loop comes back round to 0 itself, where the slope is 0. So it is enough to try the 125
   remainders (625 for the 26th) of the others, and none stays calm. [tests/powers.py](tests/powers.py) also
   checks every c below 15,625 the slow way in base 10.
+- **The loner.** 4th powers keep 61 calm remainders, not 60, and the extra one has no family: it is the only
+  calm remainder that shares its last k − 2 base-5 digits with no other. It is the 5-adic c with c × c × c = i − 1
+  (i is the square root of −1 ending in 3, base 5). Its loop doesn't lie, it settles, after exactly two steps:
+  x goes 0, c, then c^4 + c = c × i, and (c × i)^4 + c is c × i again, because i^4 = 1 (proved, three lines of
+  algebra). Every c near it is a liar. 8th powers have a loner too, with c^7 = −2. That each loner stands alone is
+  checked at every depth from 5 to 60, not proved.
 - **The liars.** That 2, 4, 8… can lie is shown by the liars themselves. How many calm remainders each keeps
   (deep down, 60 for squares, 61 for 4th powers, 21 for 8th powers) is checked to 25 digits, not proved, and so
   is that they can lie for as long as you like.
@@ -386,8 +392,8 @@ Find one of these and your name goes in the Hall of Fame below:
   [liars/search.py](liars/search.py) takes about a minute and a half to get there. Find the smallest c that stays calm
   for 10,000 digits, show how you got it, and make it checkable. A faster way to build the same list counts too.
 - **Why 60, 61, 21?** Deep down, squares keep exactly 60 calm remainders at every depth, 4th powers 61,
-  8th powers 21, 14th powers 20 ([liars/powers.py](liars/powers.py) `table`, checked to 25 digits). Explain where
-  those numbers come from, or show one that changes further down.
+  8th powers 21, 14th powers 20 ([liars/powers.py](liars/powers.py) `table`, checked to 25 digits). The loners
+  explain the odd 1s (61 = 60 + 1, 21 = 20 + 1). Explain the 60s and 20s, or show a count that changes further down.
 - **Why only four magnets?** Every c that stays calm for k digits shares its last k − 2 base-5 digits with one of
   the four magnets in "Why they lie" (checked to 1000 digits by [tests/magnets.py](tests/magnets.py)). Write a real
   proof for every k, or show a c that stays calm for k digits while sharing fewer than k − 2 with all four.
