@@ -63,7 +63,10 @@ for k in (34, 35, 36, 37):                    # look at the last k digits
 matches what turned up while hunting. The last k digits run two clocks at once, one for the 2s in 10^k and one for
 the 5s. The 2s clock never lies. The 5s clock does all of it, and every liar sits close, in base 5, to one of four
 special values of c: −2, the two 5-adic square roots of −1, and one more that only a long equation names. So you
-can make liars on purpose: c = 5^k − 2 stays calm for k + 1 digits.
+can make liars on purpose: c = 5^k − 2 stays calm for k + 1 digits. And odd powers can't lie at all: from 0,
+`x = x × x × x + c` (or the 5th or 7th power) never goes wild, for any c. An odd power shuffles the last digits
+0 to 9 without losing any, so the loop's last digit comes back to 0, where the rule pulls everything in, at every
+depth. (Checked for every c below 200 with powers 3, 5 and 7: none goes wild. Squares and 4th powers: plenty.)
 
 **How we searched.** The first ten records came from trying every c up to 40 million, one by one, in two separate
 programs. Past that, whether c stays calm for k digits depends only on c's remainder after dividing by 5^k, so the
@@ -322,6 +325,10 @@ with the code and what it printed.
 6. **The Liar Race: Claude Haiku, Sonnet and Opus.** Three fresh agents raced to find the smallest c that stays calm
    for 35 digits. All three found `38533618339183472936432`, each by building the calm remainders in base 5. Sonnet
    got there first: "go count to 3.85e22 by hand." (November 2026)
+7. **An explorer agent in a GitHub Codespace.** Found two loops it could answer by hand where Past Forever said
+   `can't see the end`: `if x is even: x = x + 1, else: x = x + 3` (its last digit goes round all ten digits forever),
+   and `y = 10 × y + x` with x the endless …918212890625 (it settles on −x ÷ 9). Both are now proved, with two new
+   rules below and two new families of loops for the robot referee. (November 2026)
 
 ## How it knows
 
@@ -335,6 +342,11 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
 - A tower on 2, 5, 10 or any other whole number from 2 up, like `x = 2 ^ x` from an ordinary whole number: every
   step is a whole number and they grow, so soon every top is bigger than any number of digits you ask for. Then the
   same lock-one-more rule holds, and it settles.
+- A loop whose `if`s only test its last digits (`is even`, `is odd`, `ends in …`): the last few digits of every name
+  then only depend on their last few digits, so they must come round. If a name's digits keep going round, it never
+  settles. If the digits the tests read freeze, every test gives the same answer forever, and the loop is a plain one.
+- `y = 10 × y + x` (or 20, 100, any multiple of 10) with x settling: each step locks one more digit, and the answer
+  is exactly x ÷ (1 − 10), so −x ÷ 9.
 - The last digits go round a ring that never stops: proved never to settle.
 - None of these fit: `can't see the end`.
 
@@ -347,11 +359,11 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   (theory, not a language). Not finding one is not proof there isn't one.
 - **"proved" means proved by the rules above**, as written in forever.js. They are not machine-checked, and no
   mathematician has reviewed them.
-- **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 3,375 random loops
+- **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 3,937 random loops
   (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers, towers on
-  2, 5 and 10) and checks
+  2, 5 and 10, loops that branch on their last digits, and y = 10 × y + an endless number) and checks
   every `settles`, `never settles` and exact fraction against plain arithmetic on the last 30 or more digits. Last
-  run: 4,660 answers, 0 wrong, 11 `can't see the end`. That is a strong check, not a proof.
+  run: 5,222 answers, 0 wrong, 0 `can't see the end`. That is a strong check, not a proof.
 - Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
 - `can't see the end` comes up a lot. That's the language being honest, not a bug.
 
@@ -362,7 +374,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 618 checks
+node tests/run.js        # ok: 634 checks
 node tests/referee.js    # the robot referee, about 5 minutes
 ```
 

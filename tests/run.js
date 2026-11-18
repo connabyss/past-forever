@@ -299,6 +299,19 @@ is(out('x = 1\nforever: x = x + 0.1\nshow x'), 'stopped: line 2: there are no de
 is(out('x = 5\nforever: x = x × x\nshow 100000 digits of x'), 'stopped: line 3: I show at most 2000 digits at a time', 'a digit count that would freeze the page gets a clear answer');
 is(out('x = 5\nforever: x = x × x\nshow 2000 digits of x').length, 2001, '2000 digits still work');
 
+// ── found by an explorer agent in a GitHub Codespace (Nov 2026): loops that branch on their own last digits, and
+// y = 10 × y + (an endless number). Both used to say "can't see the end".
+is(out('x = 0\nforever:\n  if x is even: x = x + 1\n  else: x = x + 3\nshow x'), 'never settles', 'if even add 1, else add 3: never settles');
+has(F.text('x = 0\nforever:\n  if x is even: x = x + 1\n  else: x = x + 3\nwhy x'), 'goes round 0, 1, 4, 5, 8, 9, 2, 3, 6, 7 every 10 steps', 'the if/else loop: the reason is its last digit going round');
+is(out('x = 1\nforever:\n  if x is even: x = x × 10\n  else: x = x × x + 1\nshow x'), '0', 'if even times 10, else square and add 1: settles on 0');
+has(F.text('x = 1\nforever:\n  if x is even: x = x × 10\n  else: x = x × x + 1\nwhy x'), 'from step 2 on it stays the same', 'the settling if/else loop says from when the test is frozen');
+is(out('x = 3\nforever:\n  if x is odd: x = x × 10 + 5\nshow x'), '…555555555555  (this is -5/9)', 'an if with no else, frozen on odd, settles exactly');
+is(out('x = 0\nforever:\n  if x ends in 25: x = x + 100\n  else: x = x + 5\nshow x'), 'never settles', 'ends in 25: once frozen it only adds 100, so it never settles');
+is(out('x = 5\nforever: x = x × x\ny = 0\nforever: y = 10 × y + x\nshow y\nshow 9 × y + x'), '…786865234375\n0', 'y = 10 × y + an endless number settles on −x ÷ 9');
+has(F.text('x = 5\nforever: x = x × x\ny = 0\nforever: y = 10 × y + x\nwhy y'), 'leaves alone is −x ÷ 9', 'y = 10 × y + x: the reason names −x ÷ 9');
+is(out('x = 5\nforever: x = x × x\ny = 3\nforever: y = 20 × y + x × x + 1\nshow y'), '…162199321546', 'y = 20 × y + x × x + 1 settles to the digits Python gets');
+is(out('x = 0\ny = 0\nforever:\n  x = x + 1\n  y = 10 × y + x\nshow y'), 'never settles', 'leaning on a counter still never settles');
+
 // ── liars/records.txt: the record liars, 2 up to 1000 digits of calm. Check the file is in order, starts with the
 // list the README quotes, and that every record up to 40 digits really is calm exactly that long (plain base 10).
 {

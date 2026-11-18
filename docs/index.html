@@ -940,6 +940,8 @@ function runForever(m, loop) {
   if (towerLoop(m, body, pure, start)) return;
   // ── B3. towers on 2, 5, 10 …: x = 2 ^ x from an ordinary whole number
   if (bigTowerLoop(m, body, pure, start)) return;
+  // ── B4. loops that branch on their own last digits (if … is even / ends in …, else …)
+  if (branchLoop(m, loop, pure, start)) return;
   // ── C. give up honestly
   m.env = new Map(start);
   const note = 'I watched ' + plural(A.steps, 'step') + ' and the loop never came back to a state it had been in, and none of the rules I can prove things with fit this loop';
@@ -949,6 +951,103 @@ function runForever(m, loop) {
     else m.env.set(v, unknown(note));
   }
   settlePureCounts(m, body, pure, start);
+}
+
+// ── B4. loops that branch on their own last digits ──
+// The body is plain steps (x = sums and products of names and numbers) and if/else on "is even", "is odd" or
+// "ends in …". A test only reads a few last digits, and the last k digits of a sum or product only need the last k
+// digits of what goes in. So the last k digits of every name after one step depend only on their last k digits
+// now: a machine with finitely many states, which must come round.
+//  - If some name's last digits go round more than one value, that name never settles.
+//  - If from step N on the digits the tests read never change, every test gives the same answer forever, so from
+//    step N on the loop is the plain loop with those branches picked. Run N steps for real, then reason about that.
+// (Found by an explorer agent in a GitHub Codespace, November 2026.)
+function prefixWhy(v, pre) { return v.k === 'restless' || v.k === 'unknown' ? { ...v, desc: pre + v.desc } : { ...v, why: pre + (v.why || '') }; }
+function branchLoop(m, loop, pure, start) {
+  const body = loop.body;
+  if (pure.size) return false;
+  const assigned = assignedIn(body), names = [...new Set([...assigned, ...allReads(body)])].sort();
+  const kinds = new Map();
+  for (const v of names) {
+    const cur = start.get(v);
+    if (!cur || m.counts.has(v) || !(cur.k === 'end' || (cur.k === 'num' && tenIntegral(cur.q)))) return false;
+    kinds.set(v, 'plain');
+  }
+  let hasIf = false, need = 1;
+  const comp = (list) => list.map((st) => {
+    if (st.t === 'set') return { t: 'set', name: st.name, p: toPoly(m, st.e, kinds) };
+    if (st.t === 'if') {
+      const c = st.c; let test;
+      if (c.t === 'endsin') { const M = pow10(c.d.length), r = BigInt(c.d); test = { p: toPoly(m, c.a, kinds), d: c.d.length, ok: (x) => x % M === r }; }
+      else if (c.t === 'endsmod') test = { p: toPoly(m, c.a, kinds), d: 1, ok: (x) => x % c.m === c.r };
+      else throw new NotPoly();
+      hasIf = true; need = Math.max(need, test.d);
+      return { t: 'if', test, body: comp(st.body), else: st.else ? comp(st.else) : [] };
+    }
+    throw new NotPoly();
+  });
+  let prog;
+  try { prog = comp(body); } catch (e) { if (e instanceof NotPoly) return false; throw e; }
+  if (!hasIf) return false;
+  // one step on remainders; picks collects the plain steps taken, in order
+  const stepMod = (st, M, list, picks) => {
+    for (const x of list) {
+      if (x.t === 'set') { const r = x.p.evalMod(st, M); if (r === null) throw new NotPoly(); st.set(x.name, r); if (picks) picks.push(x); }
+      else { const r = x.test.p.evalMod(st, M); if (r === null) throw new NotPoly(); stepMod(st, M, x.test.ok(r) ? x.body : x.else, picks); }
+    }
+  };
+  const orbitAt = (k) => {
+    const M = pow10(k); let st = new Map(names.map((v) => [v, valMod(start.get(v), k)]));
+    const seen = new Map(), hist = [];
+    for (let step = 0; ; step++) {
+      const key = names.map((v) => st.get(v)).join(',');
+      if (seen.has(key)) return { first: seen.get(key), period: step - seen.get(key), hist };
+      if (step > LIMITS.orbit) return null;
+      seen.set(key, step); hist.push(st);
+      const nx = new Map(st); stepMod(nx, M, prog); st = nx;
+    }
+  };
+  let o;
+  try { o = orbitAt(need); } catch (e) { if (e instanceof NotPoly) return false; throw e; }
+  if (!o) return false;
+  const digitsWord = (k) => (k === 1 ? 'last digit' : 'last ' + k + ' digits');
+  if (o.period === 1) {
+    // from step N the digits the tests read are frozen, so the same branches are taken forever
+    const N = o.first;
+    if (N > 200) return false;
+    const picks = []; stepMod(new Map(o.hist[N]), pow10(need), prog, picks);
+    // run the first N steps for real
+    m.quiet++;
+    try { for (let i = 0; i < N; i++) m.run(body); } finally { m.quiet--; }
+    for (const v of assigned) { const cur = m.env.get(v); if (cur.k === 'num' && (abs(cur.q.n) > m.limits.size || cur.q.d > m.limits.size)) { m.env = new Map(start); return false; } }
+    const plain = picks.map((x) => x.name + ' = ' + x.p.text()).join(', then ');
+    // rebuild real statements for the picked steps (same objects the parser made)
+    const src = [];
+    (function walk(list, cl) { list.forEach((y, i) => { const c = cl[i]; if (y.t === 'set') src.push([c, y]); else { walk(y.body, c.body); if (y.else) walk(y.else, c.else); } }); })(body, prog);
+    const loopBody = picks.map((x) => src.find(([c]) => c === x)[1]);
+    runForever(m, { body: loopBody, line: loop.line });
+    const pre = 'every test in the loop reads only the ' + digitsWord(need) + ', and from step ' + N + ' on ' + (need === 1 ? 'it stays' : 'they stay') + ' the same, so every test gives the same answer forever and the loop only does ' + plain + '. Counting from step ' + N + ': ';
+    for (const v of assigned) { const val = m.env.get(v); m.env.set(v, val ? prefixWhy(val, pre) : unknown(pre + 'no value')); }
+    return true;
+  }
+  // the tests' digits keep changing: whatever goes round in its last digits never settles
+  m.env = new Map(start);
+  for (const v of assigned) {
+    let found = null, looked = need;
+    for (let k = need; k <= need + 8 && !found; k++) {
+      let ok;
+      try { ok = k === need ? o : orbitAt(k); } catch (e) { if (e instanceof NotPoly) break; throw e; }
+      if (!ok) break;
+      looked = k;
+      const cyc = ok.hist.slice(ok.first).map((st) => st.get(v));
+      if (cyc.some((x) => x !== cyc[0])) {
+        const list = cyc.slice(0, 10).map((x) => String(x).padStart(k, '0')).join(', ') + (cyc.length > 10 ? ', …' : '');
+        found = restless('every test in the loop reads only the last digits, so the ' + digitsWord(k) + ' of every name after a step ' + (k === 1 ? 'depends only on its last digit' : 'depend only on their last ' + k + ' digits') + ' before it. From step ' + ok.first + ' the ' + digitsWord(k) + ' of ' + v + (k === 1 ? ' goes' : ' go') + ' round ' + list + ' every ' + plural(ok.period, 'step') + ' and never ' + (k === 1 ? 'stops' : 'stop'));
+      }
+    }
+    m.env.set(v, found || unknown('the ' + digitsWord(looked) + ' of ' + v + ' do stop changing, but I have no proof that the rest do'));
+  }
+  return true;
 }
 
 // ── B3. towers whose bottom has a 2 or 5 in it ──
@@ -1444,6 +1543,8 @@ class System {
       const r = this.multiplier(v, g); if (r) { out.set(v, r); return out; }
       // v = v + (pieces that may use v, each carrying something that goes to 0)
       const r2 = this.adder(v, T, true); if (r2) { out.set(v, r2); return out; }
+      // v = a × v + (others), a a multiple of 10
+      const r3 = this.contract(v, g); if (r3) { out.set(v, r3); return out; }
       return null;
     }
     return this.groupPull(group);
@@ -1514,6 +1615,33 @@ class System {
       }
     }
     return null;
+  }
+  // v = a × v + T(others), with a a whole number that is a multiple of 10 and the others settled. Each step
+  // multiplies the gap to the limit by a (so one more digit locks per step) and adds the gap T still has to its own
+  // limit. Once T's last k digits are final, k more steps make v's last k digits final. The limit L has L = a × L + T*,
+  // so L = T* ÷ (1 − a), and 1 − a ends in 1 or 9, so that division has an exact 10-adic answer.
+  // (Found by an explorer agent in a GitHub Codespace, November 2026: y = 10 × y + x, with x an endless number.)
+  contract(v, g) {
+    let a = Q0; const T = new Poly();
+    for (const { c, e } of g.t.values()) {
+      if (e[v]) { if (e[v] !== 1 || Object.keys(e).length !== 1) return null; a = qadd(a, c); }
+      else T.put(e, c);
+    }
+    if (a.d !== 1n || a.n === 0n || a.n % 10n !== 0n) return null;
+    const deps = [...T.names()], di = deps.map((d) => this.info.get(d));
+    if (!deps.length || !di.every((i) => i && (i.type === 'const' || i.type === 'settled'))) return null;
+    const x0 = this.start.get(v);
+    if (!x0 || !(x0.k === 'end' || (x0.k === 'num' && tenIntegral(x0.q)))) return null;
+    const lim = this.evalAtLimits(T);
+    if (!(lim.k === 'end' || (lim.k === 'num' && tenIntegral(lim.q)))) return null;
+    for (const { c } of T.t.values()) if (!tenIntegral(c)) return null;
+    const oneMinus = qsub(Q1, a);
+    const value = arith('*', lim, num(qdiv(Q1, oneMinus)));
+    if (value.k !== 'num' && value.k !== 'end') return null;
+    const cT = (n) => Math.min(...di.map((i) => i.conv(n)));
+    const conv = (n) => { const h = Math.floor(n / 2); return Math.min(n - h, cT(h)); };
+    const why = v + ' = ' + g.text() + ': each step multiplies the gap to the answer by ' + showPlain(num(a)) + ', a multiple of 10, so once ' + deps.join(', ') + (deps.length === 1 ? ' settles' : ' settle') + ', one more digit locks for good every step. The only number the rule leaves alone is ' + (oneMinus.n < 0n ? '−' : '') + (T.t.size > 1 ? '(' + T.text() + ')' : T.text()) + ' ÷ ' + showPlain(num(Q(abs(oneMinus.n), oneMinus.d)));
+    return { type: 'settled', value: withWhy(value, why), conv };
   }
   // v = v + T, where T uses other names only
   adder(v, T, selfToo) {

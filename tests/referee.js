@@ -42,6 +42,27 @@ const families = {
 const bigTower = () => { const B = pick([2n, 4n, 5n, 6n, 8n, 10n, 12n, 15n, 20n, 25n, 2n, 5n]), x0 = BigInt(rnd(11));
   return { vars: ['x'], start: { x: x0 }, src: 'x = ' + x0 + '\nforever: x = ' + B + ' ^ x', bigTower: B,
     step: (s, m) => { s.x = powmodR(B, s.x + m, m); } }; };
+// loops that branch on their own last digits (is even, is odd, ends in …), run as extra loops too.  The brute force
+// works on the last D digits only, which is exact here: each test reads at most its last 2 digits.
+const branchy = () => {
+  const d = pick(['0', '5', '1', '7', '25', '00', '36']);
+  const [testSrc, test] = pick([['is even', (x) => x % 2n === 0n], ['is odd', (x) => x % 2n === 1n], ['ends in ' + d, (x) => x % 10n ** BigInt(d.length) === BigInt(d)]]);
+  const rule = () => { const shape = rnd(3), a = coef(), b = small(), c = small();
+    if (shape === 0) return { src: lit(a) + ' × x + ' + lit(b), f: (x) => a * x + b };
+    if (shape === 1) return { src: 'x × x + ' + lit(c), f: (x) => x * x + c };
+    return { src: lit(c || 1n) + ' × x × x + ' + lit(a) + ' × x', f: (x) => (c || 1n) * x * x + a * x }; };
+  const r1 = rule(), r2 = rnd(4) ? rule() : null, x0 = small();
+  return { vars: ['x'], start: { x: x0 }, src: 'x = ' + lit(x0) + '\nforever:\n  if x ' + testSrc + ': x = ' + r1.src + (r2 ? '\n  else: x = ' + r2.src : ''),
+    step: (s, m) => { const x = mod(s.x, m); s.x = test(x) ? mod(r1.f(x), m) : r2 ? mod(r2.f(x), m) : x; } };
+};
+// y = k × y + (a settled endless number), k a multiple of 10: the brute force gets x's last D digits from its own loop
+const tenMix = () => {
+  const k = pick([10n, 20n, 100n, -10n, 30n]), a = small() || 1n, b = small(), y0 = small(), which = rnd(3);
+  const xSrc = which === 0 ? 'x = 5\nforever: x = x × x' : which === 1 ? 'x = 6\nforever: x = x ^ 5' : 'x = 1 / 7';
+  const xOf = (m) => { if (which === 2) return fracMod('1/7', m); let x = which ? 6n : 5n; for (let i = 0; i < 400; i++) x = which ? powmodR(x, 5n, m) : x * x % m; return x; };
+  return { vars: ['y'], start: { y: y0 }, src: xSrc + '\ny = ' + lit(y0) + '\nforever: y = ' + lit(k) + ' × y + ' + lit(a) + ' × x + ' + lit(b), xOf,
+    step: (s, m) => { s.xm = s.xm === undefined || s.mm !== m ? (s.mm = m, xOf(m)) : s.xm; s.y = mod(k * s.y + a * s.xm + b, m); } };
+};
 function powmodR(b, e, m) { let r = 1n; b = mod(b, m); while (e > 0n) { if (e & 1n) r = r * b % m; b = b * b % m; e >>= 1n; } return r; }
 function carmichael10(D) { const two = D >= 3 ? 2n ** BigInt(D - 2) : D === 2 ? 2n : 1n, five = 4n * 5n ** BigInt(D - 1); const g = (x, y) => (y ? g(y, x % y) : x); return two * five / g(two, five); }
 function mod(a, m) { const r = a % m; return r < 0n ? r + m : r; }
@@ -51,9 +72,11 @@ const tally = { settles: 0, 'never settles': 0, "can't see the end": 0, labels: 
 let bad = 0;
 const t0 = Date.now();
 const names = Object.keys(families);
-const EXTRA = Math.floor(LOOPS / 8);
-for (let i = 0; i < LOOPS + EXTRA; i++) {
-  const fam = i < LOOPS ? names[i % names.length] : 'bigtower', L = i < LOOPS ? families[fam]() : bigTower();
+const EXTRA = Math.floor(LOOPS / 8), EXTRA2 = Math.floor(LOOPS / 8), EXTRA3 = Math.floor(LOOPS / 16);
+const ALL = LOOPS + EXTRA + EXTRA2 + EXTRA3;
+for (let i = 0; i < ALL; i++) {
+  const fam = i < LOOPS ? names[i % names.length] : i < LOOPS + EXTRA ? 'bigtower' : i < LOOPS + EXTRA + EXTRA2 ? 'branch' : 'tenmix';
+  const L = i < LOOPS ? families[fam]() : fam === 'bigtower' ? bigTower() : fam === 'branch' ? branchy() : tenMix();
   const bigLen = Math.max(...(L.src.match(/\d+/g) || ['0']).map((d) => d.length));
   const D = 30 + bigLen, m = 10n ** BigInt(D);
   if (L.bigTower) { const lam = carmichael10(D); if (m % lam !== 0n || powmodR(L.bigTower, m + lam, m) !== powmodR(L.bigTower, m, m)) { bad++; console.log('LEMMA FAILS for ' + L.bigTower + ' at ' + D + ' digits'); continue; } }
@@ -83,6 +106,6 @@ for (let i = 0; i < LOOPS + EXTRA; i++) {
   });
 }
 const total = tally.settles + tally['never settles'] + tally["can't see the end"];
-console.log('referee: ' + (LOOPS + EXTRA) + ' random loops, ' + total + ' answers: ' + tally.settles + ' settle, ' + tally['never settles'] + ' never settle, ' + tally["can't see the end"] + " can't see the end; " + tally.labels + ' exact fractions checked; ' + bad + ' wrong (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)');
-for (const f of [...names, 'bigtower']) console.log('  ' + f.padEnd(7) + JSON.stringify(byFam[f]));
+console.log('referee: ' + ALL + ' random loops, ' + total + ' answers: ' + tally.settles + ' settle, ' + tally['never settles'] + ' never settle, ' + tally["can't see the end"] + " can't see the end; " + tally.labels + ' exact fractions checked; ' + bad + ' wrong (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)');
+for (const f of [...names, 'bigtower', 'branch', 'tenmix']) console.log('  ' + f.padEnd(7) + JSON.stringify(byFam[f]));
 process.exit(bad ? 1 : 0);
