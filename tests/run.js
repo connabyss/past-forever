@@ -312,6 +312,30 @@ has(F.text('x = 5\nforever: x = x × x\ny = 0\nforever: y = 10 × y + x\nwhy y')
 is(out('x = 5\nforever: x = x × x\ny = 3\nforever: y = 20 × y + x × x + 1\nshow y'), '…162199321546', 'y = 20 × y + x × x + 1 settles to the digits Python gets');
 is(out('x = 0\ny = 0\nforever:\n  x = x + 1\n  y = 10 × y + x\nshow y'), 'never settles', 'leaning on a counter still never settles');
 
+// ── sing: one note per digit, right to left, on A minor pentatonic (the explorer's recipe)
+is(out('x = 3\nforever: x = 3 ^ x\nsing 12 digits of x'), '♪ …262464195387', 'sing shows the digits it plays');
+is(out('sing 2024'), '♪ 2024', 'a plain whole number sings all its digits');
+is(out('x = 2\nforever: x = x × x\nsing x'), '♪ nothing to sing: never settles', 'a loop that never settles has nothing to sing');
+is(out('sing 2001 digits of 7'), 'stopped: line 1: I sing at most 2000 digits at a time', 'sing has the same digit cap as show');
+is(out('x = yes\nsing x'), 'stopped: line 2: sing needs a number', 'sing needs a number');
+{
+  const r = F.run('x = 3\nforever: x = 3 ^ x\nsing 360 digits of x');
+  const d = r.lines[0].sing.digits;
+  is(d.length, 360, 'sing 360 digits gives 360 notes');
+  is(d.slice(-12), '262464195387', 'the song ends in the digits of Graham\'s number');
+  const f = F.notes('0379');
+  is(f.map((x) => Math.round(x)).join(' '), [22, 17, 7, 0].map((st) => Math.round(220 * 2 ** (st / 12))).join(' '), 'notes go right to left: 9, 7, 3, 0 on the scale 0 3 5 7 10 12 15 17 19 22');
+  const ev = F.song('0123456789');
+  is(ev.filter((e) => e.v === 'bass').length + ':' + ev.filter((e) => e.v === 'bell').length, '3:1', 'a bass every 4th digit, a bell every 10th');
+  const w = F.wav(d);
+  const txt = (a, b) => String.fromCharCode(...w.slice(a, b));
+  is(txt(0, 4) + txt(8, 12) + txt(36, 40), 'RIFFWAVEdata', 'sing makes a real WAV file');
+  const dv = new DataView(w.buffer), secs = dv.getUint32(40, true) / 2 / dv.getUint32(24, true);
+  is(secs > 57 && secs < 59.5, true, '360 digits make about a minute of sound (' + secs.toFixed(1) + ' s)');
+  let peak = 0; for (let i = 44; i < w.length; i += 2) peak = Math.max(peak, Math.abs(dv.getInt16(i, true)));
+  is(peak > 25000 && peak < 32768, true, 'the song is loud but never clips');
+}
+
 // ── liars/records.txt: the record liars, 2 up to 1000 digits of calm. Check the file is in order, starts with the
 // list the README quotes, and that every record up to 40 digits really is calm exactly that long (plain base 10).
 {

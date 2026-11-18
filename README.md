@@ -247,6 +247,17 @@ Once the tower is a few floors tall, every new floor freezes one more digit on t
 finite tower, but far taller than any number of digits you could ask for, so it ends the same way as the endless one. Ask for `show 105 digits of x` and all 105 match the digits listed in the
 [OEIS (A133613)](https://oeis.org/A133613). The tests check them on every build.
 
+**Hear it.** `sing` plays any answer's digits as music, one note per digit, right to left: the order the digits
+freeze in. Each digit picks a note from a five-note scale (0 lowest, 9 highest), so no order of digits can clash,
+with a bass note every 4th digit and a bell every 10th. In the [playground](https://connabyss.github.io/past-forever/)
+pick **Sing it** and press play. On your own computer, save a minute of Graham's number as a sound file:
+
+```
+node cli.js examples/sing.txt --wav graham.wav     # its last 360 digits, about a minute
+```
+
+The tune came from an explorer agent in a GitHub Codespace ([Hall of Fame](#hall-of-fame) #7).
+
 ## Three honest answers
 
 Every value that comes out of a forever loop is one of three things:
@@ -328,7 +339,8 @@ with the code and what it printed.
 7. **An explorer agent in a GitHub Codespace.** Found two loops it could answer by hand where Past Forever said
    `can't see the end`: `if x is even: x = x + 1, else: x = x + 3` (its last digit goes round all ten digits forever),
    and `y = 10 × y + x` with x the endless …918212890625 (it settles on −x ÷ 9). Both are now proved, with two new
-   rules below and two new families of loops for the robot referee. (November 2026)
+   rules below and two new families of loops for the robot referee. It also turned the last 360 digits of Graham's
+   number into a song, which became `sing`. (November 2026)
 
 ## How it knows
 
@@ -374,7 +386,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 634 checks
+node tests/run.js        # ok: 646 checks
 node tests/referee.js    # the robot referee, about 5 minutes
 ```
 

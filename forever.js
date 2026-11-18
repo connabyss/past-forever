@@ -378,6 +378,48 @@ function compare(op, a, b) {
 
 // ───────────────────────── showing values ─────────────────────────
 const SHOW_DIGITS = 12, MAX_SHOW = 2000;
+// ── sing: one note per digit, right to left (the order the digits settle in). The recipe is the one an explorer
+// agent in a GitHub Codespace used for Graham's number in November 2026: A minor pentatonic over two octaves, so no
+// order of digits can clash. A pluck for every digit, a bass note every 4th digit, a bell every 10th.
+const SING_DIGITS = 60, NOTE_SEC = 0.16, SCALE = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22];
+const SING_WHY = 'one note per digit, right to left: the order the digits settle in. 0 is the lowest note and 9 the highest, on a five-note scale, so it never clashes. A bass note every 4th digit, a bell every 10th.';
+const VOICES = {                              // how each kind of note sounds: overtone, its loudness, fade, length, volume
+  pluck: { h: 2, ha: 0.3, fade: 3, len: 3 * NOTE_SEC, amp: 0.28 },
+  bass: { h: 2, ha: 0.3, fade: 3, len: 4 * NOTE_SEC, amp: 0.22 },
+  bell: { h: 2.01, ha: 0.5, fade: 1.2, len: 1.5, amp: 0.08 },
+};
+function song(digits) {                       // -> [{ t: start in seconds, f: Hz, v: voice name }]
+  const seq = [...digits].reverse().map(Number), out = [];
+  const hz = (base, d) => base * Math.pow(2, SCALE[d] / 12);
+  seq.forEach((d, i) => {
+    const t = i * NOTE_SEC;
+    out.push({ t, f: hz(220, d), v: 'pluck' });
+    if (i % 4 === 0) out.push({ t, f: hz(110, (i + 1 < seq.length ? seq[i + 1] : d) % 5), v: 'bass' });
+    if (i % 10 === 0) out.push({ t, f: hz(880, d), v: 'bell' });
+  });
+  return out;
+}
+function notes(digits) { return song(digits).filter((e) => e.v === 'pluck').map((e) => e.f); }
+function wav(digits, rate = 22050) {          // a mono 16-bit WAV file, as bytes
+  const ev = song(digits), end = ev.reduce((x, e) => Math.max(x, e.t + VOICES[e.v].len), 0), n = Math.ceil(end * rate) + 1;
+  const mix = new Float32Array(n);
+  for (const e of ev) {
+    const V = VOICES[e.v], start = Math.round(e.t * rate), len = Math.min(n - start, Math.round(V.len * rate));
+    for (let j = 0; j < len; j++) {
+      const t = j / rate, env = Math.min(1, t / 0.005) * Math.exp(-V.fade * t);
+      mix[start + j] += V.amp * env * (Math.sin(2 * Math.PI * e.f * t) + V.ha * Math.sin(2 * Math.PI * V.h * e.f * t));
+    }
+  }
+  let peak = 0; for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(mix[i]));
+  const g = peak > 0 ? 0.89 / peak : 0;
+  const buf = new ArrayBuffer(44 + n * 2), dv = new DataView(buf);
+  const str = (o, t) => { for (let i = 0; i < t.length; i++) dv.setUint8(o + i, t.charCodeAt(i)); };
+  str(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt '); dv.setUint32(16, 16, true);
+  dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true);
+  dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); str(36, 'data'); dv.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) dv.setInt16(44 + i * 2, Math.round(mix[i] * g * 32767), true);
+  return new Uint8Array(buf);
+}
 function digitsText(r, k) { return '…' + String(r).padStart(k, '0'); }
 function showPlain(v) { return v.q.d === 1n ? String(v.q.n) : v.q.n + '/' + v.q.d; }
 function show(v, k = SHOW_DIGITS) {
@@ -403,7 +445,7 @@ function whyText(v) {
 }
 
 // ───────────────────────── reading the program ─────────────────────────
-const KEYWORDS = new Set(['forever', 'repeat', 'if', 'else', 'show', 'why', 'count', 'yes', 'no', 'and', 'or', 'not', 'mod', 'ends', 'in', 'is', 'palindrome', 'even', 'odd', 'digits', 'of', 'hunt', 'from', 'to']);
+const KEYWORDS = new Set(['forever', 'repeat', 'if', 'else', 'show', 'why', 'count', 'yes', 'no', 'and', 'or', 'not', 'mod', 'ends', 'in', 'is', 'palindrome', 'even', 'odd', 'digits', 'of', 'hunt', 'from', 'to', 'sing']);
 function lexLine(text, lineNo) {
   const toks = []; let i = 0;
   const push = (t, v) => toks.push({ t, v, line: lineNo });
@@ -484,6 +526,13 @@ function parse(src) {
         return { t: 'show', e: expr(), line };
       }
       if (at('why')) { p++; return { t: 'why', name: eat('name').v, line }; }
+      if (at('sing')) {
+        p++;
+        if (at('num') && toks[p + 1] && toks[p + 1].t === 'digits') {
+          const k = Number(toks[p].v); p += 2;
+          if (k > MAX_SHOW) throw new LangError('line ' + line + ': I sing at most ' + MAX_SHOW + ' digits at a time'); eat('of'); return { t: 'sing', e: expr(), k, line }; }
+        return { t: 'sing', e: expr(), line };
+      }
       if (at('count')) { p++; const name = eat('name').v; eat('='); return { t: 'set', name, e: expr(), decl: 'count', line }; }
       if (at('name') && toks[p + 1] && toks[p + 1].t === '=') { const name = toks[p].v; p += 2; return { t: 'set', name, e: expr(), line }; }
       throw new LangError('line ' + line + ": I can't read this" + (toks[p] ? ' (at ' + toks[p].v + ')' : ''));
@@ -614,6 +663,15 @@ class Machine {
       }
       case 'show': { const v = this.ev(s.e); this.lastShown = v; this.emit(show(v, s.k || SHOW_DIGITS), whyText(v)); return; }
       case 'why': { const v = this.get(s.name, s.line); this.emit(s.name + ': ' + whyText(v)); return; }
+      case 'sing': {
+        const v = this.ev(s.e);
+        if (v.k === 'restless' || v.k === 'unknown') { this.emit('♪ nothing to sing: ' + show(v), whyText(v)); return; }
+        if (v.k !== 'num' && v.k !== 'end') throw new LangError('line ' + s.line + ': sing needs a number');
+        const k = s.k || SING_DIGITS;
+        const digits = v.k === 'num' && qint(v.q) && v.q.n >= 0n && !s.k ? String(v.q.n) : String(valMod(v, k)).padStart(k, '0');
+        if (!this.quiet) this.out.push({ text: '♪ ' + (digits.length < k || (v.k === 'num' && qint(v.q) && v.q.n >= 0n && !s.k) ? digits : '…' + digits), why: SING_WHY + ' ' + plural(digits.length, 'note') + ', ' + (digits.length * NOTE_SEC).toFixed(1) + ' seconds.', sing: { digits } });
+        return;
+      }
       case 'if': { const c = this.ev(s.c); if (this.truth(c, s.line)) this.run(s.body); else if (s.else) this.run(s.else); return; }
       case 'repeat': {
         const n = this.ev(s.n);
@@ -1732,6 +1790,6 @@ function text(src, opts = {}) {
   return out.join('\n');
 }
 
-const api = { run, text, parse, O, Q, Poly, LangError, version: '0.2' };
+const api = { run, text, parse, O, Q, Poly, LangError, notes, song, wav, VOICES, NOTE_SEC, version: '0.2' };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Forever = api;
 })(typeof window !== 'undefined' ? window : globalThis);

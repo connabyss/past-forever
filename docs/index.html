@@ -43,6 +43,8 @@ textarea{display:block;width:100%;box-sizing:border-box;min-height:190px;resize:
 .val{font:600 17px/1.5 var(--mono);color:var(--gold);overflow-wrap:anywhere;min-width:0}
 .row.dim .val{color:var(--soft)}
 .row.bad .val{color:var(--bad)}
+.sing{display:flex;gap:18px;margin-top:6px}
+.sing a{text-decoration:none}
 .whyb{flex:none;font:500 13px var(--sans);color:var(--blue);background:transparent;border:0;padding:4px 2px;cursor:pointer}
 .why{color:var(--soft);font-size:14.5px;line-height:1.5;margin:8px 0 2px}
 .empty{color:var(--dim);font-size:15px}
@@ -146,6 +148,7 @@ details .live{margin-top:12px}
         <li><code>x = 5</code> gives a name a number. <code>count n = 0</code> makes a count that can go past forever.</li>
         <li><code>forever: x = x × x</code> runs the rest of the line without end. Lines pushed in below it work too.</li>
         <li><code>show x</code>, <code>show 40 digits of x</code> (up to 2000), and <code>why x</code> for the reason.</li>
+        <li><code>sing x</code> plays its digits as music, one note each, right to left (<code>sing 360 digits of x</code> is about a minute).</li>
         <li><code>if x ends in 7: found = yes</code>, with <code>else:</code>. Also <code>is even</code>, <code>is odd</code>, <code>is a palindrome</code>, <code>=</code>, <code>&lt;</code>, <code>&gt;</code>.</li>
         <li><code>+ − × /</code>, powers like <code>x^5</code> and towers like <code>3 ^ x</code> (for an endless top the bottom needs no 2 or 5 in it, but a tower like <code>x = 2 ^ x</code> works too), and <code>mod</code>, <code>backwards(x)</code>, <code>digitsum(x)</code>, <code>repeat 10:</code>, and <code>forever</code> as a number for counts.</li>
         <li><code>hunt c from 0 to 99:</code> runs the lines pushed in below it once for every number, and sorts the numbers by what their last <code>show</code> said. Tap a square to open that one loop. Add <code>ends in 57</code> before the colon to look only at numbers ending in 57 (that is what Zoom in does). Rings and liars are checked 40 digits deep.</li>
@@ -553,6 +556,48 @@ function compare(op, a, b) {
 
 // ───────────────────────── showing values ─────────────────────────
 const SHOW_DIGITS = 12, MAX_SHOW = 2000;
+// ── sing: one note per digit, right to left (the order the digits settle in). The recipe is the one an explorer
+// agent in a GitHub Codespace used for Graham's number in November 2026: A minor pentatonic over two octaves, so no
+// order of digits can clash. A pluck for every digit, a bass note every 4th digit, a bell every 10th.
+const SING_DIGITS = 60, NOTE_SEC = 0.16, SCALE = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22];
+const SING_WHY = 'one note per digit, right to left: the order the digits settle in. 0 is the lowest note and 9 the highest, on a five-note scale, so it never clashes. A bass note every 4th digit, a bell every 10th.';
+const VOICES = {                              // how each kind of note sounds: overtone, its loudness, fade, length, volume
+  pluck: { h: 2, ha: 0.3, fade: 3, len: 3 * NOTE_SEC, amp: 0.28 },
+  bass: { h: 2, ha: 0.3, fade: 3, len: 4 * NOTE_SEC, amp: 0.22 },
+  bell: { h: 2.01, ha: 0.5, fade: 1.2, len: 1.5, amp: 0.08 },
+};
+function song(digits) {                       // -> [{ t: start in seconds, f: Hz, v: voice name }]
+  const seq = [...digits].reverse().map(Number), out = [];
+  const hz = (base, d) => base * Math.pow(2, SCALE[d] / 12);
+  seq.forEach((d, i) => {
+    const t = i * NOTE_SEC;
+    out.push({ t, f: hz(220, d), v: 'pluck' });
+    if (i % 4 === 0) out.push({ t, f: hz(110, (i + 1 < seq.length ? seq[i + 1] : d) % 5), v: 'bass' });
+    if (i % 10 === 0) out.push({ t, f: hz(880, d), v: 'bell' });
+  });
+  return out;
+}
+function notes(digits) { return song(digits).filter((e) => e.v === 'pluck').map((e) => e.f); }
+function wav(digits, rate = 22050) {          // a mono 16-bit WAV file, as bytes
+  const ev = song(digits), end = ev.reduce((x, e) => Math.max(x, e.t + VOICES[e.v].len), 0), n = Math.ceil(end * rate) + 1;
+  const mix = new Float32Array(n);
+  for (const e of ev) {
+    const V = VOICES[e.v], start = Math.round(e.t * rate), len = Math.min(n - start, Math.round(V.len * rate));
+    for (let j = 0; j < len; j++) {
+      const t = j / rate, env = Math.min(1, t / 0.005) * Math.exp(-V.fade * t);
+      mix[start + j] += V.amp * env * (Math.sin(2 * Math.PI * e.f * t) + V.ha * Math.sin(2 * Math.PI * V.h * e.f * t));
+    }
+  }
+  let peak = 0; for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(mix[i]));
+  const g = peak > 0 ? 0.89 / peak : 0;
+  const buf = new ArrayBuffer(44 + n * 2), dv = new DataView(buf);
+  const str = (o, t) => { for (let i = 0; i < t.length; i++) dv.setUint8(o + i, t.charCodeAt(i)); };
+  str(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt '); dv.setUint32(16, 16, true);
+  dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true);
+  dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); str(36, 'data'); dv.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) dv.setInt16(44 + i * 2, Math.round(mix[i] * g * 32767), true);
+  return new Uint8Array(buf);
+}
 function digitsText(r, k) { return '…' + String(r).padStart(k, '0'); }
 function showPlain(v) { return v.q.d === 1n ? String(v.q.n) : v.q.n + '/' + v.q.d; }
 function show(v, k = SHOW_DIGITS) {
@@ -578,7 +623,7 @@ function whyText(v) {
 }
 
 // ───────────────────────── reading the program ─────────────────────────
-const KEYWORDS = new Set(['forever', 'repeat', 'if', 'else', 'show', 'why', 'count', 'yes', 'no', 'and', 'or', 'not', 'mod', 'ends', 'in', 'is', 'palindrome', 'even', 'odd', 'digits', 'of', 'hunt', 'from', 'to']);
+const KEYWORDS = new Set(['forever', 'repeat', 'if', 'else', 'show', 'why', 'count', 'yes', 'no', 'and', 'or', 'not', 'mod', 'ends', 'in', 'is', 'palindrome', 'even', 'odd', 'digits', 'of', 'hunt', 'from', 'to', 'sing']);
 function lexLine(text, lineNo) {
   const toks = []; let i = 0;
   const push = (t, v) => toks.push({ t, v, line: lineNo });
@@ -659,6 +704,13 @@ function parse(src) {
         return { t: 'show', e: expr(), line };
       }
       if (at('why')) { p++; return { t: 'why', name: eat('name').v, line }; }
+      if (at('sing')) {
+        p++;
+        if (at('num') && toks[p + 1] && toks[p + 1].t === 'digits') {
+          const k = Number(toks[p].v); p += 2;
+          if (k > MAX_SHOW) throw new LangError('line ' + line + ': I sing at most ' + MAX_SHOW + ' digits at a time'); eat('of'); return { t: 'sing', e: expr(), k, line }; }
+        return { t: 'sing', e: expr(), line };
+      }
       if (at('count')) { p++; const name = eat('name').v; eat('='); return { t: 'set', name, e: expr(), decl: 'count', line }; }
       if (at('name') && toks[p + 1] && toks[p + 1].t === '=') { const name = toks[p].v; p += 2; return { t: 'set', name, e: expr(), line }; }
       throw new LangError('line ' + line + ": I can't read this" + (toks[p] ? ' (at ' + toks[p].v + ')' : ''));
@@ -789,6 +841,15 @@ class Machine {
       }
       case 'show': { const v = this.ev(s.e); this.lastShown = v; this.emit(show(v, s.k || SHOW_DIGITS), whyText(v)); return; }
       case 'why': { const v = this.get(s.name, s.line); this.emit(s.name + ': ' + whyText(v)); return; }
+      case 'sing': {
+        const v = this.ev(s.e);
+        if (v.k === 'restless' || v.k === 'unknown') { this.emit('♪ nothing to sing: ' + show(v), whyText(v)); return; }
+        if (v.k !== 'num' && v.k !== 'end') throw new LangError('line ' + s.line + ': sing needs a number');
+        const k = s.k || SING_DIGITS;
+        const digits = v.k === 'num' && qint(v.q) && v.q.n >= 0n && !s.k ? String(v.q.n) : String(valMod(v, k)).padStart(k, '0');
+        if (!this.quiet) this.out.push({ text: '♪ ' + (digits.length < k || (v.k === 'num' && qint(v.q) && v.q.n >= 0n && !s.k) ? digits : '…' + digits), why: SING_WHY + ' ' + plural(digits.length, 'note') + ', ' + (digits.length * NOTE_SEC).toFixed(1) + ' seconds.', sing: { digits } });
+        return;
+      }
       case 'if': { const c = this.ev(s.c); if (this.truth(c, s.line)) this.run(s.body); else if (s.else) this.run(s.else); return; }
       case 'repeat': {
         const n = this.ev(s.n);
@@ -1907,7 +1968,7 @@ function text(src, opts = {}) {
   return out.join('\n');
 }
 
-const api = { run, text, parse, O, Q, Poly, LangError, version: '0.2' };
+const api = { run, text, parse, O, Q, Poly, LangError, notes, song, wav, VOICES, NOTE_SEC, version: '0.2' };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Forever = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -1924,6 +1985,7 @@ const EXAMPLES = [
   ['196', 'x = 196   found = no\nforever: x = x + backwards(x)   if x is a palindrome: found = yes\nshow found'],
   ['6 squared', 'x = 6\nforever: x = x × x\nshow x'],
   ['Twins', 'a = 5\nforever: a = a × a\nb = 6\nforever: b = 3 × b × b − 2 × b × b × b\nshow b\nshow a + b\nshow a × b'],
+  ['Sing it', '# the last 120 digits of Graham\'s number, one note each, right to left\nx = 3\nforever: x = 3 ^ x\nsing 120 digits of x'],
   ['All factorials', 'n = 0   f = 1   s = 0\nforever: n = n + 1   f = f × n   s = s + f\nshow f\nshow 30 digits of s'],
   ['Adds to −1', 'n = 0   f = 1   s = 0\nforever: n = n + 1   f = f × n   s = s + n × f\nshow s\nwhy s'],
   ['Exactly 3', 'n = 0   f = 1   s = 0\nforever: s = s + (n^3 − 4 × n + 1) × f   n = n + 1   f = f × n × n\nshow s\nwhy s'],
@@ -1959,6 +2021,24 @@ function calm() { document.querySelector('.hero').classList.add('busy'); }
 function placeAnswers() { const a = $('answers'), after = $('own').hidden ? $('tour') : $('own'); if (after.nextElementSibling !== a) after.after(a); }
 $('ownb').onclick = () => { openOwn(); if (!code.value.trim()) pick(1); $('own').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
 function save() { try { localStorage.setItem('pf-code', code.value); } catch (e) {} }
+// sing: the same sound the command line saves, made here as a WAV and played with a plain audio element
+let playing = null;
+function singButtons(digits) {
+  const box = el('span', 'sing'), play = el('button', 'whyb playb', '▶ play'), save = el('a', 'whyb', 'save .wav');
+  play.type = 'button';
+  const url = () => box.dataset.url || (box.dataset.url = URL.createObjectURL(new Blob([Forever.wav(digits)], { type: 'audio/wav' })));
+  play.onclick = () => {
+    if (playing && playing.btn === play) { playing.a.pause(); playing = null; play.textContent = '▶ play'; return; }
+    if (playing) { playing.a.pause(); playing.btn.textContent = '▶ play'; }
+    const a = new Audio(url()); playing = { a, btn: play }; play.textContent = '■ stop';
+    a.onended = () => { if (playing && playing.a === a) playing = null; play.textContent = '▶ play'; };
+    a.play().catch(() => { play.textContent = '▶ play'; playing = null; });
+  };
+  save.href = '#'; save.download = 'past-forever-song.wav';
+  save.onclick = () => { save.href = url(); };
+  box.appendChild(play); box.appendChild(save);
+  return box;
+}
 function go() {
   save(); placeAnswers(); $('answers').hidden = false;
   out.textContent = ''; out.appendChild(el('div', 'empty', 'Running…')); $('time').textContent = '';
@@ -1975,8 +2055,8 @@ function go() {
         const b = el('button', 'whyb', 'why?'); b.type = 'button';
         const w = el('div', 'why', l.why); w.hidden = true;
         b.onclick = () => { w.hidden = !w.hidden; b.textContent = w.hidden ? 'why?' : 'hide'; };
-        top.appendChild(b); row.appendChild(top); row.appendChild(w);
-      } else row.appendChild(top);
+        top.appendChild(b); row.appendChild(top); if (l.sing) row.appendChild(singButtons(l.sing.digits)); row.appendChild(w);
+      } else { row.appendChild(top); if (l.sing) row.appendChild(singButtons(l.sing.digits)); }
       out.appendChild(row);
     }
     if (r.error) { const row = el('div', 'row bad'); row.appendChild(el('div', 'val', 'stopped: ' + r.error)); out.appendChild(row); }
