@@ -25,21 +25,22 @@ git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/graham.txt     # …262464195387, the end of Graham's number
 ```
 
-**Found with it, and not in any list we could find: loops that lie.** Run `x = x × x + c` from 0 with
-c = `1280715354564332311432`. Its last 31 digits go round a perfect ring of 2, like a loop that has calmed down.
-Digit 32 breaks the pattern, and a few digits later it goes wild. Hunting with Past Forever found the record liars
-(each one lies longer than every smaller c): 2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857, …
-We searched the [OEIS](https://oeis.org) for that list in November 2026 and it wasn't there. Check the 31-digit
-liar yourself, in plain Python:
+**Found with it, and not in any list we could find: loops that lie.** Run `x = x × x + c` from 0. For a wild c,
+the steps its last 1, 2, 3… digits take to come round grow ×5 per digit (10, 50, 250…). A liar stays calm first:
+its last digits come round every 2 or 8 steps, digit after digit, like a loop that has settled, and only then goes
+wild. c = `1280715354564332311432` stays calm for 33 digits (2 steps for 31 of them, then 8), and goes wild at
+digit 34. Hunting with Past Forever found the record liars, each calm for more digits than every smaller c:
+2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857, … We searched the [OEIS](https://oeis.org) for that
+list in November 2026 and it wasn't there. Check the big liar yourself, in plain Python:
 
 ```python
 c = 1280715354564332311432
-for k in (31, 32, 34):                       # look at the last k digits
+for k in (31, 32, 33, 34, 35):                # look at the last k digits
     m, x, seen = 10**k, 0, {}
     while x not in seen:
         seen[x] = len(seen); x = (x * x + c) % m
-    print(k, "digits: ring of", len(seen) - seen[x])
-# 31 digits: ring of 2,  32 digits: ring of 8,  34 digits: ring of 40 (and it keeps growing)
+    print(k, "digits come round every", len(seen) - seen[x], "steps")
+# 31: 2,  32: 8,  33: 8,  then 34: 40,  35: 200, and ×5 for every digit after that
 ```
 
 **Don't believe it? Good.** Pick the claim you trust least and check it with your own arithmetic. Then try to
@@ -250,7 +251,7 @@ Find one of these and your name goes in the Hall of Fame below:
 - **A wrong answer.** A loop where Past Forever says `proved` and is wrong. This is the big one.
 - **A loop it can't see the end of, but you can.** It says `can't see the end`, and you can show the real answer.
 - **A longer liar.** In `x = x × x + c` from `x = 0`, the calmest liar we know is c = `1280715354564332311432`:
-  its last 31 digits go round a ring of 2 before it goes wild. Find a c that stays calm longer
+  its last 33 digits stay calm (they come round every 2 or 8 steps) before it goes wild. Find a c that stays calm longer
   (Past Forever looks 40 digits deep).
 
 To enter, open a [Break it issue](https://github.com/connabyss/past-forever/issues/new?template=break-it.yml)
