@@ -41,6 +41,8 @@ textarea{display:block;width:100%;box-sizing:border-box;min-height:190px;resize:
 .val{font:600 17px/1.5 var(--mono);color:var(--gold);overflow-wrap:anywhere;min-width:0}
 .row.dim .val{color:var(--soft)}
 .row.bad .val{color:var(--bad)}
+.sing{display:flex;gap:18px;margin-top:6px}
+.sing a{text-decoration:none}
 .whyb{flex:none;font:500 13px var(--sans);color:var(--blue);background:transparent;border:0;padding:4px 2px;cursor:pointer}
 .why{color:var(--soft);font-size:14.5px;line-height:1.5;margin:8px 0 2px}
 .empty{color:var(--dim);font-size:15px}
@@ -144,6 +146,7 @@ details .live{margin-top:12px}
         <li><code>x = 5</code> gives a name a number. <code>count n = 0</code> makes a count that can go past forever.</li>
         <li><code>forever: x = x × x</code> runs the rest of the line without end. Lines pushed in below it work too.</li>
         <li><code>show x</code>, <code>show 40 digits of x</code> (up to 2000), and <code>why x</code> for the reason.</li>
+        <li><code>sing x</code> plays its digits as music, one note each, right to left (<code>sing 360 digits of x</code> is about a minute).</li>
         <li><code>if x ends in 7: found = yes</code>, with <code>else:</code>. Also <code>is even</code>, <code>is odd</code>, <code>is a palindrome</code>, <code>=</code>, <code>&lt;</code>, <code>&gt;</code>.</li>
         <li><code>+ − × /</code>, powers like <code>x^5</code> and towers like <code>3 ^ x</code> (for an endless top the bottom needs no 2 or 5 in it, but a tower like <code>x = 2 ^ x</code> works too), and <code>mod</code>, <code>backwards(x)</code>, <code>digitsum(x)</code>, <code>repeat 10:</code>, and <code>forever</code> as a number for counts.</li>
         <li><code>hunt c from 0 to 99:</code> runs the lines pushed in below it once for every number, and sorts the numbers by what their last <code>show</code> said. Tap a square to open that one loop. Add <code>ends in 57</code> before the colon to look only at numbers ending in 57 (that is what Zoom in does). Rings and liars are checked 40 digits deep.</li>
@@ -185,6 +188,7 @@ const EXAMPLES = [
   ['196', 'x = 196   found = no\nforever: x = x + backwards(x)   if x is a palindrome: found = yes\nshow found'],
   ['6 squared', 'x = 6\nforever: x = x × x\nshow x'],
   ['Twins', 'a = 5\nforever: a = a × a\nb = 6\nforever: b = 3 × b × b − 2 × b × b × b\nshow b\nshow a + b\nshow a × b'],
+  ['Sing it', '# the last 120 digits of Graham\'s number, one note each, right to left\nx = 3\nforever: x = 3 ^ x\nsing 120 digits of x'],
   ['All factorials', 'n = 0   f = 1   s = 0\nforever: n = n + 1   f = f × n   s = s + f\nshow f\nshow 30 digits of s'],
   ['Adds to −1', 'n = 0   f = 1   s = 0\nforever: n = n + 1   f = f × n   s = s + n × f\nshow s\nwhy s'],
   ['Exactly 3', 'n = 0   f = 1   s = 0\nforever: s = s + (n^3 − 4 × n + 1) × f   n = n + 1   f = f × n × n\nshow s\nwhy s'],
@@ -220,6 +224,24 @@ function calm() { document.querySelector('.hero').classList.add('busy'); }
 function placeAnswers() { const a = $('answers'), after = $('own').hidden ? $('tour') : $('own'); if (after.nextElementSibling !== a) after.after(a); }
 $('ownb').onclick = () => { openOwn(); if (!code.value.trim()) pick(1); $('own').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
 function save() { try { localStorage.setItem('pf-code', code.value); } catch (e) {} }
+// sing: the same sound the command line saves, made here as a WAV and played with a plain audio element
+let playing = null;
+function singButtons(digits) {
+  const box = el('span', 'sing'), play = el('button', 'whyb playb', '▶ play'), save = el('a', 'whyb', 'save .wav');
+  play.type = 'button';
+  const url = () => box.dataset.url || (box.dataset.url = URL.createObjectURL(new Blob([Forever.wav(digits)], { type: 'audio/wav' })));
+  play.onclick = () => {
+    if (playing && playing.btn === play) { playing.a.pause(); playing = null; play.textContent = '▶ play'; return; }
+    if (playing) { playing.a.pause(); playing.btn.textContent = '▶ play'; }
+    const a = new Audio(url()); playing = { a, btn: play }; play.textContent = '■ stop';
+    a.onended = () => { if (playing && playing.a === a) playing = null; play.textContent = '▶ play'; };
+    a.play().catch(() => { play.textContent = '▶ play'; playing = null; });
+  };
+  save.href = '#'; save.download = 'past-forever-song.wav';
+  save.onclick = () => { save.href = url(); };
+  box.appendChild(play); box.appendChild(save);
+  return box;
+}
 function go() {
   save(); placeAnswers(); $('answers').hidden = false;
   out.textContent = ''; out.appendChild(el('div', 'empty', 'Running…')); $('time').textContent = '';
@@ -236,8 +258,8 @@ function go() {
         const b = el('button', 'whyb', 'why?'); b.type = 'button';
         const w = el('div', 'why', l.why); w.hidden = true;
         b.onclick = () => { w.hidden = !w.hidden; b.textContent = w.hidden ? 'why?' : 'hide'; };
-        top.appendChild(b); row.appendChild(top); row.appendChild(w);
-      } else row.appendChild(top);
+        top.appendChild(b); row.appendChild(top); if (l.sing) row.appendChild(singButtons(l.sing.digits)); row.appendChild(w);
+      } else { row.appendChild(top); if (l.sing) row.appendChild(singButtons(l.sing.digits)); }
       out.appendChild(row);
     }
     if (r.error) { const row = el('div', 'row bad'); row.appendChild(el('div', 'val', 'stopped: ' + r.error)); out.appendChild(row); }

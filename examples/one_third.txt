@@ -1,3 +1,6 @@
+# Newton's way to 1/3: x = x × (2 − 3 × x) settles on …666666666667.
+# Try x = 1 and 6 instead of 3. There is no 1/6 here (6 has a 2 in it), yet it still settles: on a half answer
+# whose 6 × x is …081787109376, not 1. Found by a fresh Claude Sonnet agent, November 2026.
 x = 7
 forever: x = x × (2 − 3 × x)
 show x

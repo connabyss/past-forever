@@ -1,0 +1,5 @@
+# Graham's number, sung: its last 360 digits, one note each, right to left (about a minute).
+# Save it as a sound file:  node cli.js examples/sing.txt --wav graham.wav
+x = 3
+forever: x = 3 ^ x
+sing 360 digits of x

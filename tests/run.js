@@ -133,6 +133,10 @@ is(out('x = 3\nforever: x = 12 ^ x\nshow 30 digits of x'), '…35913584858493171
 is(out('x = 0\nforever: x = 10 ^ x\nshow x'), '…000000000000', 'tower of 10s settles on 0');
 is(out('x = 0\nforever: x = 2 ^ x\nshow 2 ^ (x + 1)').startsWith('stopped: a power with an endless'), true, 'a 2 on the bottom still needs a top known to be huge');
 is(out('x = -3\nforever: x = 2 ^ x\nshow x').startsWith('stopped'), true, 'a tower of 2s from a minus number is refused');
+// two Opus agents (2026-11-18): c = 5^45 − 2 is calm for 46 digits, so the hunt shows ring of 2 though it goes wild
+// at digit 47. The label stays (it is what the hunt saw), but its why must not call it a proof.
+{ const h = F.text('hunt c from 0 to 9:\n    x = 0\n    forever: x = x × x + c\n    show x', { why: true });
+  is(/ring of N: that means every digit I looked at, 40 deep, came round every N steps, which is what I saw, not a proof/.test(h), true, 'a hunt says its rings are not proofs'); }
 // Copilot (2026-11-18): c = 8 looks settled in its last digit (0, 8, 2, 2…) but its last 2 digits go round 72, 92.
 is(out('x = 0\nforever: x = x × x + 8\nshow x'), 'never settles', 'x × x + 8 is not fooled by its calm last digit');
 // Copilot (2026-11-18): repeat 10 ^ 64 had no time limit and froze the page. It now stops with a clear message.
@@ -294,6 +298,91 @@ is(out('x = 1\nforever: x = x + 0.1\nshow x'), 'stopped: line 2: there are no de
 // ── night shift bug hunt: asking for a huge number of digits froze the page (100000 digits of the own square)
 is(out('x = 5\nforever: x = x × x\nshow 100000 digits of x'), 'stopped: line 3: I show at most 2000 digits at a time', 'a digit count that would freeze the page gets a clear answer');
 is(out('x = 5\nforever: x = x × x\nshow 2000 digits of x').length, 2001, '2000 digits still work');
+
+// ── found by an explorer agent in a GitHub Codespace (Nov 2026): loops that branch on their own last digits, and
+// y = 10 × y + (an endless number). Both used to say "can't see the end".
+is(out('x = 0\nforever:\n  if x is even: x = x + 1\n  else: x = x + 3\nshow x'), 'never settles', 'if even add 1, else add 3: never settles');
+has(F.text('x = 0\nforever:\n  if x is even: x = x + 1\n  else: x = x + 3\nwhy x'), 'goes round 0, 1, 4, 5, 8, 9, 2, 3, 6, 7 every 10 steps', 'the if/else loop: the reason is its last digit going round');
+is(out('x = 1\nforever:\n  if x is even: x = x × 10\n  else: x = x × x + 1\nshow x'), '0', 'if even times 10, else square and add 1: settles on 0');
+has(F.text('x = 1\nforever:\n  if x is even: x = x × 10\n  else: x = x × x + 1\nwhy x'), 'from step 2 on it stays the same', 'the settling if/else loop says from when the test is frozen');
+is(out('x = 3\nforever:\n  if x is odd: x = x × 10 + 5\nshow x'), '…555555555555  (this is -5/9)', 'an if with no else, frozen on odd, settles exactly');
+is(out('x = 0\nforever:\n  if x ends in 25: x = x + 100\n  else: x = x + 5\nshow x'), 'never settles', 'ends in 25: once frozen it only adds 100, so it never settles');
+is(out('x = 5\nforever: x = x × x\ny = 0\nforever: y = 10 × y + x\nshow y\nshow 9 × y + x'), '…786865234375\n0', 'y = 10 × y + an endless number settles on −x ÷ 9');
+has(F.text('x = 5\nforever: x = x × x\ny = 0\nforever: y = 10 × y + x\nwhy y'), 'leaves alone is −x ÷ 9', 'y = 10 × y + x: the reason names −x ÷ 9');
+is(out('x = 5\nforever: x = x × x\ny = 3\nforever: y = 20 × y + x × x + 1\nshow y'), '…162199321546', 'y = 20 × y + x × x + 1 settles to the digits Python gets');
+is(out('x = 0\ny = 0\nforever:\n  x = x + 1\n  y = 10 × y + x\nshow y'), 'never settles', 'leaning on a counter still never settles');
+
+// ── counts that only climb (explorer agent, Nov 2026): after forever a count is the top of its climb
+is(out('count f = 2\nforever: f = f × f\nshow f'), 'forever', '2, 4, 16, 256 … squared forever ends at forever');
+is(out('count z = 0\nforever: z = z × z + 1\nshow z'), 'forever', 'z × z + 1 from 0 climbs to forever');
+is(out('count w = 1\nforever: w = w × w\nshow w'), '1', '1 squared forever stays 1');
+is(out('count a = 0\nforever: a = a + 1\ncount b = 0\nforever: b = b + a\nshow b'), 'forever × forever', 'adding a count made by an earlier loop: forever × forever');
+is(out('count x = forever + 3\nforever: x = x × 2\nshow x'), 'forever × forever', 'doubling forever + 3 forever climbs to forever × forever');
+is(out('count d = forever\nforever: d = d × forever\nshow d'), "can't see the end", 'times forever, forever: the top is forever ^ forever, which it cannot write yet');
+has(F.text('count d = forever\nforever: d = d × forever\nwhy d'), 'forever ^ forever, a number this language can\'t write yet', 'and it says why');
+is(out('count a = forever\ncount k = 0\nx = 0\nforever:\n  x = x + 1\n  if x ends in 3: k = k + a\nshow k'), 'forever × forever', 'a count that adds an outside count some of the time');
+
+// ── x = x ^ x (explorer agent, Nov 2026): once x is big, its last k digits only need the last k digits of x
+is(out('x = 2\nforever: x = x ^ x\nshow x'), 'never settles', 'x ^ x from 2 never settles');
+has(F.text('x = 2\nforever: x = x ^ x\nwhy x'), 'the last 3 digits of x go round 256, 656, 056, 456, 856 every 5 steps', 'x ^ x from 2: the 3-digit ring');
+has(F.text('x = 3\nforever: x = x ^ x\nwhy x'), 'go round 03, 27 every 2 steps', 'x ^ x from 3: the 2-digit ring');
+has(F.text('x = 7\nforever: x = x ^ x\nwhy x'), 'take 2, 2, 2, 10, 50, 250', 'x ^ x from 7 is a liar: calm for 4 digits, then wild');
+{ // brute force on the 5s and 2s sides: 7 ^ 7 = 823543, and the next one ends in …160007
+  is(powmod(823543n, 823543n, 1000000n), 160007n, 'brute force: 823543 ^ 823543 ends in 160007, so the last 3 digits flip 543, 007');
+}
+is(F.text('count f = 2\nforever: f = f × f\nshow f'), 'forever', 'the climbing count answers without running out the clock');
+
+// ── explorer agent's stress test (Nov 2026): a polynomial with an endless fixed number in it, and a tower plus 10 × x
+is(out('x = 6\nforever: x = x ^ 5\ny = 0 − 10\nforever: y = (0 − 7) + 70 × y − 8 × y × y − 3 × x\nshow 20 digits of y'), '…61989826218117194115', 'y = −7 + 70y − 8y² − 3x with x endless settles (digits from a Python brute force)');
+has(F.text('x = 6\nforever: x = x ^ 5\ny = 0 − 10\nforever: y = (0 − 7) + 70 × y − 8 × y × y − 3 × x\nwhy y'), 'x is fixed while this loop runs', 'and it says why');
+is(out('x = 0 − 1\nforever: x = 3 ^ x − 10 × x\nshow 20 digits of x'), '…14449124018888973193', 'x = 3 ^ x − 10 × x settles (digits from a Python brute force)');
+has(F.text('x = 0 − 1\nforever: x = 3 ^ x − 10 × x\nwhy x'), 'ten times two numbers that share k digits share k + 1', 'and it says why');
+is(out('x = 0\nforever: x = 3 ^ x − x\nshow x'), 'never settles', 'x = 3 ^ x − x gains no digit, and its last 2 digits go round');
+
+// ── sing: one note per digit, right to left, on A minor pentatonic (the explorer's recipe)
+is(out('x = 3\nforever: x = 3 ^ x\nsing 12 digits of x'), '♪ …262464195387', 'sing shows the digits it plays');
+is(out('sing 2024'), '♪ 2024', 'a plain whole number sings all its digits');
+is(out('x = 2\nforever: x = x × x\nsing x'), '♪ nothing to sing: never settles', 'a loop that never settles has nothing to sing');
+is(out('sing 2001 digits of 7'), 'stopped: line 1: I sing at most 2000 digits at a time', 'sing has the same digit cap as show');
+is(out('x = yes\nsing x'), 'stopped: line 2: sing needs a number', 'sing needs a number');
+{
+  const r = F.run('x = 3\nforever: x = 3 ^ x\nsing 360 digits of x');
+  const d = r.lines[0].sing.digits;
+  is(d.length, 360, 'sing 360 digits gives 360 notes');
+  is(d.slice(-12), '262464195387', 'the song ends in the digits of Graham\'s number');
+  const f = F.notes('0379');
+  is(f.map((x) => Math.round(x)).join(' '), [22, 17, 7, 0].map((st) => Math.round(220 * 2 ** (st / 12))).join(' '), 'notes go right to left: 9, 7, 3, 0 on the scale 0 3 5 7 10 12 15 17 19 22');
+  const ev = F.song('0123456789');
+  is(ev.filter((e) => e.v === 'bass').length + ':' + ev.filter((e) => e.v === 'bell').length, '3:1', 'a bass every 4th digit, a bell every 10th');
+  const w = F.wav(d);
+  const txt = (a, b) => String.fromCharCode(...w.slice(a, b));
+  is(txt(0, 4) + txt(8, 12) + txt(36, 40), 'RIFFWAVEdata', 'sing makes a real WAV file');
+  const dv = new DataView(w.buffer), secs = dv.getUint32(40, true) / 2 / dv.getUint32(24, true);
+  is(secs > 57 && secs < 59.5, true, '360 digits make about a minute of sound (' + secs.toFixed(1) + ' s)');
+  let peak = 0; for (let i = 44; i < w.length; i += 2) peak = Math.max(peak, Math.abs(dv.getInt16(i, true)));
+  is(peak > 25000 && peak < 32768, true, 'the song is loud but never clips');
+}
+
+// ── liars/records.txt: the record liars, 2 up to 1000 digits of calm. Check the file is in order, starts with the
+// list the README quotes, and that every record up to 40 digits really is calm exactly that long (plain base 10).
+{
+  const rows = fs.readFileSync(path.join(__dirname, '..', 'liars', 'records.txt'), 'utf8').split('\n')
+    .filter((l) => l && !l.startsWith('#')).map((l) => l.split(' ')).map(([d, c]) => [Number(d), BigInt(c)]);
+  is(rows.slice(0, 10).map((r) => String(r[1])).join(', '), '2, 7, 57, 182, 1068, 14557, 30982, 265357, 6139557, 8077857', 'the record liars start like the README says');
+  is(rows.every((r, i) => i === 0 || (r[0] > rows[i - 1][0] && r[1] > rows[i - 1][1])), true, 'each record is bigger and calm for longer than the one before');
+  is(rows[rows.length - 1][0] >= 1000, true, 'the list reaches 1000 digits of calm');
+  is(String(rows.find((r) => r[0] === 35)[1]), '38533618339183472936432', 'the README liar is in the list');
+  const per = (c, k) => { const m = 10n ** BigInt(k); let x = 0n, i = 0; const seen = new Map(); while (!seen.has(x)) { seen.set(x, i++); x = (x * x + c) % m; } return i - seen.get(x); };
+  const calm = (c, most) => { for (let j = 1; j <= most; j++) if (per(c, j) % 5 === 0) return j - 1; return most; };
+  const wrong = rows.filter(([d]) => d <= 40).filter(([d, c]) => calm(c, d + 1) !== d).map(([d, c]) => d + ':' + c);
+  is(wrong.join(' '), '', 'every record liar up to 40 digits is calm exactly as long as the list says');
+  is([1000, 1001, 1002].map((k) => per(rows[rows.length - 1][1], k)).join(', '), '2, 2, 10', 'the README check of the 1000-digit liar prints 2, 2, 10');
+}
+
+// ── the README's zero-twins claim: two non-zero numbers whose product is exactly 0 and whose sum is exactly 1
+is(ex('zero_twins.txt'), '…918212890625\n…081787109376\n0\n1', 'the README zero-twins example prints its two numbers, then 0 and 1');
+is(out('x = 5\nforever: x = x × x\ny = 6\nforever: y = y ^ 5\nshow x × y = 0\nshow x = 0\nshow y = 0'), 'yes\nno  (proved)\nno  (proved)', 'the twins multiply to exactly 0, and neither one is 0');
+is(BigInt(625) * 9376n, 5860000n, 'the hand check in the README is right');
 
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);
