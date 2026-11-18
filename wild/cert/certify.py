@@ -86,7 +86,7 @@ def certify(L):
             return 'UNPROVED', None, 'orbit too long'
         pre, per = o
         if per > 1:
-            return 'NEVER', None, f'RING: the last {k} digits repeat every {per} steps from step {pre}'
+            return 'NEVER', None, f'RING: the last {k} digits repeat every {per} steps from step {pre}' if k > 1 else f'RING: the last digit repeats every {per} steps from step {pre}'
     pre, _ = orbit(cs, q, res(x0, 10), 10)
     r = res(x0, 10)
     for _ in range(pre):
@@ -107,33 +107,38 @@ def limit_digits(L, k):  # last k digits of the limit (valid once SETTLES is cer
     return r
 
 
-tally, problems, examples = {}, [], {}
-for line in sys.stdin:
-    L = json.loads(line)
-    out = L['out']
-    pf = 'never' if out == 'never settles' else 'cant' if out == "can't see the end" else 'other' if out.startswith(('stopped', 'crash')) else 'settles'
-    verdict, val, proof = certify(L)
-    key = f'{pf:8s}/ {verdict}'
-    tally[key] = tally.get(key, 0) + 1
-    examples.setdefault(key, (L['src'], out[:90], proof))
-    if (pf == 'never' and verdict == 'SETTLES') or (pf == 'settles' and verdict == 'NEVER'):
-        problems.append((L['src'], out, proof))
-    if pf == 'settles' and verdict == 'SETTLES':
-        digits = out.lstrip('…').split()[0]
-        if digits.isdigit():
-            k = min(len(digits), 60)
-            if int(digits) % 10 ** k != limit_digits(L, k):
-                problems.append((L['src'], out, 'DIGITS DIFFER'))
-        if '(this is' in out:
-            lab = Fr(out.split('(this is ')[-1].rstrip(')'))
-            if val is not None and lab != val:
-                problems.append((L['src'], out, f'LABEL differs from certified limit {val}'))
-            if val is None and 'irrational' in proof:
-                problems.append((L['src'], out, 'LABEL given, but certificate says irrational'))
-print('Past Forever said  /  independent certificate:')
-for k in sorted(tally):
-    print(f'  {k:22s} {tally[k]}')
-print('disagreements:', len(problems))
-for p in problems[:5]:
-    print('  ', p)
-json.dump({'tally': tally, 'problems': problems, 'examples': examples}, open('wild/cert/report.json', 'w'), indent=1)
+def main():
+    tally, problems, examples = {}, [], {}
+    for line in sys.stdin:
+        L = json.loads(line)
+        out = L['out']
+        pf = 'never' if out == 'never settles' else 'cant' if out == "can't see the end" else 'other' if out.startswith(('stopped', 'crash')) else 'settles'
+        verdict, val, proof = certify(L)
+        key = f'{pf:8s}/ {verdict}'
+        tally[key] = tally.get(key, 0) + 1
+        examples.setdefault(key, (L['src'], out[:90], proof))
+        if (pf == 'never' and verdict == 'SETTLES') or (pf == 'settles' and verdict == 'NEVER'):
+            problems.append((L['src'], out, proof))
+        if pf == 'settles' and verdict == 'SETTLES':
+            digits = out.lstrip('…').split()[0]
+            if digits.isdigit():
+                k = min(len(digits), 60)
+                if int(digits) % 10 ** k != limit_digits(L, k):
+                    problems.append((L['src'], out, 'DIGITS DIFFER'))
+            if '(this is' in out:
+                lab = Fr(out.split('(this is ')[-1].rstrip(')'))
+                if val is not None and lab != val:
+                    problems.append((L['src'], out, f'LABEL differs from certified limit {val}'))
+                if val is None and 'irrational' in proof:
+                    problems.append((L['src'], out, 'LABEL given, but certificate says irrational'))
+    print('Past Forever said  /  independent certificate:')
+    for k in sorted(tally):
+        print(f'  {k:22s} {tally[k]}')
+    print('disagreements:', len(problems))
+    for p in problems[:5]:
+        print('  ', p)
+    json.dump({'tally': tally, 'problems': problems, 'examples': examples}, open('wild/cert/report.json', 'w'), indent=1)
+
+
+if __name__ == "__main__":
+    main()
