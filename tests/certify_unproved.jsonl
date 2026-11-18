@@ -1,0 +1,1 @@
+{"n": 1, "cs": [1000000000, 1], "q": 1, "p0": 0, "q0": 1, "src": "x = 0\nforever: x = 1000000000 + x\nshow 30 digits of x\n", "note": "never settles, but the checker only looks 8 digits deep, where nothing moves, and the slope is 1: it has no certificate, so it must say UNPROVED and exit 1"}

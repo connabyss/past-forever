@@ -7,6 +7,14 @@ const rnd = (k) => { seed = (seed * 1103515245 + 12345) % 2147483648; return Mat
 const pick = (a) => a[rnd(a.length)], small = () => rnd(21) - 10;
 const lit = (v) => (v < 0 ? '(0 − ' + -v + ')' : String(v));
 const UNITS = [1, 1, 1, 1, 3, 7, 9, 11, 13, 21];
+// node tests/certify_gen.js tests/certificates.jsonl: run the loops listed in that file instead of random ones
+if (/\.jsonl$/.test(process.argv[2] || '')) {
+  for (const line of require('fs').readFileSync(process.argv[2], 'utf8').split('\n').filter(Boolean)) {
+    const L = JSON.parse(line); const r = F.run(L.src, { huntMs: 2000 });
+    L.out = r.error ? 'stopped: ' + r.error : (r.lines[0] ? r.lines[0].text : ''); console.log(JSON.stringify(L));
+  }
+  process.exit(0);
+}
 for (let i = 0; i < N; i++) {
   const d = 1 + rnd(4), cs = [];
   for (let j = 0; j <= d; j++) cs.push(j === d ? (small() || 1) : pick([0, small(), small(), 10 * small(), 5 * small(), 2 * small()]));
