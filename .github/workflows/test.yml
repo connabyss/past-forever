@@ -30,4 +30,6 @@ jobs:
       - name: the checker must fail when it can't prove an answer (it may never quietly pass)
         shell: bash
         run: "! (node tests/certify_gen.js tests/certify_unproved.jsonl | python3 tests/certify.py)"
-      - run: python3 page/build.py && git diff --exit-code docs/index.html
+      - run: python3 page/build.py && git diff --exit-code docs/index.html docs/sing.html
+      - name: the singing roll plays the engine's own digits, a hole on the bar for each note, and fits a phone
+        run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium && node tests/sing.js
