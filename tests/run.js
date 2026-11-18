@@ -332,6 +332,13 @@ has(F.text('x = 7\nforever: x = x ^ x\nwhy x'), 'take 2, 2, 2, 10, 50, 250', 'x 
 }
 is(F.text('count f = 2\nforever: f = f × f\nshow f'), 'forever', 'the climbing count answers without running out the clock');
 
+// ── explorer agent's stress test (Nov 2026): a polynomial with an endless fixed number in it, and a tower plus 10 × x
+is(out('x = 6\nforever: x = x ^ 5\ny = 0 − 10\nforever: y = (0 − 7) + 70 × y − 8 × y × y − 3 × x\nshow 20 digits of y'), '…61989826218117194115', 'y = −7 + 70y − 8y² − 3x with x endless settles (digits from a Python brute force)');
+has(F.text('x = 6\nforever: x = x ^ 5\ny = 0 − 10\nforever: y = (0 − 7) + 70 × y − 8 × y × y − 3 × x\nwhy y'), 'x is fixed while this loop runs', 'and it says why');
+is(out('x = 0 − 1\nforever: x = 3 ^ x − 10 × x\nshow 20 digits of x'), '…14449124018888973193', 'x = 3 ^ x − 10 × x settles (digits from a Python brute force)');
+has(F.text('x = 0 − 1\nforever: x = 3 ^ x − 10 × x\nwhy x'), 'ten times two numbers that share k digits share k + 1', 'and it says why');
+is(out('x = 0\nforever: x = 3 ^ x − x\nshow x'), 'never settles', 'x = 3 ^ x − x gains no digit, and its last 2 digits go round');
+
 // ── sing: one note per digit, right to left, on A minor pentatonic (the explorer's recipe)
 is(out('x = 3\nforever: x = 3 ^ x\nsing 12 digits of x'), '♪ …262464195387', 'sing shows the digits it plays');
 is(out('sing 2024'), '♪ 2024', 'a plain whole number sings all its digits');

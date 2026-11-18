@@ -367,6 +367,9 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
   forever, which the language can't write yet, so it says `can't see the end` and tells you why.)
 - `x = x ^ x` from a whole number of 2 or more: the numbers grow, and once x is big, the last k digits of x ^ x only
   depend on the last k digits of x. So if those go round a ring, it never settles.
+- Any polynomial rule whose other names are fixed endless numbers, like `y = 70 × y − 8 × y × y − 3 × x − 7`: if the
+  last digit freezes where the rule's slope ends in 0, one more digit locks every step. Towers work the same way with
+  extra parts times a number ending in 0, like `x = 3 ^ x − 10 × x`.
 - The last digits go round a ring that never stops: proved never to settle.
 - None of these fit: `can't see the end`.
 
@@ -380,11 +383,11 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
 - **"proved" means proved by the rules above**, as written in forever.js. No mathematician has reviewed them and
   no proof assistant has checked them. For one-name polynomial loops, an independent checker re-proves every answer
   (below).
-- **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 3,937 random loops
+- **A robot referee checks them on every build.** [tests/referee.js](tests/referee.js) makes 4,311 random loops
   (squares, liars, straight-line rules, pairs, numbers passed back and forth, endless sums, power towers, towers on
-  2, 5 and 10, loops that branch on their last digits, and y = 10 × y + an endless number) and checks
+  2, 5 and 10, loops that branch on their last digits, and y = 10 × y + an endless number, polynomials with an endless number in them, towers plus 10 × x) and checks
   every `settles`, `never settles` and exact fraction against plain arithmetic on the last 30 or more digits. Last
-  run: 5,222 answers, 0 wrong, 0 `can't see the end`. That is a strong check, not a proof.
+  run: 5,596 answers, 0 wrong, 0 `can't see the end`. That is a strong check, not a proof.
 - **You don't have to trust us: a second opinion.** [tests/certify.py](tests/certify.py) is a separate checker in
   Python, about 150 lines, that shares no code with the engine. For loops like `x = (3 × x × x + 7) / 11` it writes
   down its own proof of each answer, using textbook facts only: last digits going round a ring means never settles;
@@ -402,7 +405,7 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 660 checks
+node tests/run.js        # ok: 665 checks
 node tests/referee.js    # the robot referee, about 5 minutes
 node tests/certify_gen.js 300 2027 | python3 tests/certify.py   # the second opinion, about a minute
 ```

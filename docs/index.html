@@ -1342,7 +1342,28 @@ function towerLoop(m, body, pure, start) {
   // so it shows at most TOWER_DIGITS of them
   const outside = (x, top) => !x || typeof x !== 'object' ? false : x.t === 'var' ? x.name === v && !top
     : x.t === 'bin' ? (bases.has(x) ? outside(x.a, top) || outside(x.b, true) : outside(x.a, top) || outside(x.b, top)) : false;
-  if (!outside(e, false)) {
+  // more generally (found by an explorer agent, Nov 2026, with x = 3 ^ x − 10 × x): count how many digits each part
+  // gains when two values of v share their last k digits (k ≥ 2). v gains 0; a fixed number gains as many as you like;
+  // b ^ (top) gains one more than its top; a sum the least of its parts; a part times a fixed number with t zeros on
+  // the end gains t more. If the whole rule gains at least 1, every step locks in one more digit, so it settles.
+  const INF = 1e9;
+  const gain = (x) => {
+    if (!reads(x)) return INF;
+    if (x.t === 'var') return 0;
+    if (x.t === 'bin') {
+      if (bases.has(x)) return Math.min(INF, gain(x.b) + 1);
+      if (x.op === '+' || x.op === '-') return Math.min(gain(x.a), gain(x.b));
+      if (x.op === '/') return gain(x.a);
+      if (x.op === '*') {
+        const fixedTens = (y) => { let c; try { c = evStart(y); } catch (err) { return 0; } if (c.k !== 'num' || qzero(c.q)) return c.k === 'num' ? INF : 0; return tens(c.q.n); };
+        if (!reads(x.a)) return Math.min(INF, gain(x.b) + fixedTens(x.a));
+        if (!reads(x.b)) return Math.min(INF, gain(x.a) + fixedTens(x.b));
+        return Math.min(gain(x.a), gain(x.b));
+      }
+    }
+    return 0;
+  };
+  if (!outside(e, false) || gain(e) >= 1) {
     const r = o2.list[o2.first];
     let known = r, have = 2;                // the fixed point's last `have` digits
     const digits = (N) => {
@@ -1350,7 +1371,7 @@ function towerLoop(m, body, pure, start) {
       while (have < N) { known = evm(e, known, have + 1); have++; }
       return mod(known, pow10(N));
     };
-    const why = 'the last 2 digits of ' + v + ' stop changing ' + (o2.first === 0 ? 'right away' : 'after step ' + o2.first) + '. After that, every step locks in one more digit for good: ' + v + ' only sits on top of powers of numbers with no 2 or 5 in them, and when two tops share their last k digits, the powers share k + 1. So ' + v + ' settles';
+    const why = 'the last 2 digits of ' + v + ' stop changing ' + (o2.first === 0 ? 'right away' : 'after step ' + o2.first) + '. After that, every step locks in one more digit for good: ' + v + ' only sits on top of powers of numbers with no 2 or 5 in them' + (outside(e, false) ? ' or is multiplied by a number ending in 0' : '') + ', and when two tops share their last k digits, the powers share k + 1' + (outside(e, false) ? ' (and ten times two numbers that share k digits share k + 1)' : '') + '. So ' + v + ' settles';
     const val = endGeneric(digits, why); val.maxDigits = TOWER_DIGITS;
     return finish(val);
   }
@@ -1701,6 +1722,8 @@ class System {
       const r2 = this.adder(v, T, true); if (r2) { out.set(v, r2); return out; }
       // v = a × v + (others), a a multiple of 10
       const r3 = this.contract(v, g); if (r3) { out.set(v, r3); return out; }
+      // a polynomial in v whose other parts are fixed endless numbers from earlier loops
+      const r4 = this.fixedPartsMap(v, g); if (r4) { out.set(v, r4); return out; }
       return null;
     }
     return this.groupPull(group);
@@ -1798,6 +1821,28 @@ class System {
     const conv = (n) => { const h = Math.floor(n / 2); return Math.min(n - h, cT(h)); };
     const why = v + ' = ' + g.text() + ': each step multiplies the gap to the answer by ' + showPlain(num(a)) + ', a multiple of 10, so once ' + deps.join(', ') + (deps.length === 1 ? ' settles' : ' settle') + ', one more digit locks for good every step. The only number the rule leaves alone is ' + (oneMinus.n < 0n ? '−' : '') + (T.t.size > 1 ? '(' + T.text() + ')' : T.text()) + ' ÷ ' + showPlain(num(Q(abs(oneMinus.n), oneMinus.d)));
     return { type: 'settled', value: withWhy(value, why), conv };
+  }
+  // v = a polynomial in v whose other names are fixed endless numbers (made by earlier loops). Work on the last k
+  // digits: the fixed names are just their last k digits. If from step N the last digit stays r and the rule's slope at
+  // r ends in 0, then near r the rule shrinks any difference by a factor of ten, so every step locks one more digit.
+  // (Found by an explorer agent in a GitHub Codespace, Nov 2026: y = −7 + 70 × y − 8 × y × y − 3 × x, x endless.)
+  fixedPartsMap(v, g) {
+    const deps = [...g.names()].filter((d) => d !== v);
+    if (!deps.length) return null;
+    for (const d of deps) { const i = this.info.get(d); if (!i || i.type !== 'const' || !(i.value.k === 'end' || (i.value.k === 'num' && tenIntegral(i.value.q)))) return null; }
+    for (const { c } of g.t.values()) if (!tenIntegral(c)) return null;
+    const x0 = this.start.get(v);
+    if (!x0 || !(x0.k === 'end' || (x0.k === 'num' && tenIntegral(x0.q)))) return null;
+    const stAt = (k, r) => new Map([[v, r], ...deps.map((d) => [d, valMod(this.info.get(d).value, k)])]);
+    let r = valMod(x0, 1); const seen = new Map(); let step = 0;
+    while (!seen.has(r)) { seen.set(r, step); r = g.evalMod(stAt(1, r), 10n); if (r === null) return null; step++; }
+    if (step - seen.get(r) !== 1) return null;
+    const N = seen.get(r);
+    if (g.deriv(v).evalMod(stAt(1, r), 10n) !== 0n) return null;
+    const modfn = (k) => { const M = pow10(k); let x = valMod(x0, k); for (let i = 0; i < N + k; i++) x = g.evalMod(stAt(k, x), M); return x; };
+    const conv = (n) => (n < N ? 0 : n - N + 1);
+    const why = 'from step ' + N + ' on its last digit stays ' + r + ', and from there every step locks at least one more digit for good (' + deps.join(', ') + (deps.length === 1 ? ' is' : ' are') + ' fixed while this loop runs, and near a number ending in ' + r + ' the rule ' + v + ' = ' + g.text() + ' shrinks any difference by a factor of ten)';
+    return { type: 'settled', value: endGeneric(modfn, why), conv };
   }
   // v = v + T, where T uses other names only
   adder(v, T, selfToo) {
