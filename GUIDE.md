@@ -100,7 +100,7 @@ roll](https://connabyss.github.io/past-forever/sing.html) while they play. On yo
 node cli.js examples/sing.txt --wav graham.wav     # its last 360 digits, about a minute
 ```
 
-The tune came from an explorer agent in a GitHub Codespace ([Hall of Fame](README.md#hall-of-fame) #7).
+The tune came from an explorer agent in a GitHub Codespace ([Hall of Fame](BREAK_IT.md#hall-of-fame) #7).
 
 ## Hunt: try a whole range at once
 
