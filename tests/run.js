@@ -137,6 +137,24 @@ is(out('x = -3\nforever: x = 2 ^ x\nshow x').startsWith('stopped'), true, 'a tow
 // at digit 47. The label stays (it is what the hunt saw), but its why must not call it a proof.
 { const h = F.text('hunt c from 0 to 9:\n    x = 0\n    forever: x = x × x + c\n    show x', { why: true });
   is(/ring of N: that means every digit I looked at, 40 deep, came round every N steps, which is what I saw, not a proof/.test(h), true, 'a hunt says its rings are not proofs'); }
+// a ring is proved to keep its length when the step's slopes round its last digit's ring multiply to a number ending
+// in 0 (the contraction rule, run on the whole ring). It must fire for x × x + 1, and never for the liar 5^45 − 2
+// (slopes 2 × 7 × 2 × 2: no 0), nor for a loop that leans on another restless name.
+has(F.text('x = 0\nforever: x = x × x + 1\nwhy x'), 'And that is proved: the slopes of the step at 0, 1, 2, 5, 6, 7 multiply to a number ending in 0', 'a ring through a flat spot is proved');
+{ const t = F.text('x = 0\nforever: x = x × x + ' + (5n ** 45n - 2n) + '\nwhy x');
+  is(/As far as I can see, x is going round a ring of 2/.test(t) && !/proved/.test(t), true, 'the liar 5^45 - 2 keeps "as far as I can see"'); }
+{ const t = F.text('x = 0\ny = 0\nforever:\n  y = 4 - y\n  x = x × x + y\nwhy x');
+  is(/As far as I can see/.test(t) && !/proved/.test(t), true, 'a ring that leans on another restless name is not proved'); }
+{ // every proved ring, checked by brute force on its last 1, 5, 20 and 60 digits
+  const per = (f, m) => { const seen = new Map(); let x = 0n, k = 0; while (!seen.has(x)) { seen.set(x, k); x = ((f(x) % m) + m) % m; k++; } return k - seen.get(x); };
+  let proved = 0, wrong = [];
+  for (const p of [2, 3, 4, 5]) for (let c = -20; c <= 60; c++) {
+    const m = /ring of (\d+) endless numbers forever/.exec(F.text('x = 0\nforever: x = ' + Array(p).fill('x').join(' × ') + (c < 0 ? ' - ' + -c : ' + ' + c) + '\nwhy x'));
+    if (!m) continue; proved++;
+    for (const j of [1, 5, 20, 60]) if (per((x) => x ** BigInt(p) + BigInt(c), 10n ** BigInt(j)) !== +m[1]) { wrong.push(p + ',' + c + ' at ' + j); break; }
+  }
+  is(proved > 100 && wrong.length === 0, true, 'proved rings hold on 60 digits (' + proved + ' proved, wrong: ' + wrong.join('; ') + ')');
+}
 // Copilot (2026-11-18): c = 8 looks settled in its last digit (0, 8, 2, 2…) but its last 2 digits go round 72, 92.
 is(out('x = 0\nforever: x = x × x + 8\nshow x'), 'never settles', 'x × x + 8 is not fooled by its calm last digit');
 // Copilot (2026-11-18): repeat 10 ^ 64 had no time limit and froze the page. It now stops with a clear message.
@@ -378,7 +396,7 @@ is(out('x = yes\nsing x'), 'stopped: line 2: sing needs a number', 'sing needs a
   const calm = (c, most) => { for (let j = 1; j <= most; j++) if (per(c, j) % 5 === 0) return j - 1; return most; };
   const wrong = rows.filter(([d]) => d <= 40).filter(([d, c]) => calm(c, d + 1) !== d).map(([d, c]) => d + ':' + c);
   is(wrong.join(' '), '', 'every record liar up to 40 digits is calm exactly as long as the list says');
-  is([1000, 1001, 1002].map((k) => per(rows[rows.length - 1][1], k)).join(', '), '2, 2, 10', 'the README check of the 1000-digit liar prints 2, 2, 10');
+  is([1000, 1001, 1002].map((k) => per(rows[rows.length - 1][1], k)).join(', '), '2, 2, 10', 'the liars/README.md check of the 1000-digit liar prints 2, 2, 10');
 }
 
 // ── the README's zero-twins claim: two non-zero numbers whose product is exactly 0 and whose sum is exactly 1

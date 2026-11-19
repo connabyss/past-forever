@@ -25,6 +25,8 @@ jobs:
       - name: the certificates page says exactly what the checker and the engine say today
         shell: bash
         run: node tests/certify_gen.js tests/certificates.jsonl | python3 tests/certificates_sync.py
+      - name: liars of other powers (4th-power records vs a brute force below 4 million, 6th and 10th powers, the table)
+        run: python3 tests/powers.py
       - name: every calm c sits within k - 2 base-5 digits of one of the four magnets (depths 3 to 1000)
         run: python3 tests/magnets.py
       - name: the checker must fail when it can't prove an answer (it may never quietly pass)
