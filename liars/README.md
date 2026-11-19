@@ -48,6 +48,20 @@ divides (c + 2)(c·c + 1), inside a proof sketch nobody outside this project has
 statement at every depth from 3 to 1000, on every build. Making liars on purpose is checked, not proved: c = 5^k − 2 stayed calm for
 exactly k + 1 digits for every k we tried (k up to 40).
 
+## Where the 60 comes from
+
+From 5 digits on, there are always exactly 60 calm remainders, and they split by magnet
+as 5 + 5 + 25 + 25. The families of −2 and of the square root of −1 ending in 3 (base 5) keep 5 each, and the
+families of the other square root of −1 and of M keep 25 each. The 5 + 5 half follows from the formula above (calm
+for k digits means 5^k divides (c + 2)(c·c + 1), for c ending in 3), in three lines:
+1. For such c, the only factors that can hold 5s are c + 2 and c − i, where i is that root of −1, because c + i
+   doesn't end in 0 in base 5.
+2. Those two differ by 2 + i, which holds exactly one 5. So if either holds two or more 5s, the other holds exactly one.
+3. So calm for k digits (k ≥ 3) means c matches −2 or i on its last k − 1 base-5 digits. That gives 5 remainders
+   mod 5^k for each, 10 in all.
+
+The 25 + 25 half, for c ending in 2, is checked, not proved ([tests/powers.py](../tests/powers.py), depths 5 to 40).
+
 ## Other powers
 
 **Odd powers can't lie (proved, short).** From 0, `x = x × x × x + c` (or the 5th or 7th power) settles into a

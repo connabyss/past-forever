@@ -8,6 +8,7 @@
 3. 10th powers: no c below 3,125 goes wild in 7 digits.
 4. The table: which even powers up to 26 can lie, as liars/README.md says.
 5. The loners of 4th and 8th powers, depths 5 to 60.
+6. Squares: the 60 calm remainders are 5 + 5 + 25 + 25 by magnet, depths 5 to 40.
 """
 import sys
 from pathlib import Path
@@ -114,7 +115,24 @@ for p, k_exp in ((4, 3), (8, 7)):
             fail('power', p, 'depth', k, 'the loner does not settle after two steps')
             break
 
+# 6. squares: the 60 calm remainders split by magnet as 5 + 5 + 25 + 25, at every depth from 5 to 40
+for k, S in powers.calm_sets(2, 40):
+    if k < 5:
+        continue
+    M = 5 ** k
+    i2 = root(lambda x: x * x + 1, lambda x: 2 * x, 2, M)
+    i3 = root(lambda x: x * x + 1, lambda x: 2 * x, 3, M)
+    fam = {}
+    for c in S:
+        fam.setdefault(c % 5 ** (k - 2), []).append(c)
+    sizes = {key: len(v) for key, v in fam.items()}
+    near = lambda z: sizes.get(z % 5 ** (k - 2))
+    rest = sorted(v for key, v in sizes.items() if key not in {(M - 2) % 5 ** (k - 2), i2 % 5 ** (k - 2), i3 % 5 ** (k - 2)})
+    if (near(M - 2), near(i3), near(i2), rest) != (5, 5, 25, [25]):
+        fail('squares, depth', k, 'families', near(M - 2), near(i3), near(i2), rest)
+        break
+
 if bad:
     print(bad, 'wrong')
     sys.exit(1)
-print('ok: 4th-power records match a brute force below 4,000,000, records4.txt checked to 150 digits, 6th and 10th powers as said, table of 13 powers, the two loners to depth 60')
+print('ok: 4th-power records match a brute force below 4,000,000, records4.txt checked to 150 digits, 6th and 10th powers as said, table of 13 powers, the two loners to depth 60, squares 5 + 5 + 25 + 25')
