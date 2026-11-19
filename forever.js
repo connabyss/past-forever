@@ -226,7 +226,19 @@ function endGeneric(modfn, why) { const memo = new Map(); return { k: 'end', mod
 function endAtom(atom, poly, why) {
   poly = U.rem(poly, atom.P);
   if (poly.length <= 1) return num(poly[0] || Q0, why);
-  if (!poly.every(tenIntegral)) return endGeneric((k) => U.evalMod(poly, atom.mod(k), pow10(k)), why);
+  // a polynomial in the atom can have 2s or 5s underneath and still be a 10-adic whole number, like 4 + 51 × y / 5
+  // with y = …5 (the checker's two-name sweep, 2026-11-19, crashed here). Then multiply through by the 2s and 5s
+  // underneath, work e digits deeper, and divide them back out exactly.
+  if (!poly.every(tenIntegral)) {
+    const D = poly.reduce((acc, c) => { let t = 1n, d = c.d; while (d % 2n === 0n) { d /= 2n; t *= 2n; } while (d % 5n === 0n) { d /= 5n; t *= 5n; } return acc * t / gcd(acc, t); }, 1n);
+    let e = 0; while (pow10(e) % D !== 0n) e++;
+    const scaled = poly.map((c) => qmul(c, Q(D)));
+    return endGeneric((k) => {
+      const M = pow10(k + e), r = U.evalMod(scaled, atom.mod(k + e), M);
+      if (r === null || r % D !== 0n) throw new LangError('an endless number here has no last digits (it has a 2 or 5 underneath)');
+      return (r / D) % pow10(k);
+    }, why);
+  }
   const v = endGeneric((k) => U.evalMod(poly, atom.mod(k), pow10(k)), why);
   v.atom = atom; v.poly = poly; return v;
 }
