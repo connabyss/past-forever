@@ -45,6 +45,8 @@ textarea{display:block;width:100%;box-sizing:border-box;min-height:190px;resize:
 .sing a{text-decoration:none}
 .whyb{flex:none;font:500 13px var(--sans);color:var(--blue);background:transparent;border:0;padding:4px 2px;cursor:pointer}
 .why{color:var(--soft);font-size:14.5px;line-height:1.5;margin:8px 0 2px}
+.gloss{margin-top:12px}
+.plain div+div{margin-top:2px}
 .empty{color:var(--dim);font-size:15px}
 .time{color:var(--dim);font-size:13px}
 details{border-top:1px solid var(--line);padding-top:14px;color:var(--soft);font-size:15px;line-height:1.55}
@@ -118,6 +120,7 @@ details .live{margin-top:12px}
   <div class="start">
     <button class="tourb" id="tourb" type="button" aria-controls="tour">Take the Wonders tour</button>
     <p class="hint">7 surprises, one tap each. No maths or code needed.</p>
+    <a class="report" href="https://github.com/connabyss/past-forever#readme" target="_blank" rel="noopener">What is this? The story, the proofs and the dares, on GitHub →</a>
     <a class="report" href="sing.html">Or hear the last 360 digits of Graham's number, played on a paper piano roll →</a>
   </div>
   </div>
@@ -158,6 +161,19 @@ details .live{margin-top:12px}
   <div id="answers" hidden>
     <div class="label" style="margin-bottom:8px">Answers <span class="time" id="time"></span></div>
     <div class="out" id="out"></div>
+    <details class="gloss">
+      <summary>What the words mean</summary>
+      <ul>
+        <li><code>…918212890625</code>: the dots mean the digits run on to the left forever. These are endless numbers, and the answer is exact.</li>
+        <li><strong>settles</strong>: the digits on the right freeze, one more after another, so the loop has a finished endless answer.</li>
+        <li><strong>never settles</strong>: the digits keep changing forever, and Past Forever proved it.</li>
+        <li><strong>ring of N</strong>: the last digits come round the same N values forever.</li>
+        <li><strong>goes wild</strong>: each extra digit takes 5 times as long to come round.</li>
+        <li><strong>liar</strong>: looks like a ring for many digits, then goes wild.</li>
+        <li><strong>can't see the end</strong>: none of its rules could prove an answer, so it says so instead of guessing.</li>
+        <li><strong>proved</strong>: proved by Past Forever's own rules (see “How does it know” below).</li>
+      </ul>
+    </details>
   </div>
   <details>
     <summary>How does it know when forever is done?</summary>
@@ -171,7 +187,7 @@ details .live{margin-top:12px}
         <li><strong>Never settles.</strong> If the digits go round and round for good, it proves that instead.</li>
         <li><strong>Can't see the end.</strong> If it can't prove either one, it says so. It never guesses.</li>
       </ul>
-      <p class="hint">“proved” means proved by Past Forever's own rules. Loops of one name with + − × and /, towers like 3 ^ x, and x ^ x are proved a second time by a separate checker on every build. The rest are tested by a robot referee: a strong check, not a proof. No mathematician has reviewed the rules yet. <a href="https://github.com/connabyss/past-forever#how-it-knows" target="_blank" rel="noopener">Which is which</a></p>
+      <p class="hint">“proved” means proved by Past Forever's own rules. Loops of one name with + − × and /, towers like 3 ^ x, and x ^ x are proved a second time by a separate checker on every build. The rest are tested by a robot referee: a strong check, not a proof. No mathematician has reviewed the rules yet. <a href="https://github.com/connabyss/past-forever/blob/main/HOW_IT_KNOWS.md" target="_blank" rel="noopener">Which is which</a></p>
     </section>
   </details>
 </div>
@@ -277,6 +293,22 @@ function hueFor(label, rings) {
   if (!rings.has(label)) rings.set(label, RINGS[rings.size % RINGS.length]);
   return rings.get(label);
 }
+// one plain line for the words a hunt uses (blind testers: 'rings' and 'liars' were never explained on the page)
+const MEANS = {
+  'settles': 'settles: the digits on the right freeze into one finished endless answer',
+  'goes wild': 'goes wild: each extra digit takes 5 times as long to come round',
+  'never settles': 'never settles: the digits keep changing forever',
+  "can't see the end": "can't see the end: no rule could prove an answer, so it doesn't guess",
+};
+function plainWords(h) {
+  const parts = ['Each square is one value of ' + h.name + ', tried in the loop above.'];
+  for (const g of h.groups) {
+    const m = /^ring of (\d+)$/.exec(g.label);
+    if (m) parts.push(g.label + ': its last digits come round the same ' + m[1] + ' values forever');
+    else if (MEANS[g.label]) parts.push(MEANS[g.label]);
+  }
+  return parts;
+}
 function huntRow(l) {
   const h = l.hunt, rings = new Map();
   const row = el('div', 'row hunt');
@@ -287,6 +319,7 @@ function huntRow(l) {
   const legend = el('div', 'legend');
   for (const g of h.groups) { const d = el('span', 'lg'); const i = el('i'); i.style.background = hueFor(g.label, rings); d.appendChild(i); d.appendChild(el('span', '', g.label + ' ')); d.appendChild(el('b', '', String(g.count))); legend.appendChild(d); }
   row.appendChild(legend);
+  const pw = el('div', 'why plain'); for (const t of plainWords(h)) pw.appendChild(el('div', '', t)); row.appendChild(pw);
   const tameOf = (it) => { let t = 0; if (it.wild) while (t < it.wild.length && it.wild[t] === it.wild[0]) t++; return t; };
   const tames = h.items.filter((it) => it.wild).map(tameOf), tLo = Math.min(...tames), tHi = Math.max(...tames);
   if (tames.length) row.appendChild(el('div', 'why', 'Brighter red squares are liars: they look calm for a while, then go wild. Tap the brightest one and Zoom in to chase it.'));

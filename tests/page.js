@@ -32,6 +32,10 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
  await p.locator('.chip',{hasText:/^Hunt$/}).click();await p.click('#run');await p.waitForSelector('#out .sq');
  checks++;const head=await p.locator('#out .head').textContent();if(!head.startsWith('hunt c from 0 to 399: tried 400 numbers, 5 kinds')){fails++;console.log('FAIL hunt head',head);}
  checks++;const leg=(await p.locator('#out .legend').textContent()).replace(/\s+/g,' ');if(!leg.includes('ring of 6 40')||!leg.includes('goes wild 160')){fails++;console.log('FAIL legend',leg);}
+ // blind testers 11-18: the page never said what ring, goes wild or liar mean. The hunt now says it in plain words.
+ checks++;const plain=(await p.locator('#out .hunt .why').allTextContents()).join(' ');if(!plain.includes('Each square is one value of c')||!plain.includes('ring of 6: its last digits come round the same 6 values forever')||!plain.includes('goes wild: each extra digit takes 5 times as long')){fails++;console.log('FAIL hunt plain words',plain);}
+ checks++;const gl=(await p.locator('#answers .gloss').count())?await p.locator('#answers .gloss').textContent():'';if(!/liar: looks like a ring for many digits, then goes wild/.test(gl.replace(/\s+/g,' '))){fails++;console.log('FAIL glossary',gl);}
+ checks++;if(await p.locator('a[href="https://github.com/connabyss/past-forever#readme"]').count()!==1){fails++;console.log('FAIL no link to the README on the first screen');}
  await p.locator('#out .sq').nth(14).click();
  checks++;const det=await p.locator('#out .pickd').textContent();if(!det.includes('c = 14: ring of 2')){fails++;console.log('FAIL square detail',det);}
  await p.locator('#out .open',{hasText:'Open this loop'}).click();await p.waitForTimeout(600);

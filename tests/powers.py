@@ -6,7 +6,7 @@
    of liars/records4.txt up to 150 digits of calm is right in base 10 (calm for exactly that many digits).
 2. 6th powers: every c below 15,625 either goes wild by its 3rd digit or stays calm for all 7 digits we look at.
 3. 10th powers: no c below 3,125 goes wild in 7 digits.
-4. The table: which even powers up to 26 can lie, as README.md says.
+4. The table: which even powers up to 26 can lie, as liars/README.md says.
 5. The loners of 4th and 8th powers, depths 5 to 60.
 """
 import sys

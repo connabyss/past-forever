@@ -2,7 +2,7 @@
 
 Loop: x = x * x + c from 0. "Calm for k digits" means the last k digits come round in a number of steps with no
 factor 5, at every depth up to k. Only the 5s side can lie, so calm for k digits depends only on c mod 5^k, and
-only c that is 2 or 3 mod 5 can lie at all (see liars/WHY_SMALLEST.md and the README's "Why they lie").
+only c that is 2 or 3 mod 5 can lie at all (see liars/WHY_SMALLEST.md and "Why they lie" in liars/README.md).
 
 Precise words:
 - "c shares d digits with a" means c and a have the same last d digits in base 5, that is, 5^d divides c - a.
@@ -14,7 +14,7 @@ The claim this file tests, for every depth k from 3 to 1000:
   and from depth 5 on, k - 2 can't be raised (some calm c shares exactly k - 2).
 
 What is proved and what is only checked:
-- For c that is 3 mod 5, the proof sketch in the README says calm for k digits means 5^k divides
+- For c that is 3 mod 5, the proof sketch in liars/README.md says calm for k digits means 5^k divides
   f^4(0) - f^2(0) = c^3 (c + 1)^2 (c + 2)(c^2 + 1). c and c + 1 have no factor 5 then, so that is
   "5^k divides (c + 2)(c^2 + 1)", and since -2 and the root of -1 ending in 3 share only 1 digit, c shares at
   least k - 1 digits with one of them. This file checks that formula against the plain ring count.

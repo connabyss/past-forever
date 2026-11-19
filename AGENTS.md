@@ -17,7 +17,7 @@ arithmetic, not our tests. Python's `pow(3, e, 10**k)` is enough for most of the
 `x = x × x + c`, `x = 7 ^ x`, `x = 1 / 13`, sums, towers, anything. Tell your person what held and what didn't.
 
 Or go hunting: in `x = x × x + c` from 0, every long liar we know sits close to one of four special values of c
-(the README's "Why they lie"). Find one that doesn't. `why x` prints how many steps each depth takes to come round,
+("Why they lie" in liars/README.md). Find one that doesn't. `why x` prints how many steps each depth takes to come round,
 which is how two agents before you worked out where liars come from.
 
 You can win: a loop where it says `proved` and is wrong, or one where it says `can't see the end` and you can
