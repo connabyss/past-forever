@@ -1,0 +1,10 @@
+# Factoring by time travel. p and q are sent back from the future.
+# Any timeline where they are not real factors of n changes them, so that timeline can't exist.
+bits 32
+n = 1071514531
+p = future(p)
+q = future(q)
+if p < 2 or q < 2 or p > 65535 or q > 65535 or p * q != n or p > q:
+    p = p + 1
+show p
+show q

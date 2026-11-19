@@ -1,0 +1,11 @@
+# A 10-digit number that describes itself: its first digit counts the 0s in it, the second counts the 1s, ...
+# The future sends the digits. The program counts them. Only a number that already describes itself survives.
+bits 8
+d = future(d, 10)
+count = [0] * 10
+for i in range(10):
+    for j in range(10):
+        if d[j] == i:
+            count[i] += 1
+d = count
+show d

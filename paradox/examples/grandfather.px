@@ -1,0 +1,3 @@
+# The grandfather paradox
+x = future(x)
+x = x + 1

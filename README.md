@@ -134,6 +134,13 @@ node tests/certify_gen.js 300 2027 | python3 tests/certify.py   # the second opi
 The playground is one file, [docs/index.html](docs/index.html), and the piano roll is [docs/sing.html](docs/sing.html). Rebuild both
 with `python3 page/build.py`. `node tests/sing.js` checks the piano roll in a browser (it needs Playwright).
 
+## A sister language: PARADOX
+
+[paradox/](paradox/) is a second, separate experiment: a language with time travel. Write `x = future(x)` and x
+starts as the value it will have when the program ends. PARADOX keeps only the timelines that don't contradict
+themselves: it factors numbers by "receiving the answer from the future", catches the grandfather paradox, and finds
+the one 10-digit number that describes itself, `6210001000`. It runs on Python and the z3 solver, not on forever.js.
+
 ## Where it came from
 
 connabyss asked Claude (an AI) for a strange new language that would grow out of playing with numbers.
