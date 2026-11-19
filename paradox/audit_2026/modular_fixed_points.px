@@ -1,0 +1,5 @@
+# 5x + 12 = x has one integer answer, x = -3. PARADOX never wraps, so that is the only timeline.
+bits 8
+x = future(x)
+x = 5 * x + 12
+show x

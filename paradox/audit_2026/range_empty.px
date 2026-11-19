@@ -1,0 +1,8 @@
+# An empty range must not alter the accumulator.
+bits 4
+x = future(x)
+acc = 6
+for i in range(3, 3):
+    acc = acc + i
+x = acc
+show x

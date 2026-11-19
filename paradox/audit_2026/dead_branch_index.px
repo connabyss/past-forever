@@ -1,0 +1,8 @@
+# d[5] is off the end, but only the x == 0 timeline reaches it. That timeline crashes; x = 3 still works.
+bits 4
+x = future(x)
+d = [3, 3]
+if x == 0:
+    y = d[5]
+x = d[0]
+show x

@@ -1,5 +1,5 @@
 # Which x has x * x = 1522756? The future sends x; any wrong x is changed, so its timeline can't exist.
-# Expect 1234, and three surprises: 64-bit numbers wrap around, and the time machine finds those timelines too.
+# Arithmetic is exact, like Python: x * x never wraps around, so only the true answer survives.
 x = future(x)
 if x * x != 1522756 or x < 0:
     x = 0 - x - 1

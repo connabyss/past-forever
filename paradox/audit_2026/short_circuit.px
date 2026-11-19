@@ -1,0 +1,8 @@
+# `or` stops at the first true part: when x is 0, 12 // x is never worked out, so x = 0 is consistent.
+bits 4
+x = future(x)
+if x == 0 or 12 // x == 99:
+    x = x
+else:
+    x = x + 1
+show x

@@ -1,0 +1,6 @@
+# Python-style negative indexing: d[-1] is the final future-sent element.
+bits 4
+d = future(d, 2)
+x = d[-1]
+show d
+show x

@@ -1,0 +1,13 @@
+# FIXED: range takes start, stop and step exactly as Python does. Original report:
+#
+# BUG: a third argument to range is not a step here. It is read as the upper bound.
+# This loop says "count 0, 2, 4" and ends with y = 2, so the timeline where y == 3 does not exist.
+# Silently: no error, just a wrong answer.
+bits 8
+x = future(x)
+y = 0
+for i in range(0, 6, 2):
+    y = y + 1
+if y != 3:
+    x = x + 1
+show y

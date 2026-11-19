@@ -1,0 +1,18 @@
+# FIXED: PARADOX now does exact arithmetic (values never wrap), so this returns the true four:
+# 0, 1, 9376, 90625. What follows is how it used to go wrong, kept as a regression check.
+#
+# The same question squeezed into 32 bits: a wrong answer that looks exactly like a right one.
+#
+# 90625 * 90625 = 8212890625 does not fit in 32 bits, so the program being solved is not the
+# question this file appears to ask. It prints a confident "Exactly 4": 0, 1, 9376, and -87231.
+# The true answers mod 10^5 are 0, 1, 9376, 90625. The real one is gone and a negative ghost
+# that is not a fixed point of squaring at all has taken its place.
+#
+# Nothing warns you. Here the width has to beat the square twice over: x * x must stay below
+# 2^(W - 1), because `%` is signed remainder and a square above that is a negative number.
+# fixed_points_one_bit_short.px is the same failure at a width where it is much harder to see.
+bits 32
+x = future(x)
+if x * x % 100000 != x:
+    x = x + 1
+show x

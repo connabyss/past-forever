@@ -1,0 +1,15 @@
+# The end of an infinite loop, without running the loop.
+#
+# In the repo this folder lives in, past-forever runs
+#     x = 5; forever: x = x * x
+# and the digits on the right freeze one at a time, giving ...918212890625. That number is a
+# fixed point of squaring: 890625 * 890625 ends in 890625, and so does every longer piece of it.
+# examples/zero_twins.txt has the other one, ...081787109376.
+#
+# So instead of iterating, ask the future for a number that is already its own square mod 10^6.
+# The four answers mod 10^6 are exactly 0, 1 and those two endings. No loop, four timelines.
+bits 44
+x = future(x)
+if x * x % 1000000 != x:
+    x = x + 1
+show x

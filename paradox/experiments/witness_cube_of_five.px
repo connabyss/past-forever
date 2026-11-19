@@ -1,0 +1,10 @@
+# The same three lines, one constant changed: this claim is false, and the future hands over
+# the witness instead of a proof.
+#
+#   consistent  <=>  a * a * a % 256 == 5
+# Exactly one 8-bit number cubes to 5 in 8-bit arithmetic. The program never searches for it.
+bits 8
+a = future(a)
+if a * a * a % 256 != 5:
+    a = a + 1
+show a

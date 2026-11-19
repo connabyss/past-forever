@@ -1,0 +1,5 @@
+# In 4-bit messages x | 1 has exactly eight fixed points (all odd values).
+bits 4
+x = future(x)
+x = x | 1
+show x

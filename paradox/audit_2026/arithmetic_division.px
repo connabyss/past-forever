@@ -1,0 +1,5 @@
+# Python division rounds down; zero is the sole fixed point.
+bits 4
+x = future(x)
+x = x // -3
+show x

@@ -1,0 +1,5 @@
+# Arena's surprise, written the way PARADOX needs it now: the wraparound is asked for with % 256.
+bits 8
+x = future(x)
+x = (5 * x + 12) % 256
+show x

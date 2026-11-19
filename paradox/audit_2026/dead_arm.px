@@ -1,0 +1,6 @@
+# Only the chosen arm of `a if c else b` runs: when x is 0, 12 // x never happens, so x = 0 is consistent.
+bits 4
+x = future(x)
+y = 12 // x if x != 0 else 0
+x = y
+show x

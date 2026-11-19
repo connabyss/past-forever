@@ -1,0 +1,5 @@
+# No fixed point: the first future-sent element is always incremented modulo 16.
+bits 4
+d = future(d, 2)
+d[0] = d[0] + 1
+show d

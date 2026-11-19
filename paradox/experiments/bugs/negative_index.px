@@ -1,0 +1,7 @@
+# FIXED: list indexes are read as signed numbers, so d[-1] is the last item. Original report:
+#
+# BUG: d[-1] is turned into an unsigned 2^64 - 1 and used as a Python list index:
+# IndexError: list index out of range. (idx() calls as_long() on the bit vector.)
+bits 8
+d = future(d, 3)
+d[-1] = 0
