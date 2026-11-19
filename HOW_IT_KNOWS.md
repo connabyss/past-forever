@@ -23,7 +23,7 @@ the rest are checked by the robot referee only.
 - A tower on 2, 5, 10 or any other whole number from 2 up, like `x = 2 ^ x` from an ordinary whole number: every
   step is a whole number and they grow, so soon every top is bigger than any number of digits you ask for. Then the
   same lock-one-more rule holds, and it settles. **(2nd)**
-- A loop whose `if`s only test its last digits (`is even`, `is odd`, `ends in …`): the last few digits of every name
+- A loop whose `if`s only test its last digits (`is even`, `is odd`, `ends in …`, mixed with `and`, `or`, `not`): the last few digits of every name
   then only depend on their last few digits, so they must come round. If a name's digits keep going round, it never
   settles. If the digits the tests read freeze, every test gives the same answer forever, and the loop is a plain one.
 - `y = 10 × y + x` (or 20, 100, any multiple of 10) with x settling: each step locks one more digit, and the answer
@@ -39,13 +39,21 @@ the rest are checked by the robot referee only.
   extra parts times a number ending in 0, like `x = 3 ^ x − 10 × x`.
 - The last digits go round a ring that never stops: proved never to settle. **(2nd)** for one-name polynomial loops
   and `x = x ^ x`.
-- The ring's length, for a one-name polynomial loop like `x = x × x + 1`: if the rule's slopes at the ring's last
-  digits multiply to a number ending in 0, the answer says `And that is proved` and names the ring. Doing the rule
-  once round the ring is then a step whose slope ends in 0, so, as in the rule above, it locks one more digit every
-  round: there is exactly one ring of that length, at every depth, and x falls into it. Otherwise the answer says
-  `As far as I can see`, because a liar can keep a ring for 46 digits and then go wild. **(2nd)** The separate checker
+- The ring's length, for a polynomial rule like `x = x × x + 1`, whose other names are fixed or proved to settle
+  (whole numbers, fractions or endless numbers). Once their last digits freeze, x's last digits follow one fixed
+  rule, and the answer says `And that is proved` and names the ring when either:
+  - the rule's slopes at the ring's last digits multiply to a number ending in 0. Doing the rule once round the
+    ring is then a step whose slope ends in 0, so, as in the rule above, it locks one more digit every round: there
+    is exactly one ring of that length, at every depth, and x falls into it; or
+  - doing the rule N times gives back x itself, as algebra, whatever the other names are, like
+    `y = 2 × x − y` (2 × x − (2 × x − y) = y). Then every depth comes back every N steps, and not sooner,
+    because the last digit needs all N.
+
+  Otherwise the answer says `As far as I can see`, because a liar can keep a ring for 46 digits and then go wild.
+  Known gap: a ring that only comes back exactly because of what the endless number is, like `y = x − y × x` with
+  x = …212890625 (x × x = x), still says `As far as I can see`. **(2nd)** The separate checker
   ([tests/certify.py](tests/certify.py)) finds its own certificate for every ring Past Forever calls proved in its
-  random loops, and [tests/run.js](tests/run.js) checks every ring it proves for `x^p + c` (p 2 to 5, c from −20 to
+  random loops, one-name and leaning on a settled endless number (`certify_gen.js rings2`), and [tests/run.js](tests/run.js) checks every ring it proves for `x^p + c` (p 2 to 5, c from −20 to
   60) against plain arithmetic on the last 60 digits.
 - None of these fit: `can't see the end`.
 
