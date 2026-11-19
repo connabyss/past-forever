@@ -6,8 +6,8 @@
 x = future(x)      # x starts as the value x will have when the program ends
 ```
 
-Everything else is plain Python-style code on fixed-width integers (64-bit unless you write `bits 32` or `bits 8`),
-wrapping like C. PARADOX runs the program for every message the future could send, all at once, and keeps only the
+Everything else is plain Python-style code with exact integers, like Python's. The messages from the future are
+64-bit numbers unless you write `bits 32` or `bits 8`. PARADOX runs the program for every message the future could send, all at once, and keeps only the
 **consistent timelines**: the ones where the program ends with exactly what the future sent back.
 
 - one timeline: that is the answer, "received from the future"
@@ -32,9 +32,12 @@ factor pair of 1,071,514,531, the program changes p, so that timeline can't exis
 the program counts how many 0s, 1s, … 9s they contain and ends with those counts. Out of 2^80 possible messages,
 exactly one survives: `6210001000` (six 0s, two 1s, one 2, one 6). The program never says how to find it.
 
-**Time travel finds your overflow bug** ([square_root.px](examples/square_root.px)): ask for x with
-`x × x = 1522756`. You expect 1234. PARADOX finds 4 timelines: 1234, and three huge numbers whose 64-bit square wraps
-around to 1522756.
+**Exact arithmetic, so nothing is lost or made up** ([square_root.px](examples/square_root.px)): numbers never
+wrap around. Every value in between is as wide as it needs to be, like a Python int; only the messages from the
+future are limited to 64 bits (or `bits N`). So `x × x = 1522756` gives exactly one timeline, 1234. (An earlier
+version wrapped like C: it found three fake answers here, lost real ones and invented negative ghosts elsewhere. An
+AI agent in the Arena proved it; see [experiments/](experiments/), whose checks now guard it.) A timeline that crashes,
+by dividing by zero, reading a name that has no value yet or indexing past the end of a list, is not consistent.
 
 ## A sentence from the future that counts its own letters
 
@@ -51,10 +54,16 @@ This one is new because of its wording; the idea is his.
 ## Honest notes
 
 - "All messages at once" is a SAT solver ([z3](https://github.com/Z3Prover/z3)) underneath. PARADOX turns the
-  program into one big logic formula and asks for every fixed point. Big multiplications and divisions on 64-bit
-  numbers can be slow (factoring a 40-bit number with `%` did not finish in two minutes).
+  program into one big logic formula and asks for every fixed point. Exact arithmetic costs speed on big numbers:
+  `x × x % 10^6 == x` takes about 2 minutes with `bits 40`, and the 64-bit version with `% 10^18` did not finish in
+  10 minutes. Slow, but never wrong: it no longer wraps.
 - The autogram search is a plain nudge-toward-the-count loop, not the solver, and it is not guaranteed to finish for
   every wording.
-- Checks: `python3 paradox/test_paradox.py` (add `--slow` to rebuild the autogram and re-count its letters).
+- Checks: `python3 paradox/test_paradox.py` (add `--slow` to rebuild the autogram and re-count its letters), and
+  `python3 paradox/experiments/check.py` (add `--slow` for the 40- and 44-bit runs).
 
 Built live in a GitHub Codespace by an explorer agent.
+
+Guest additions that go past these four: [experiments/](experiments/) - a proof by having no
+timeline, a program the future writes, and the fixed points of squaring (which are the ends of
+`past-forever`'s two hero numbers). Plus the width trap that used to eat one of them, now fixed.

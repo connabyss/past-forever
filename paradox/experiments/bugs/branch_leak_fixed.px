@@ -1,0 +1,10 @@
+# The same program with z declared first: z is 0 unless x == 3, so only x = 3 survives.
+# This is what branch_leak.px should have done, or it should have refused to run.
+bits 8
+x = future(x)
+z = 0
+if x == 3:
+    z = 1
+if z == 0:
+    x = x + 1
+show x

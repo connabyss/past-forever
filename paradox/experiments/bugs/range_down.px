@@ -1,0 +1,12 @@
+# FIXED: range takes start, stop and step exactly as Python does. Original report:
+#
+# BUG: a counting-down range crashes with AttributeError: 'UnaryOp' object has no attribute 'value'
+# (paradox.py line 99 reads args[-1].value, and -1 is a UnaryOp, not a Constant).
+bits 8
+x = future(x)
+y = 0
+for i in range(6, 0, -1):
+    y = y + 1
+if y != 6:
+    x = x + 1
+show y
