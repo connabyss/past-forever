@@ -174,6 +174,16 @@ is(out('x = 7\nforever:\n  if x ends in 7 or x ends in 1: x = 3 × x\n  else: x 
 // against plain iteration.
 is(out('x = 8\ny = (0 − 9)\nforever:\n  x = 5 + 10 × y + 2 × y × y\n  y = 5 + 10 × y × y\nshow 30 digits of x'), '…411752665613729308205119632605', 'a 5 underneath that cancels: no crash');
 is(out('x = 1\ny = (0 − 5)\nforever:\n  x = (0 − 9) + (0 − 1) × y + (0 − 10) × y × y\n  y = 5 + (0 − 10) × x + 4 × y × y\nshow 30 digits of x'), '…137439875059769145678143241596', 'the same crash, in a loop where y reads x');
+// blind breaker agents (2026-11-19). 1: a = a × a after forever doubles the power of forever every step; at 2^1024
+// it became forever^Infinity, Infinity × 2 = Infinity looked like a loop at rest, and a = b said yes. The top of
+// that climb is forever ^ forever, which the language can't write: it must say so, never print Infinity.
+{ const t = out('count a = 0\nforever: a = a + 1\nforever: a = a × a\nshow a\ncount b = a\nforever: b = b × b\nshow a = b');
+  is(t.includes('Infinity') || t.includes('yes'), false, 'a count whose power of forever keeps doubling is not called settled: ' + t); }
+has(F.text('count a = 0\nforever: a = a + 1\nforever: a = a × a\nwhy a'), 'the top of that climb is forever ^ forever', 'and it says why');
+is(out('count a = 0\nforever: a = a + 1\nrepeat 10: a = a × a\nshow a'), 'forever^1024', 'a power of forever that fits is still exact');
+is(out('count a = 0\nforever: a = a + 1\nrepeat 1100: a = a × a\nshow a').startsWith('stopped: a count past forever got a power of forever too big'), true, 'outside a forever loop it stops with a clear message');
+// 2: a flag first set inside the loop (no value before it) crashed the watcher.
+is(out('n = 0\nforever:\n  n = n + 1\n  if n ends in 7: found = yes\nshow found'), 'yes  (found at step 7)', 'a flag with no start value, set inside the loop');
 // Copilot (2026-11-18): c = 8 looks settled in its last digit (0, 8, 2, 2…) but its last 2 digits go round 72, 92.
 is(out('x = 0\nforever: x = x × x + 8\nshow x'), 'never settles', 'x × x + 8 is not fooled by its calm last digit');
 // Copilot (2026-11-18): repeat 10 ^ 64 had no time limit and froze the page. It now stops with a clear message.
