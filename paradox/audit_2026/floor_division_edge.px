@@ -1,0 +1,8 @@
+# -8 // 3 is -3 (Python rounds down). Working it out needs -9 for a moment, one more than 4 bits hold.
+bits 4
+x = future(x)
+if x // 3 == -3:
+    x = -8
+else:
+    x = x + 1
+show x

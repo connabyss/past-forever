@@ -88,7 +88,8 @@ def floordiv(a, b):                                         # Python's //: round
         if a.lo >= 0: x, y, _ = pair(a, b, 0, 0); return V(z3.UDiv(x, y), lo, hi)
     else:
         m = max(abs(a.lo), abs(a.hi)); lo, hi = -m, m
-    x, y, _ = pair(a, b, lo, hi)
+    B = max(abs(b.lo), abs(b.hi))                           # x - x % y can step up to |y| - 1 past x's own range:
+    x, y, _ = pair(a, b, min(lo, a.lo - B), max(hi, a.hi + B))   # make room, or -8 // 3 wraps to 2 (needs -9)
     return V((x - x % y) / y, lo, hi)                       # exact division of a multiple: Python's floor
 def bitop(op, a, b):
     if a.lo >= 0 and b.lo >= 0:
@@ -112,6 +113,15 @@ class Prog:
         self.fns = {}; self.futures = {}; self.shows = []; self.prefer = None
         self.guards = []; self.live = z3.BoolVal(True)
     def crash_unless(self, cond): self.guards.append(z3.Implies(self.live, cond))
+    def maybe(self, run, live):
+        # Run code that only some timelines reach. A name with no value or an index off the end there is not an error
+        # for the whole program: those timelines crash (can't be consistent) and the rest go on. None = never survives.
+        self.live = live = z3.simplify(live)
+        if z3.is_false(live): return None
+        try: return run()
+        except (NameError, IndexError):
+            if z3.is_true(live): raise                     # every timeline gets here: a plain error, as before
+            self.live = live; self.crash_unless(z3.BoolVal(False)); return None
     def read(self, env, name):
         if name not in env: raise NameError(f'{name} is used before it ever gets a value')
         v, defined = env[name]
@@ -149,11 +159,21 @@ class Prog:
             for op, rt in zip(e.ops, e.comparators):
                 b = self.val(rt, env); out.append(cmp(type(op), a, b)); a = b
             return z3.And(*out) if len(out) > 1 else out[0]
-        if isinstance(e, ast.BoolOp):
-            vs = [truth(self.val(v, env)) for v in e.values]
-            return z3.And(*vs) if isinstance(e.op, ast.And) else z3.Or(*vs)
-        if isinstance(e, ast.IfExp):
-            return ite(truth(self.val(e.test, env)), self.val(e.body, env), self.val(e.orelse, env))
+        if isinstance(e, ast.BoolOp):                      # `and` / `or` stop early: later parts only run (and crash) when reached
+            outer = self.live; vs = []; reach = outer; is_and = isinstance(e.op, ast.And)
+            for v in e.values:
+                t = self.maybe(lambda: truth(self.val(v, env)), reach)
+                if t is None: t = z3.BoolVal(is_and)      # never reached alive: its value can't matter
+                vs.append(t); reach = z3.And(reach, t if is_and else z3.Not(t))
+            self.live = outer
+            return z3.And(*vs) if is_and else z3.Or(*vs)
+        if isinstance(e, ast.IfExp):                       # only the chosen arm runs, so only it can crash
+            c = truth(self.val(e.test, env)); outer = self.live
+            a = self.maybe(lambda: self.val(e.body, env), z3.And(outer, c))
+            b = self.maybe(lambda: self.val(e.orelse, env), z3.And(outer, z3.Not(c)))
+            self.live = outer
+            if a is None and b is None: self.crash_unless(z3.BoolVal(False)); return C(0)   # neither arm survives
+            return b if a is None else a if b is None else ite(c, a, b)
         if isinstance(e, ast.Call):
             f = e.func.id
             if f == 'future':
@@ -186,29 +206,34 @@ class Prog:
         env[name] = (v, d)
     def block(self, stmts, env, st):
         for s in stmts:
-            live = z3.simplify(z3.And(st['live'], z3.Not(st['done']))); self.live = live
-            if isinstance(s, ast.Return):
-                st['ret'] = ite(live, self.val(s.value, env), st['ret']); st['done'] = z3.Or(st['done'], live)
-            elif isinstance(s, (ast.Assign, ast.AugAssign)):
-                t = s.targets[0] if isinstance(s, ast.Assign) else s.target
-                v = self.val(s.value if isinstance(s, ast.Assign) else ast.BinOp(t, s.op, s.value), env)
-                if isinstance(t, ast.Subscript):
-                    lst = list(self.read(env, t.value.id)); i = self.idx(t.slice, env)
-                    if not -len(lst) <= i < len(lst): raise IndexError(f'index {i} is outside a list of {len(lst)}')
-                    lst[i] = ite(live, v, lst[i]); env[t.value.id] = (lst, env[t.value.id][1])
-                else: self.assign(env, t.id, v, live)
-            elif isinstance(s, ast.If):
-                c = truth(self.val(s.test, env)); outer = st['live']
+            live = z3.And(st['live'], z3.Not(st['done']))
+            self.maybe(lambda: self.stmt(s, env, st), live)
+    def stmt(self, s, env, st):
+        live = self.live
+        if isinstance(s, ast.Return):
+            st['ret'] = ite(live, self.val(s.value, env), st['ret']); st['done'] = z3.Or(st['done'], live)
+        elif isinstance(s, (ast.Assign, ast.AugAssign)):
+            t = s.targets[0] if isinstance(s, ast.Assign) else s.target
+            v = self.val(s.value if isinstance(s, ast.Assign) else ast.BinOp(t, s.op, s.value), env)
+            if isinstance(t, ast.Subscript):
+                lst = list(self.read(env, t.value.id)); i = self.idx(t.slice, env)
+                if not -len(lst) <= i < len(lst): raise IndexError(f'index {i} is outside a list of {len(lst)}')
+                lst[i] = ite(live, v, lst[i]); env[t.value.id] = (lst, env[t.value.id][1])
+            else: self.assign(env, t.id, v, live)
+        elif isinstance(s, ast.If):
+            c = truth(self.val(s.test, env)); outer = st['live']
+            try:
                 st['live'] = z3.And(outer, c); self.block(s.body, env, st)
                 st['live'] = z3.And(outer, z3.Not(c)); self.block(s.orelse, env, st)
-                st['live'] = outer
-            elif isinstance(s, ast.For):
-                if not (isinstance(s.iter, ast.Call) and s.iter.func.id == 'range'):
-                    raise SyntaxError('for loops must be over range(...) with fixed bounds')
-                for i in range(*[self.idx(a, env) for a in s.iter.args]):   # start, stop and step, exactly as Python
-                    env[s.target.id] = (C(i), z3.BoolVal(True)); self.block(s.body, env, st)
-            elif isinstance(s, (ast.Expr, ast.Pass)): pass
-            else: raise SyntaxError('PARADOX cannot run: ' + type(s).__name__)
+            finally: st['live'] = outer
+        elif isinstance(s, ast.For):
+            if not (isinstance(s.iter, ast.Call) and s.iter.func.id == 'range'):
+                raise SyntaxError('for loops must be over range(...) with fixed bounds')
+            for i in range(*[self.idx(a, env) for a in s.iter.args]):   # start, stop and step, exactly as Python
+                self.live = z3.simplify(z3.And(st['live'], z3.Not(st['done'])))   # a skipped loop leaves its name alone
+                self.assign(env, s.target.id, C(i), self.live); self.block(s.body, env, st)
+        elif isinstance(s, (ast.Expr, ast.Pass)): pass
+        else: raise SyntaxError('PARADOX cannot run: ' + type(s).__name__)
 
 
 def num(m, v): return m.eval(v.e, True).as_signed_long()

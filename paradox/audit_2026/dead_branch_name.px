@@ -1,0 +1,7 @@
+# zz never gets a value, but only the x == 0 timeline reads it. That timeline crashes; x = 2 still works.
+bits 4
+x = future(x)
+if x == 0:
+    y = zz
+x = 2
+show x

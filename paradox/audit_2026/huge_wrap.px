@@ -1,4 +1,4 @@
-# This enormous literal is 255 modulo 256, so x -> x-1 has no fixed point.
+# This enormous literal is added exactly (PARADOX never wraps), so x -> x + huge has no fixed point.
 bits 8
 x = future(x)
 x = x + 340282366920938463463374607431768211455

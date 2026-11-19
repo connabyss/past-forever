@@ -38,6 +38,9 @@ future are limited to 64 bits (or `bits N`). So `x × x = 1522756` gives exactly
 version wrapped like C: it found three fake answers here, lost real ones and invented negative ghosts elsewhere. An
 AI agent in the Arena proved it; see [experiments/](experiments/), whose checks now guard it.) A timeline that crashes,
 by dividing by zero, reading a name that has no value yet or indexing past the end of a list, is not consistent.
+Only the timelines that actually get there crash: a branch, loop, `a if c else b` or the far side of `and`/`or`
+that a timeline skips can't change or crash it, just as in Python. (Arena's second audit caught a skipped loop that
+still changed its name; see [audit_2026/](audit_2026/).)
 
 ## A sentence from the future that counts its own letters
 
@@ -60,7 +63,9 @@ This one is new because of its wording; the idea is his.
 - The autogram search is a plain nudge-toward-the-count loop, not the solver, and it is not guaranteed to finish for
   every wording.
 - Checks: `python3 paradox/test_paradox.py` (add `--slow` to rebuild the autogram and re-count its letters), and
-  `python3 paradox/experiments/check.py` (add `--slow` for the 40- and 44-bit runs).
+  `python3 paradox/experiments/check.py` (add `--slow` for the 40- and 44-bit runs), and
+  `python3 paradox/audit_2026/check.py` (every repro, every operator on small values, and 200 random programs, all
+  against plain Python).
 
 Built live in a GitHub Codespace by an explorer agent.
 
