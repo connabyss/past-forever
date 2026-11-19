@@ -14,6 +14,10 @@ show x
 
 5, 25, 625, 390625… squared forever, and the digits on the right freeze. **Check it on any calculator:**
 `90625 × 90625 = 8212890625`, which ends in `90625` again. Every digit you keep does the same. It is its own square.
+Numbers whose digits run on forever to the left are old maths, the 10-adic numbers (Hensel, 1897). Past Forever lets
+you write loops in them.
+
+<p align="center"><img src="media/hero.gif" width="460" alt="5 squared again and again: the digits on the right freeze one or more at a time, and Past Forever gives the final ending ...918212890625"></p>
 
 **Try it in 10 seconds** (Node 18+, no dependencies):
 
@@ -29,7 +33,7 @@ add, the more zeros), and the last digits of [Graham's number](GUIDE.md#the-last
 **Two numbers, neither one zero, that multiply to exactly 0.** Run a second loop, `y = 6` then
 `forever: y = y ^ 5`, and it settles to `…081787109376`. Now `show x × y` prints `0`, and `show x + y` prints
 `1`. Check the last 4 digits by hand: `0625 × 9376 = 5860000` (four zeros) and `0625 + 9376 = 10001`. Take more
-digits and you get more zeros. In these numbers, 0 has two non-zero factors (`node cli.js examples/zero_twins.txt`, or tap Wonder 2 in
+digits and you get more zeros. In these numbers, 0 has two non-zero factors (`node cli.js examples/zero_twins.txt`, or tap the second wonder in
 the [playground](https://connabyss.github.io/past-forever/)).
 
 **What it can and can't do.** Past Forever answers loops of plain arithmetic on one or a few numbers: adding,
@@ -37,12 +41,18 @@ multiplying, fractions, powers, tests like `is even`. For each it either proves 
 settles, or says `can't see the end`. It does not solve any infinite program you could write, and it tells you
 when it can't.
 
+**Words you'll see.**
+- **settles**: the digits on the right freeze, one more after another, so the loop has a finished endless answer.
+- **ring of N**: the last digits keep coming round the same N values forever, so it never settles.
+- **goes wild**: each extra digit you look at takes 5 times as long to come round, so it never settles.
+- **liar**: looks like a ring for many digits, then goes wild.
+
 **Found with it: loops that lie.** Run `x = x × x + c` from 0. Most choices of c either settle or go wild fast. A
 **liar** looks settled for a while: its last digits keep coming round in a small ring, digit after digit, and then
 one more digit breaks the pattern and it goes wild. The record liars, each calm for more digits than every smaller
 c, go 2, 7, 57, 182, 1068, 14557, … and the list runs to 1000 digits of calm.
 
-Check one yourself, in plain Python: c = `38533618339183472936432` stays calm for 35 digits.
+<details><summary>Check one yourself, in plain Python: c = <code>38533618339183472936432</code> stays calm for 35 digits</summary>
 
 ```python
 c = 38533618339183472936432
@@ -54,7 +64,9 @@ for k in (34, 35, 36, 37):                    # look at the last k digits
 # 34: 8,  35: 8,  then 36: 40,  37: 200, and ×5 for every digit after that
 ```
 
-Why they lie, the four "magnets" every liar hugs, liars of other powers, and how the records were found:
+</details>
+
+Why they lie, the four special numbers ("magnets") every liar sits close to, liars of other powers, and how the records were found:
 [liars/README.md](liars/README.md).
 
 <p align="center"><a href="https://connabyss.github.io/past-forever/"><img src="media/try-it-now.svg" width="300" alt="Try it now: open the playground in your browser"></a></p>
@@ -88,16 +100,10 @@ Every value that comes out of a forever loop is one of three things:
 Searches work the same way. "Does some square end in 7?" answers `no  (proved)` after looking at infinitely many
 squares. Counts can go past forever too: count to forever, add one, and you get `forever + 1`.
 
-**Words you'll see.**
-- **settles**: the digits on the right freeze, one more after another, so the loop has a finished endless answer.
-- **ring of N**: the last digits keep coming round the same N values forever, so it never settles.
-- **goes wild**: each extra digit you look at takes 5 times as long to come round, so it never settles.
-- **liar**: looks like a ring for many digits, then goes wild.
-
 **A word on `proved`.** It means proved by the engine's own hand-written rules, listed in
 [HOW_IT_KNOWS.md](HOW_IT_KNOWS.md). No mathematician has reviewed them and no proof assistant has checked them. A
 separate checker that shares no code with the engine proves many answers a second time on every build, and a robot
-referee tries thousands of random loops: strong checks, not proofs. HOW_IT_KNOWS.md marks which answers get which.
+referee ([tests/referee.js](tests/referee.js)) tries thousands of random loops against plain arithmetic: strong checks, not proofs. HOW_IT_KNOWS.md marks which answers get which.
 
 ## Break it
 
