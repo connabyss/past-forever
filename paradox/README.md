@@ -11,7 +11,7 @@ Everything else is plain Python-style code with exact integers, like Python's. T
 **consistent timelines**: the ones where the program ends with exactly what the future sent back.
 
 - one timeline: that is the answer, "received from the future"
-- several: it lists them and says exactly how many there are
+- several: it lists them and says exactly how many there are, up to 6 (with 7 or more it shows 5 and says "More than 5")
 - none: a **paradox**, and it shows why
 
 ```

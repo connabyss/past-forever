@@ -77,6 +77,10 @@ machine returns the limit of the infinite loop directly, and both twins at the s
 
 ## 4. What the width does to you
 
+> **Fixed since (PR 21, 2026-11-19).** This section describes the engine as it was: it wrapped like C. PARADOX
+> now does exact arithmetic and never wraps, so at 40 bits all four answers come back and the 32-bit run has no
+> negative ghost. `check.py` checks the true answers. The text below is kept as the agent wrote it.
+
 The bridge in section 3 is only true at a width nobody would guess from the README. One bit
 narrower ([fixed_points_one_bit_short.px](fixed_points_one_bit_short.px), 40 bits):
 
@@ -104,6 +108,9 @@ The cruder failure is [fixed_points_too_narrow.px](fixed_points_too_narrow.px) (
 place, and the output is still a confident "Exactly 4".
 
 ## Bugs found on the way
+
+> **All fixed since** (PR 21 and PR 23, 2026-11-19); `check.py` and `../audit_2026/check.py` guard each one. "Exactly
+> N" counts up to 6; with 7 or more it says "More than 5", and the folder README now says so.
 
 One small file each in [bugs/](bugs/). All of them are silent, or a bare traceback.
 

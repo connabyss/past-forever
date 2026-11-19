@@ -1,0 +1,8 @@
+# future(x, 2) and future(x1) are different messages. x ends as [0, 1] and x1 as 2: one timeline.
+bits 4
+x = future(x, 2)
+x1 = future(x1)
+x = [0, 1]
+x1 = 2
+show x
+show x1

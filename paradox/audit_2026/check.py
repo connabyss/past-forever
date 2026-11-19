@@ -113,6 +113,20 @@ for case, want in [("dead_arm.px", [0]), ("short_circuit.px", [0]), ("dead_branc
     r = run(case); got = timeline_values(r.stdout)
     ok &= check(f"same class: {case}", r.returncode == 0 and plain(src) == want and sorted(got) == want, f"brute force={plain(src)}; solver={got}; err={r.stderr[-200:]}")
 
+# An outside review (2026-11-19). Each of these was wrong before its fix.
+r = run("name_clash.px")
+ok &= check("future(x, 2) and future(x1) are separate messages", r.returncode == 0 and "Exactly 1 consistent timeline" in r.stdout and "timeline 1: x = 01, x1 = 2" in r.stdout, r.stdout[-300:] + r.stderr[-300:])
+r = run("list_length.px")
+ok &= check("a list that ends shorter than it was sent is never consistent", r.returncode == 0 and "PARADOX! No consistent timeline exists" in r.stdout, r.stdout[-300:] + r.stderr[-300:])
+r = run("shape_branch.px")
+ok &= check("a list that changes length in only some timelines is refused, not cut short", r.returncode != 0 and "same shape in every timeline" in r.stderr, r.stdout[-300:] + r.stderr[-300:])
+chain_src = "\n".join(l for l in (HERE / "chained_compare.px").read_text().splitlines() if not l.startswith(("bits", "show", "#")))
+r = run("chained_compare.px")
+ok &= check("a < b < c stops at the first false, like Python", r.returncode == 0 and plain(chain_src) == [0] and timeline_values(r.stdout) == [0], f"brute force={plain(chain_src)}; solver={timeline_values(r.stdout)}")
+six = [x for x in range(-4, 4) if (x + 1 if x in (0, 1) else x) == x]
+r = run("exactly_six.px")
+ok &= check("Exactly 6 lists all 6", r.returncode == 0 and len(six) == 6 and "Exactly 6 consistent timelines" in r.stdout and sorted(timeline_values(r.stdout)) == six, f"brute force={six}; shown={timeline_values(r.stdout)}")
+
 # Huge literal: added exactly, so x + huge is never x.
 huge_expected = [x for x in range(-128, 128) if x + 340282366920938463463374607431768211455 == x]
 r = run("huge_wrap.px")

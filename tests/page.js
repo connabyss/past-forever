@@ -105,4 +105,4 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
    checks++;if((await q.locator('#tcount').textContent())!=='Wonder 1 of 7'){fails++;console.log('FAIL bad wonder number');}
    await q.close(); }
  checks++;if(errs.length){fails++;console.log('FAIL page errors',errs);}
- console.log(fails?('FAILED '+fails+' of '+checks):('ok: '+checks+' page checks'));await b.close();})();
+ console.log(fails?('FAILED '+fails+' of '+checks):('ok: '+checks+' page checks'));await b.close();process.exitCode=fails?1:0;})().catch(e=>{console.log('FAILED: page.js broke:',e.message);process.exit(1);});

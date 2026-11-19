@@ -472,6 +472,8 @@ def main():
             verdict, val, proof = certify(L)
         key = f'{pf:8s}/ {verdict}'
         tally[key] = tally.get(key, 0) + 1
+        if out.startswith('crash'):
+            problems.append((L['src'], out, 'ENGINE CRASHED'))
         examples.setdefault(key, (L['src'], out[:90], proof))
         if (pf == 'never' and verdict == 'SETTLES') or (pf == 'settles' and verdict == 'NEVER'):
             problems.append((L['src'], out, proof))
@@ -509,12 +511,17 @@ def main():
     print('disagreements:', len(problems))
     for p in problems[:5]:
         print('  ', p)
+    crashed = sum(1 for p in problems if p[2] == 'ENGINE CRASHED')
     if not problems and unproved:
         print('INCONCLUSIVE: no disagreement, but', unproved, 'answers have no independent certificate')
+    if total == 0:
+        print('NOTHING CHECKED: no loops came in (did the generator fail?)')
+    if crashed:
+        print('ENGINE CRASHED on', crashed, 'loops: a crash is a bug, not an answer')
     if len(sys.argv) > 1:
         with open(sys.argv[1], 'w', encoding='utf-8') as fh:
             json.dump({'tally': tally, 'problems': problems, 'examples': examples}, fh, indent=1)
-    sys.exit(1 if problems or unproved else 0)   # CI fails on a disagreement or on any answer left without a certificate
+    sys.exit(1 if problems or unproved or total == 0 or crashed else 0)   # CI fails on a disagreement, an answer left without a certificate, no input, or an engine crash
 
 
 if __name__ == '__main__':

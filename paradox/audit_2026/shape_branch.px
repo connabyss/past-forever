@@ -1,0 +1,8 @@
+# A list that is one length in one branch and another length in the other: PARADOX says it can't, instead of guessing.
+bits 4
+x = future(x)
+d = [1, 2]
+if x == 0:
+    d = [1]
+x = d[0]
+show x

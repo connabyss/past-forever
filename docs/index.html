@@ -918,7 +918,7 @@ function runHunt(m, s) {
   const lo = wholeArg(m.ev(s.lo), 'hunt from'), hi = wholeArg(m.ev(s.hi), 'hunt to');
   if (hi < lo) throw new LangError('line ' + s.line + ': a hunt needs "to" at least as big as "from"');
   if (hi - lo + 1n > BigInt(HUNT_MAX)) throw new LangError('line ' + s.line + ': a hunt can try at most ' + HUNT_MAX + ' numbers at once');
-  const keepEnv = m.env, keepCounts = m.counts, keepOut = m.out, keepAtoms = ATOMS;
+  const keepEnv = m.env, keepCounts = m.counts, keepOut = m.out, keepAtoms = ATOMS, keepShown = m.lastShown;
   const groups = new Map(), items = [], t0 = Date.now(); let outOfTime = false;
   try {
     const tail = s.end === null ? null : BigInt(s.end), shift = s.end === null ? 1n : pow10(s.end.length);
@@ -927,6 +927,7 @@ function runHunt(m, s) {
       if (items.length && Date.now() - t0 > m.limits.huntMs) { outOfTime = true; break; }
       m.env = new Map(keepEnv); m.env.set(s.name, int(c)); m.counts = new Set(keepCounts); m.out = []; ATOMS = [];
       let label, last = null;
+      m.lastShown = null;                  // only a show inside the hunt counts, not one before it
       try {
         m.run(s.body);
         last = m.lastShown;
@@ -945,7 +946,7 @@ function runHunt(m, s) {
       if (last && last.wild) item.wild = last.wild;
       items.push(item);
     }
-  } finally { m.env = keepEnv; m.counts = keepCounts; m.out = keepOut; ATOMS = keepAtoms; }
+  } finally { m.env = keepEnv; m.counts = keepCounts; m.out = keepOut; ATOMS = keepAtoms; m.lastShown = keepShown; }
   const order = [...groups.keys()];
   const width = Math.max(...order.map((g) => g.length));
   const lines = order.map((g) => {
@@ -2184,7 +2185,7 @@ function run(src, opts) {
   catch (e) {
     if (e instanceof LangError) error = e.message;
     else if (e instanceof Unseen) error = "an if needed a yes or a no, but got something I can't see the end of";
-    else if (e instanceof RangeError && !process.env.PFDEBUG) error = 'that number got too big for this machine';
+    else if (e instanceof RangeError && !(typeof process !== 'undefined' && process.env && process.env.PFDEBUG)) error = 'that number got too big for this machine';
     else throw e;
   }
   return { lines: m.out, error, env: m.env };

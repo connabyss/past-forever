@@ -1,0 +1,8 @@
+# 1 < 0 is false, so Python never works out 1 // x. x = 0 takes the else and stays 0: one timeline.
+bits 4
+x = future(x)
+if 1 < 0 < 1 // x:
+    x = 5
+else:
+    x = 0
+show x

@@ -40,7 +40,25 @@ jobs:
         run: python3 tests/magnets.py
       - name: the checker must fail when it can't prove an answer (it may never quietly pass)
         shell: bash
-        run: "! (node tests/certify_gen.js tests/certify_unproved.jsonl | python3 tests/certify.py)"
+        run: |
+          node tests/certify_gen.js tests/certify_unproved.jsonl > unproved.jsonl   # a generator failure fails here, not as a "pass"
+          set +e; out=$(python3 tests/certify.py < unproved.jsonl); rc=$?; set -e; echo "$out"
+          [ "$rc" = 1 ] && grep -q '^INCONCLUSIVE' <<< "$out"
+      - name: the checker must fail on no input and on an engine crash
+        shell: bash
+        run: |
+          if python3 tests/certify.py < /dev/null; then echo 'passed with no input'; exit 1; fi   # not "! cmd": set -e ignores it
+          node tests/certify_gen.js tests/certificates.jsonl > certs.jsonl
+          head -1 certs.jsonl | python3 -c "import sys, json; L = json.loads(sys.stdin.read()); L['out'] = 'crash: test'; print(json.dumps(L))" > crash.jsonl
+          if python3 tests/certify.py < crash.jsonl; then echo 'passed an engine crash'; exit 1; fi
       - run: python3 page/build.py && git diff --exit-code docs/index.html docs/sing.html
       - name: the singing roll plays the engine's own digits, a hole on the bar for each note, and fits a phone
         run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium && node tests/sing.js
+      - name: the playground, clicked through on a phone-sized screen
+        run: node tests/page.js
+      - name: PARADOX (its checks, the experiments, and the audit's brute force against plain Python)
+        run: |
+          python3 -m venv /tmp/z3 && /tmp/z3/bin/pip install -q z3-solver   # its own venv: the runner's Python refuses pip installs
+          /tmp/z3/bin/python paradox/test_paradox.py
+          /tmp/z3/bin/python paradox/experiments/check.py
+          /tmp/z3/bin/python paradox/audit_2026/check.py
