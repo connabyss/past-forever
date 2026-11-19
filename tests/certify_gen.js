@@ -45,6 +45,40 @@ if (process.argv[2] === 'rings2') {
   }
   process.exit(0);
 }
+// node tests/certify_gen.js branch N: x = x0, forever: if TEST: x = f(x) [else: x = g(x)], TEST from ends in / is
+// even / is odd, mixed with and, or, not (up to two levels).
+if (process.argv[2] === 'branch') {
+  const atom = () => { const d = pick(['0', '5', '1', '7', '25', '00', '36', '3', '9']); return rnd(3) ? { src: 'x ends in ' + d, t: ['ends', d] } : rnd(2) ? { src: 'x is even', t: ['mod2', 0] } : { src: 'x is odd', t: ['mod2', 1] }; };
+  // written the way the language reads it: not binds tightest, then and, then or (no brackets needed)
+  const lit1 = () => { const a = atom(); return rnd(3) ? a : { src: 'not ' + a.src, t: ['not', a.t] }; };
+  const join = (op, parts) => parts.reduce((a, b) => ({ src: a.src + ' ' + op + ' ' + b.src, t: [op, a.t, b.t] }));
+  const test = () => join('or', Array.from({ length: 1 + rnd(2) }, () => join('and', Array.from({ length: 1 + rnd(2) }, lit1))));
+  const rule = () => { const s = rnd(3), a = pick([1, -1, 2, 3, 10, 11, -9, small()]), b = small(), c = small();
+    const cs = s === 0 ? [b, a] : s === 1 ? [c, 0, 1] : [0, a, c || 1];
+    return { cs, q: 1, src: cs.map((v, j) => lit(v) + ' × x'.repeat(j)).join(' + ') }; };
+  const M = Number(process.argv[3] || 400);
+  for (let i = 0; i < M; i++) {
+    const T = test(), f = rule(), g = rnd(4) ? rule() : null, x0 = small();
+    const src = 'x = ' + lit(x0) + '\nforever:\n  if ' + T.src + ': x = ' + f.src + (g ? '\n  else: x = ' + g.src : '') + '\nshow 60 digits of x\n';
+    let out; try { const r = F.run(src, { huntMs: 2000 }); out = r.error ? 'stopped: ' + r.error : (r.lines[0] ? r.lines[0].text : ''); } catch (e) { out = 'crash: ' + e.message; }
+    console.log(JSON.stringify({ kind: 'branch', test: T.t, then: { cs: f.cs, q: 1 }, ...(g ? { else: { cs: g.cs, q: 1 } } : {}), p0: x0, q0: 1, src, out }));
+  }
+  process.exit(0);
+}
+// node tests/certify_gen.js multi N: x = x0, y = y0, forever: x = f(x, y), then y = g(x, y); show x
+if (process.argv[2] === 'multi') {
+  const MON = [[0, 0], [1, 0], [0, 1], [1, 1], [2, 0], [0, 2]];
+  const poly = () => { const t = []; for (const [i, j] of MON) { const c = pick([0, 0, 0, 1, -1, 2, 5, 10, -10, small()]); if (c) t.push([i, j, c]); } return t.length ? t : [[1, 0, 1]]; };
+  const text = (t) => t.map(([i, j, c]) => lit(c) + ' × x'.repeat(i) + ' × y'.repeat(j)).join(' + ');
+  const M = Number(process.argv[3] || 400);
+  for (let i = 0; i < M; i++) {
+    const f = poly(), g = poly(), x0 = small(), y0 = small();
+    const src = 'x = ' + lit(x0) + '\ny = ' + lit(y0) + '\nforever:\n  x = ' + text(f) + '\n  y = ' + text(g) + '\nshow 60 digits of x\n';
+    let out; try { const r = F.run(src, { huntMs: 2000 }); out = r.error ? 'stopped: ' + r.error : (r.lines[0] ? r.lines[0].text : ''); } catch (e) { out = 'crash: ' + e.message; }
+    console.log(JSON.stringify({ kind: 'multi', f, g, x0, y0, src, out }));
+  }
+  process.exit(0);
+}
 for (let i = 0; i < N; i++) {
   const d = 1 + rnd(4), cs = [];
   for (let j = 0; j <= d; j++) cs.push(j === d ? (small() || 1) : pick([0, small(), small(), 10 * small(), 5 * small(), 2 * small()]));

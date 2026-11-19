@@ -14,9 +14,9 @@ There is no magic, only a few rules in [forever.js](forever.js), and each answer
 marks the rules whose answers the separate checker, [tests/certify.py](tests/certify.py), proves again on every build;
 the rest are checked by the robot referee only.
 
-- The whole state comes back: from then on it repeats forever. **(2nd)** for one-name polynomial loops.
-- A digit stops changing, and the rule pulls nearby numbers together: one more digit locks in every step. **(2nd)** for one-name
-  polynomial loops.
+- The whole state comes back: from then on it repeats forever. **(2nd)** for polynomial loops of one or two names.
+- A digit stops changing, and the rule pulls nearby numbers together: one more digit locks in every step. **(2nd)** for polynomial
+  loops of one or two names (for two, the step's slopes form a little table whose square ends in 0 everywhere).
 - A sum whose pieces end in more and more zeros settles.
 - A power tower like `x = 3 ^ x`: when two tops share their last k digits, the powers share k + 1 (the bottom
   number must have no 2 or 5 in it). So once the last 2 digits stop changing, it settles. **(2nd)**
@@ -26,6 +26,7 @@ the rest are checked by the robot referee only.
 - A loop whose `if`s only test its last digits (`is even`, `is odd`, `ends in …`, mixed with `and`, `or`, `not`): the last few digits of every name
   then only depend on their last few digits, so they must come round. If a name's digits keep going round, it never
   settles. If the digits the tests read freeze, every test gives the same answer forever, and the loop is a plain one.
+  **(2nd)** for one name with one `if` (and an `else`).
 - `y = 10 × y + x` (or 20, 100, any multiple of 10) with x settling: each step locks one more digit, and the answer
   is exactly x ÷ (1 − 10), so −x ÷ 9.
 - A count that only climbs ends at the top of its climb: `count f = 2` then `forever: f = f × f` ends at `forever`,

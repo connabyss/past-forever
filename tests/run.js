@@ -169,6 +169,11 @@ is(out('x = 10\nforever:\n  if x is even and x ends in 0: x = x × x\nshow x'), 
 is(out('x = 10\nforever:\n  if x is even or x ends in 3: x = x × x\nshow x'), '0', 'or in a branch test');
 is(out('x = 3\nforever:\n  if not x is even: x = x + 1\nshow x'), '4', 'not in a branch test');
 is(out('x = 7\nforever:\n  if x ends in 7 or x ends in 1: x = 3 × x\n  else: x = x + 1\nshow x'), 'never settles', 'or with else: a ring of 6 on the last digit');
+// the checker's two-name sweep (2026-11-19): x = 5 + 10 × y + 2 × y × y, with y the endless root of y = 5 + 10 × y × y,
+// is 4 + 51 × y / 5 by y's own rule: a 5 underneath, so its digits came out empty and the run crashed. Checked
+// against plain iteration.
+is(out('x = 8\ny = (0 − 9)\nforever:\n  x = 5 + 10 × y + 2 × y × y\n  y = 5 + 10 × y × y\nshow 30 digits of x'), '…411752665613729308205119632605', 'a 5 underneath that cancels: no crash');
+is(out('x = 1\ny = (0 − 5)\nforever:\n  x = (0 − 9) + (0 − 1) × y + (0 − 10) × y × y\n  y = 5 + (0 − 10) × x + 4 × y × y\nshow 30 digits of x'), '…137439875059769145678143241596', 'the same crash, in a loop where y reads x');
 // Copilot (2026-11-18): c = 8 looks settled in its last digit (0, 8, 2, 2…) but its last 2 digits go round 72, 92.
 is(out('x = 0\nforever: x = x × x + 8\nshow x'), 'never settles', 'x × x + 8 is not fooled by its calm last digit');
 // Copilot (2026-11-18): repeat 10 ^ 64 had no time limit and froze the page. It now stops with a clear message.

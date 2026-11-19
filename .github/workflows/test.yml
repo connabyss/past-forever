@@ -20,6 +20,12 @@ jobs:
       - name: second opinion on rings in loops that lean on a settled endless number (y = 2 × x − y and friends)
         shell: bash
         run: node tests/certify_gen.js rings2 | python3 tests/certify.py
+      - name: second opinion on 400 loops that branch on their last digits (and, or, not)
+        shell: bash
+        run: node tests/certify_gen.js branch 400 | python3 tests/certify.py
+      - name: second opinion on 400 loops with two names
+        shell: bash
+        run: node tests/certify_gen.js multi 400 | python3 tests/certify.py
       - name: Copilot's three probes, 205 loops, against a plain modular simulation
         run: python3 tests/probes.py
       - name: the ten hand-written certificates (tests/certificates.md), run through the same checker

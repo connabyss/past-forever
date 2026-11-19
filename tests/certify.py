@@ -34,6 +34,22 @@ x*), then y = y0, forever: y = g(x, y), a polynomial in x and y. y's last k digi
                          the RING argument above, for the one-name step y -> g(x*, y).
   RING    (exact return) g done n times is y itself, as algebra in x and y (fractions, no digits involved), and y's
                          last digit needs all n steps: every depth comes round every n steps, and not sooner.
+Branch loops (kind 'branch'): x = x0 (a whole number), forever: if TEST: x = f(x), else: x = g(x) (or nothing),
+f and g polynomials with whole coefficients, TEST built from "x ends in D", "x is even", "x is odd" with and, or,
+not. TEST reads only the last d digits, and f, g need only the last k digits of x for their own last k digits, so
+x mod 10^k (k >= d) runs on a finite machine.
+  NEVER   (ring lemma)   that machine goes round with period > 1 at some k >= d.
+  then a plain loop      the machine at k = d sits still from step N: from then on TEST always gives the same answer,
+                         so the loop is x = f(x) (or g) from the exact x_N, certified as a one-name loop above.
+Two names in one loop (kind 'multi'): x = x0, y = y0, forever: x = f(x, y), then y = g(x, y) (with the new x),
+f and g polynomials with whole coefficients. The answer checked is x's.
+  one-name               if f never reads y, x is a one-name loop, certified as above.
+  EXACT                  the whole state comes back exactly (whole numbers) within 8 steps.
+  NEVER   (ring lemma)   the state's last k digits come round, and x's last k digits take more than one value round it.
+  SETTLES (contraction)  the state's last digit sits still from step N at (r, s), and the step's Jacobian J there
+                         (chain rule through the two lines) has J^2 = 0 mod 10 (nilpotent: mod 2 and mod 5 are
+                         fields). Two steps then have a Jacobian that is 0 mod 10 on all states ending in (r, s), so
+                         they pull any two such states a digit closer: the state converges, so x settles.
 Otherwise UNPROVED: an honest "no certificate", not a disagreement.
 Then it compares with what Past Forever said. It exits with 1 if they disagree anywhere, or if any answer Past
 Forever gave is left without a certificate (inconclusive), and it prints how many answers it proved again.
@@ -41,6 +57,8 @@ Forever gave is left without a certificate (inconclusive), and it prints how man
     node tests/certify_gen.js 300 2027 | python3 tests/certify.py            # the CI-sized run, about a minute
     node tests/certify_gen.js towers | python3 tests/certify.py              # towers and x ^ x, a few seconds
     node tests/certify_gen.js rings2 | python3 tests/certify.py              # y leaning on a settled x, rings
+    node tests/certify_gen.js branch 400 | python3 tests/certify.py         # loops that branch on last digits
+    node tests/certify_gen.js multi 400 | python3 tests/certify.py          # two names in one loop
     node tests/certify_gen.js 5000 2027 | python3 tests/certify.py report.json   # the full run, about 20 minutes
 
 Written by an explorer agent in a GitHub Codespace, November 2026, as a second opinion that doesn't trust the engine.
@@ -301,7 +319,130 @@ def certify_ring2(L):
     return 'UNPROVED', None, 'no ring in 12 digits', ring_ok
 
 
+def t_digits(t):
+    return len(t[1]) if t[0] == 'ends' else 1 if t[0] == 'mod2' else max(t_digits(u) for u in t[1:])
+
+
+def t_ev(t, x):
+    if t[0] == 'ends':
+        return x % 10 ** len(t[1]) == int(t[1])
+    if t[0] == 'mod2':
+        return x % 2 == t[1]
+    if t[0] == 'not':
+        return not t_ev(t[1], x)
+    a, b = t_ev(t[1], x), t_ev(t[2], x)
+    return (a and b) if t[0] == 'and' else (a or b)
+
+
+def certify_branch(L):
+    t, then, other = L['test'], L['then'], L.get('else')
+    d = t_digits(t)
+    def step(x, m):
+        f = then if t_ev(t, x % 10 ** d) else other
+        return f_mod(f['cs'], f['q'], x, m) if f else x % m
+    for k in range(d, d + 9):
+        m = 10 ** k
+        seen, x, n = {}, L['p0'] % m, 0
+        while x not in seen and n < 200000:
+            seen[x] = n
+            x = step(x, m)
+            n += 1
+        if x not in seen:
+            return 'UNPROVED', None, 'machine too long'
+        pre, per = seen[x], n - seen[x]
+        if per > 1:
+            return 'NEVER', None, f'RING: TEST reads {d} digits; the last {k} digits of x repeat every {per} steps from step {pre}'
+        if k == d:
+            N, fixed = pre, x
+    f = then if t_ev(t, fixed % 10 ** d) else other
+    if f is None:
+        f = {'cs': [0, 1], 'q': 1}
+    xn = L['p0']
+    for _ in range(N):
+        g = then if t_ev(t, xn % 10 ** d) else other
+        if g:
+            xn = sum(c * xn ** j for j, c in enumerate(g['cs'])) // g['q'] if g['q'] == 1 else None
+        if xn is None or abs(xn) > 10 ** 400:
+            return 'UNPROVED', None, 'x_N too big to run exactly'
+    plain = {'cs': f['cs'], 'q': f['q'], 'p0': xn, 'q0': 1}
+    L['_plain'] = plain
+    verdict, val, proof = certify(plain)
+    return verdict, val, f'from step {N} TEST always says {t_ev(t, fixed % 10 ** d)}, so it is the plain loop from x_{N}: ' + proof
+
+
+def m_eval(terms, x, y, m):
+    return sum(c * pow(x, i, m) * pow(y, j, m) for i, j, c in terms) % m
+
+
+def m_d(terms, x, y, m, wrt):
+    if wrt == 'x':
+        return sum(i * c * pow(x, i - 1, m) * pow(y, j, m) for i, j, c in terms if i) % m
+    return sum(j * c * pow(x, i, m) * pow(y, j - 1, m) for i, j, c in terms if j) % m
+
+
+def m_step(L, st, m):
+    x, y = st
+    x = m_eval(L['f'], x, y, m)
+    return (x, m_eval(L['g'], x, y, m))
+
+
+def certify_multi(L):
+    if not any(j for _, j, _ in L['f']):  # x never reads y: it is a one-name loop
+        cs = [0] * (1 + max(i for i, _, _ in L['f']))
+        for i, _, c in L['f']:
+            cs[i] += c
+        L['_plain'] = {'cs': cs, 'q': 1, 'p0': L['x0'], 'q0': 1}
+        verdict, val, proof = certify(L['_plain'])
+        return verdict, val, 'x never reads y, so it is a one-name loop: ' + proof
+    st, seen = (L['x0'], L['y0']), {}
+    for n in range(8):  # EXACT: the whole state comes back exactly
+        if st in seen:
+            xs = {h[0] for h, t in seen.items() if t >= seen[st]}
+            if len(xs) == 1:
+                return 'SETTLES', Fr(st[0]), f'EXACT: from step {seen[st]} the state comes back every {n - seen[st]} steps and x stays {st[0]}'
+            return 'NEVER', None, f'EXACT: from step {seen[st]} the state comes back every {n - seen[st]} steps and x takes {len(xs)} values'
+        seen[st] = n
+        if max(abs(v) for v in st) > 10 ** 100:
+            break
+        x = sum(c * st[0] ** i * st[1] ** j for i, j, c in L['f'])
+        st = (x, sum(c * x ** i * st[1] ** j for i, j, c in L['g']))
+    for k in range(1, 9):
+        m = 10 ** k
+        seen, st, n, hist = {}, (L['x0'] % m, L['y0'] % m), 0, []
+        while st not in seen and n < 200000:
+            seen[st] = n
+            hist.append(st)
+            st = m_step(L, st, m)
+            n += 1
+        if st not in seen:
+            return 'UNPROVED', None, 'orbit too long'
+        pre, per = seen[st], n - seen[st]
+        if len({s[0] for s in hist[pre:]}) > 1:
+            return 'NEVER', None, f'RING: the state comes round every {per} steps on its last {k} digits, and x takes more than one value'
+        if k == 1:
+            N, (r, s), per1 = pre, st, per
+    if per1 != 1:
+        return 'UNPROVED', None, "the state's last digit goes round, x's last 8 digits stay: no rule here"
+    x2 = m_eval(L['f'], r, s, 10)
+    J1 = [[m_d(L['f'], r, s, 10, 'x'), m_d(L['f'], r, s, 10, 'y')], [0, 1]]
+    J2 = [[1, 0], [m_d(L['g'], x2, s, 10, 'x'), m_d(L['g'], x2, s, 10, 'y')]]
+    mul = lambda A, B: [[sum(A[i][t] * B[t][j] for t in range(2)) % 10 for j in range(2)] for i in range(2)]
+    J = mul(J2, J1)
+    if any(v for row in mul(J, J) for v in row):
+        return 'UNPROVED', None, f'state frozen at {(r, s)} on the last digit, but J^2 = {mul(J, J)} is not 0 mod 10'
+    return 'SETTLES', None, f'CONTRACTION: from step {N} the state ends in {(r, s)}, J = {J}, J^2 = 0 mod 10'
+
+
 def limit_digits(L, k):  # last k digits of the limit (valid once SETTLES is certified)
+    if L.get('kind') == 'multi' and '_plain' in L:
+        return limit_digits(L['_plain'], k)
+    if L.get('kind') == 'multi':
+        m, st = 10 ** k, (L['x0'] % 10 ** k, L['y0'] % 10 ** k)
+        for _ in range(4 * k + 400):
+            st = m_step(L, st, m)
+        return st[0]
+    if L.get('kind') == 'branch':
+        return limit_digits(L['_plain'], k)
     if L.get('kind') == 'tower':
         return tower_mod(L['b'], 10 ** k)
     if L.get('kind') == 'selfpower':
@@ -323,6 +464,10 @@ def main():
         ring2 = None
         if L.get('kind') == 'ring2':
             verdict, val, proof, ring2 = certify_ring2(L)
+        elif L.get('kind') == 'branch':
+            verdict, val, proof = certify_branch(L)
+        elif L.get('kind') == 'multi':
+            verdict, val, proof = certify_multi(L)
         else:
             verdict, val, proof = certify(L)
         key = f'{pf:8s}/ {verdict}'
