@@ -7,11 +7,13 @@ const rnd = (k) => { seed = (seed * 1103515245 + 12345) % 2147483648; return Mat
 const pick = (a) => a[rnd(a.length)], small = () => rnd(21) - 10;
 const lit = (v) => (v < 0 ? '(0 − ' + -v + ')' : String(v));
 const UNITS = [1, 1, 1, 1, 3, 7, 9, 11, 13, 21];
+// a ring Past Forever says is proved ("And that is proved ... a ring of N endless numbers forever"), for certify.py to check
+const provedRing = (r) => { const m = r.lines && r.lines[0] && /And that is proved.*a ring of (\d+) endless numbers forever/.exec(r.lines[0].why || ''); return m ? +m[1] : undefined; };
 // node tests/certify_gen.js tests/certificates.jsonl: run the loops listed in that file instead of random ones
 if (/\.jsonl$/.test(process.argv[2] || '')) {
   for (const line of require('fs').readFileSync(process.argv[2], 'utf8').split('\n').filter(Boolean)) {
     const L = JSON.parse(line); const r = F.run(L.src, { huntMs: 2000 });
-    L.out = r.error ? 'stopped: ' + r.error : (r.lines[0] ? r.lines[0].text : ''); console.log(JSON.stringify(L));
+    L.out = r.error ? 'stopped: ' + r.error : (r.lines[0] ? r.lines[0].text : ''); const ring = provedRing(r); if (ring) L.ring = ring; console.log(JSON.stringify(L));
   }
   process.exit(0);
 }
@@ -28,6 +30,6 @@ for (let i = 0; i < N; i++) {
   const q = pick(UNITS), p0 = small(), q0 = pick(UNITS);
   const terms = cs.map((c, j) => lit(c) + (j ? ' × ' + Array(j).fill('x').join(' × ') : '')).join(' + ');
   const src = 'x = ' + lit(p0) + (q0 > 1 ? ' / ' + q0 : '') + '\nforever: x = ' + (q > 1 ? '(' + terms + ') / ' + q : terms) + '\nshow 60 digits of x\n';
-  let out; try { const r = F.run(src, { huntMs: 2000 }); out = r.error ? 'stopped: ' + r.error : (r.lines[0] ? r.lines[0].text : ''); } catch (e) { out = 'crash: ' + e.message; }
-  console.log(JSON.stringify({ cs, q, p0, q0, src, out }));
+  let out, ring; try { const r = F.run(src, { huntMs: 2000 }); out = r.error ? 'stopped: ' + r.error : (r.lines[0] ? r.lines[0].text : ''); ring = provedRing(r); } catch (e) { out = 'crash: ' + e.message; }
+  console.log(JSON.stringify({ cs, q, p0, q0, src, out, ...(ring ? { ring } : {}) }));
 }

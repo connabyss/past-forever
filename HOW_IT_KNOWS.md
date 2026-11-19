@@ -43,9 +43,10 @@ the rest are checked by the robot referee only.
   digits multiply to a number ending in 0, the answer says `And that is proved` and names the ring. Doing the rule
   once round the ring is then a step whose slope ends in 0, so, as in the rule above, it locks one more digit every
   round: there is exactly one ring of that length, at every depth, and x falls into it. Otherwise the answer says
-  `As far as I can see`, because a liar can keep a ring for 46 digits and then go wild. The separate checker doesn't check
-  this rule yet; [tests/run.js](tests/run.js) checks every ring it proves for `x^p + c` (p 2 to 5, c from −20 to 60)
-  against plain arithmetic on the last 60 digits.
+  `As far as I can see`, because a liar can keep a ring for 46 digits and then go wild. **(2nd)** The separate checker
+  ([tests/certify.py](tests/certify.py)) finds its own certificate for every ring Past Forever calls proved in its
+  random loops, and [tests/run.js](tests/run.js) checks every ring it proves for `x^p + c` (p 2 to 5, c from −20 to
+  60) against plain arithmetic on the last 60 digits.
 - None of these fit: `can't see the end`.
 
 ## Honest notes

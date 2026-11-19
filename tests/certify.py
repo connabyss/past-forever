@@ -22,6 +22,11 @@ answer from textbook facts, and writes the proof down:
                          x_n converges to the unique fixed point of f ending in r. If a rational L with f(L) = L and
                          L = r (mod 10) exists (rational root theorem), the limit is exactly L.
   EXACT                  x_n lands exactly on a fixed point (f(x_N) = x_N as fractions).
+  RING    (proved ring)  When Past Forever says a ring of n is proved: the last digit of x_n goes round n values
+                         r_1..r_n and f'(r_1)...f'(r_n) = 0 (mod 10). Then g = f done n times maps r_1 + 10Z_10
+                         into itself and pulls any two of its numbers a digit closer, so it has one fixed point z,
+                         z's f-ring is exactly n long at every depth, and x_n falls into it. No certificate for a
+                         ring Past Forever calls proved counts as a disagreement.
 Otherwise UNPROVED: an honest "no certificate", not a disagreement.
 Then it compares with what Past Forever said. It exits with 1 if they disagree anywhere, or if any answer Past
 Forever gave is left without a certificate (inconclusive), and it prints how many answers it proved again.
@@ -192,6 +197,26 @@ def certify(L):
     return 'SETTLES', (Ls[0] if Ls else None), proof + (f'; limit = {Ls[0]} exactly' if Ls else '; no rational fixed point ends in that digit, so the limit is irrational')
 
 
+def certify_ring(L):  # Past Forever says x goes round a ring of L['ring'] endless numbers, proved
+    cs, q, n = L['cs'], L['q'], L['ring']
+    pre, per = orbit(cs, q, res(Fr(L['p0'], L['q0']), 10), 10)
+    r = res(Fr(L['p0'], L['q0']), 10)
+    for _ in range(pre):
+        r = f_mod(cs, q, r, 10)
+    ring, slope = [], 1
+    for _ in range(per):
+        ring.append(r)
+        slope = slope * df_mod(cs, q, r, 10) % 10
+        r = f_mod(cs, q, r, 10)
+    if per != n:
+        return False, f'the last digit goes round {per} values, not {n}'
+    if slope:
+        return False, f"f' at {ring} multiplies to {slope} mod 10, not 0"
+    # g = f done n times maps r + 10Z into itself with g' = 0 mod 10 there, so it pulls any two such numbers a digit
+    # closer each time: one fixed point z, whose f-ring is exactly n long (it is n long on the last digit) at every depth
+    return True, f"RING-CONTRACTION: last digits {ring}, f' multiplies to 0 mod 10 round them"
+
+
 def limit_digits(L, k):  # last k digits of the limit (valid once SETTLES is certified)
     if L.get('kind') == 'tower':
         return tower_mod(L['b'], 10 ** k)
@@ -206,7 +231,7 @@ def limit_digits(L, k):  # last k digits of the limit (valid once SETTLES is cer
 
 
 def main():
-    tally, problems, examples = {}, [], {}
+    tally, problems, examples, rings = {}, [], {}, {True: 0, False: 0}
     for line in sys.stdin:
         L = json.loads(line)
         out = L['out']
@@ -217,6 +242,11 @@ def main():
         examples.setdefault(key, (L['src'], out[:90], proof))
         if (pf == 'never' and verdict == 'SETTLES') or (pf == 'settles' and verdict == 'NEVER'):
             problems.append((L['src'], out, proof))
+        if 'ring' in L:
+            ok, why = certify_ring(L)
+            rings[ok] += 1
+            if not ok:
+                problems.append((L['src'], out, 'PROVED RING without a certificate: ' + why))
         if pf == 'settles' and verdict == 'SETTLES':
             digits = out.lstrip('…').split()[0]
             if digits.isdigit():
@@ -242,6 +272,7 @@ def main():
     print("Past Forever's answers proved again by the checker:", proved, 'of', pf_answers)
     print('answers the checker could not decide (UNPROVED):', unproved)
     print("loops where Past Forever gave no answer (can't see the end, stopped):", engine_open)
+    print('rings Past Forever called proved, proved again by the checker:', rings[True], 'of', rings[True] + rings[False])
     print('disagreements:', len(problems))
     for p in problems[:5]:
         print('  ', p)
