@@ -44,15 +44,21 @@ const bigTower = () => { const B = pick([2n, 4n, 5n, 6n, 8n, 10n, 12n, 15n, 20n,
     step: (s, m) => { s.x = powmodR(B, s.x + m, m); } }; };
 // loops that branch on their own last digits (is even, is odd, ends in …), run as extra loops too.  The brute force
 // works on the last D digits only, which is exact here: each test reads at most its last 2 digits.
+// Tests can be mixed with and, or and not (Copilot, 2026-11-19: "x is even and x ends in 0" used to get no answer).
 const branchy = () => {
-  const d = pick(['0', '5', '1', '7', '25', '00', '36']);
-  const [testSrc, test] = pick([['is even', (x) => x % 2n === 0n], ['is odd', (x) => x % 2n === 1n], ['ends in ' + d, (x) => x % 10n ** BigInt(d.length) === BigInt(d)]]);
+  const atom = () => { const d = pick(['0', '5', '1', '7', '25', '00', '36']);
+    return pick([['x is even', (x) => x % 2n === 0n], ['x is odd', (x) => x % 2n === 1n], ['x ends in ' + d, (x) => x % 10n ** BigInt(d.length) === BigInt(d)]]); };
+  const [aSrc, aT] = atom(), mix = rnd(4);
+  const [bSrc, bT] = mix ? atom() : [null, null];
+  const [cSrc, cT] = mix === 1 ? [aSrc + ' and ' + bSrc, (x) => aT(x) && bT(x)] : mix === 2 ? [aSrc + ' or ' + bSrc, (x) => aT(x) || bT(x)]
+    : mix === 3 ? ['not ' + aSrc, (x) => !aT(x)] : [aSrc, aT];
+  const testSrc = cSrc, test = cT;
   const rule = () => { const shape = rnd(3), a = coef(), b = small(), c = small();
     if (shape === 0) return { src: lit(a) + ' × x + ' + lit(b), f: (x) => a * x + b };
     if (shape === 1) return { src: 'x × x + ' + lit(c), f: (x) => x * x + c };
     return { src: lit(c || 1n) + ' × x × x + ' + lit(a) + ' × x', f: (x) => (c || 1n) * x * x + a * x }; };
   const r1 = rule(), r2 = rnd(4) ? rule() : null, x0 = small();
-  return { vars: ['x'], start: { x: x0 }, src: 'x = ' + lit(x0) + '\nforever:\n  if x ' + testSrc + ': x = ' + r1.src + (r2 ? '\n  else: x = ' + r2.src : ''),
+  return { vars: ['x'], start: { x: x0 }, src: 'x = ' + lit(x0) + '\nforever:\n  if ' + testSrc + ': x = ' + r1.src + (r2 ? '\n  else: x = ' + r2.src : ''),
     step: (s, m) => { const x = mod(s.x, m); s.x = test(x) ? mod(r1.f(x), m) : r2 ? mod(r2.f(x), m) : x; } };
 };
 // y = k × y + (a settled endless number), k a multiple of 10: the brute force gets x's last D digits from its own loop

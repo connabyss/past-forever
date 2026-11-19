@@ -27,12 +27,20 @@ answer from textbook facts, and writes the proof down:
                          into itself and pulls any two of its numbers a digit closer, so it has one fixed point z,
                          z's f-ring is exactly n long at every depth, and x_n falls into it. No certificate for a
                          ring Past Forever calls proved counts as a disagreement.
+Two loops, y leaning on a settled x (kind 'ring2'): x = x0, forever: x = f(x) settles (certified as above, limit
+x*), then y = y0, forever: y = g(x, y), a polynomial in x and y. y's last k digits depend only on y's and x*'s.
+  NEVER   (ring lemma)   y's last k digits, run with x*'s last k digits, go round with period > 1.
+  RING    (slopes)       y's last digit goes round n values and dg/dy multiplies to 0 mod 10 round them (x* frozen):
+                         the RING argument above, for the one-name step y -> g(x*, y).
+  RING    (exact return) g done n times is y itself, as algebra in x and y (fractions, no digits involved), and y's
+                         last digit needs all n steps: every depth comes round every n steps, and not sooner.
 Otherwise UNPROVED: an honest "no certificate", not a disagreement.
 Then it compares with what Past Forever said. It exits with 1 if they disagree anywhere, or if any answer Past
 Forever gave is left without a certificate (inconclusive), and it prints how many answers it proved again.
 
     node tests/certify_gen.js 300 2027 | python3 tests/certify.py            # the CI-sized run, about a minute
     node tests/certify_gen.js towers | python3 tests/certify.py              # towers and x ^ x, a few seconds
+    node tests/certify_gen.js rings2 | python3 tests/certify.py              # y leaning on a settled x, rings
     node tests/certify_gen.js 5000 2027 | python3 tests/certify.py report.json   # the full run, about 20 minutes
 
 Written by an explorer agent in a GitHub Codespace, November 2026, as a second opinion that doesn't trust the engine.
@@ -217,6 +225,82 @@ def certify_ring(L):  # Past Forever says x goes round a ring of L['ring'] endle
     return True, f"RING-CONTRACTION: last digits {ring}, f' multiplies to 0 mod 10 round them"
 
 
+# polynomials in x and y: {(i, j): Fraction} for c x^i y^j
+def p_add(a, b):
+    r = dict(a)
+    for k, c in b.items():
+        r[k] = r.get(k, 0) + c
+        if r[k] == 0:
+            del r[k]
+    return r
+
+
+def p_mul(a, b):
+    r = {}
+    for (i, j), c in a.items():
+        for (k, l), d in b.items():
+            key = (i + k, j + l)
+            r[key] = r.get(key, 0) + c * d
+            if r[key] == 0:
+                del r[key]
+    return r
+
+
+def p_sub_y(g, h):  # g with y replaced by the polynomial h
+    out, powers = {}, {0: {(0, 0): Fr(1)}}
+    for (i, j), c in g.items():
+        while j not in powers:
+            powers[len(powers)] = p_mul(powers[len(powers) - 1], h)
+        out = p_add(out, p_mul({(i, 0): Fr(c)}, powers[j]))
+    return out
+
+
+def g_mod(terms, q, x, y, m):
+    return sum(c * pow(x, i, m) * pow(y, j, m) for i, j, c in terms) * pow(q, -1, m) % m
+
+
+def certify_ring2(L):
+    X = dict(L['xs'], kind=None)
+    verdict, _, proof = certify(X)
+    if verdict != 'SETTLES':
+        return 'UNPROVED', None, 'x is not certified to settle: ' + proof, None
+    terms, q, y0 = L['ys']['terms'], L['ys']['q'], L['ys']['y0']
+    ring_ok = None
+    for k in range(1, 13):
+        m, xk = 10 ** k, limit_digits(X, k)
+        seen, y, n = {}, y0 % m, 0
+        while y not in seen and n < 200000:
+            seen[y] = n
+            y = g_mod(terms, q, xk, y, m)
+            n += 1
+        if y not in seen:
+            return 'UNPROVED', None, 'orbit too long', None
+        pre, per = seen[y], n - seen[y]
+        if k == 1:
+            ring = [r for r, s in sorted(seen.items(), key=lambda t: t[1]) if s >= pre]
+            if 'ring' in L:
+                N = L['ring']
+                if per != N:
+                    ring_ok = (False, f'the last digit goes round {per} values, not {N}')
+                else:
+                    slope = 1
+                    for r in ring:
+                        slope = slope * sum(j * c * pow(xk, i, 10) * pow(r, j - 1, 10) for i, j, c in terms if j) * pow(q, -1, 10) % 10
+                    if slope == 0:
+                        ring_ok = (True, f"RING-CONTRACTION: y's last digits {ring} with x* ending in {xk}, dg/dy multiplies to 0 mod 10")
+                    else:
+                        g = {}
+                        for i, j, c in terms:
+                            g = p_add(g, {(i, j): Fr(c, q)})
+                        h = {(0, 1): Fr(1)}
+                        for _ in range(N):
+                            h = p_sub_y(g, h)
+                        ring_ok = (True, f'RING-EXACT: g done {N} times is y itself') if h == {(0, 1): Fr(1)} else (False, f"dg/dy multiplies to {slope} mod 10 and g done {N} times is not y")
+        if per > 1:
+            return 'NEVER', None, f'RING: with x* frozen, the last {k} digits of y repeat every {per} steps', ring_ok
+    return 'UNPROVED', None, 'no ring in 12 digits', ring_ok
+
+
 def limit_digits(L, k):  # last k digits of the limit (valid once SETTLES is certified)
     if L.get('kind') == 'tower':
         return tower_mod(L['b'], 10 ** k)
@@ -236,14 +320,18 @@ def main():
         L = json.loads(line)
         out = L['out']
         pf = 'never' if out == 'never settles' else 'cant' if out == "can't see the end" else 'other' if out.startswith(('stopped', 'crash')) else 'settles'
-        verdict, val, proof = certify(L)
+        ring2 = None
+        if L.get('kind') == 'ring2':
+            verdict, val, proof, ring2 = certify_ring2(L)
+        else:
+            verdict, val, proof = certify(L)
         key = f'{pf:8s}/ {verdict}'
         tally[key] = tally.get(key, 0) + 1
         examples.setdefault(key, (L['src'], out[:90], proof))
         if (pf == 'never' and verdict == 'SETTLES') or (pf == 'settles' and verdict == 'NEVER'):
             problems.append((L['src'], out, proof))
         if 'ring' in L:
-            ok, why = certify_ring(L)
+            ok, why = (ring2 or (False, 'no ring found')) if L.get('kind') == 'ring2' else certify_ring(L)
             rings[ok] += 1
             if not ok:
                 problems.append((L['src'], out, 'PROVED RING without a certificate: ' + why))

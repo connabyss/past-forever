@@ -911,13 +911,23 @@ function branchLoop(m, loop, pure, start) {
     kinds.set(v, 'plain');
   }
   let hasIf = false, need = 1;
+  // a test that reads only last digits: ends in …, is even / odd, and any mix of them with and, or, not.
+  // d is how many last digits it reads; ev(st, M) answers it from the remainders mod M (M = 10^k, k >= d).
+  const testOf = (c) => {
+    const val = (p, st, M) => { const r = p.evalMod(st, M); if (r === null) throw new NotPoly(); return r; };
+    if (c.t === 'endsin') { const Md = pow10(c.d.length), r = BigInt(c.d), p = toPoly(m, c.a, kinds); return { d: c.d.length, ev: (st, M) => val(p, st, M) % Md === r }; }
+    if (c.t === 'endsmod') { const p = toPoly(m, c.a, kinds); return { d: 1, ev: (st, M) => val(p, st, M) % c.m === c.r }; }
+    if (c.t === 'not') { const a = testOf(c.a); return { d: a.d, ev: (st, M) => !a.ev(st, M) }; }
+    if (c.t === 'and' || c.t === 'or') {
+      const a = testOf(c.a), b = testOf(c.b);
+      return { d: Math.max(a.d, b.d), ev: c.t === 'and' ? (st, M) => { const x = a.ev(st, M), y = b.ev(st, M); return x && y; } : (st, M) => { const x = a.ev(st, M), y = b.ev(st, M); return x || y; } };
+    }
+    throw new NotPoly();
+  };
   const comp = (list) => list.map((st) => {
     if (st.t === 'set') return { t: 'set', name: st.name, p: toPoly(m, st.e, kinds) };
     if (st.t === 'if') {
-      const c = st.c; let test;
-      if (c.t === 'endsin') { const M = pow10(c.d.length), r = BigInt(c.d); test = { p: toPoly(m, c.a, kinds), d: c.d.length, ok: (x) => x % M === r }; }
-      else if (c.t === 'endsmod') test = { p: toPoly(m, c.a, kinds), d: 1, ok: (x) => x % c.m === c.r };
-      else throw new NotPoly();
+      const test = testOf(st.c);
       hasIf = true; need = Math.max(need, test.d);
       return { t: 'if', test, body: comp(st.body), else: st.else ? comp(st.else) : [] };
     }
@@ -930,7 +940,7 @@ function branchLoop(m, loop, pure, start) {
   const stepMod = (st, M, list, picks) => {
     for (const x of list) {
       if (x.t === 'set') { const r = x.p.evalMod(st, M); if (r === null) throw new NotPoly(); st.set(x.name, r); if (picks) picks.push(x); }
-      else { const r = x.test.p.evalMod(st, M); if (r === null) throw new NotPoly(); stepMod(st, M, x.test.ok(r) ? x.body : x.else, picks); }
+      else stepMod(st, M, x.test.ev(st, M) ? x.body : x.else, picks);
     }
   };
   const orbitAt = (k) => {
@@ -1816,22 +1826,37 @@ class System {
     for (const p of this.F.values()) if (p && p.t) for (const { c } of p.t.values()) see(c);
     return Math.min(d, 400);
   }
-  // a ring that is proved to keep its length at every depth: v's step uses only v and fixed numbers, its last digit
-  // goes round a ring of n, and the step's slopes at those n digits multiply to a number ending in 0. Then n steps
-  // done in a row map the numbers ending in the ring's first digit into themselves and pull any two of them at
-  // least one digit closer, so they have exactly one number left alone, its ring is n long at every depth, and v
-  // falls into it. (The same argument as the contraction rule, run on n steps at once.)
+  // a ring that is proved to keep its length at every depth. v's step may use v, fixed numbers, and names that are
+  // proved to settle (whole numbers, fractions or endless numbers); its last digit goes round a ring of n. Once the
+  // other names' last k digits have frozen, v's last k digits follow one fixed rule, so either of these proves it:
+  //  - slopes: the step's slopes at the n ring digits multiply to a number ending in 0. Then n steps done in a row
+  //    map the numbers ending in the ring's first digit into themselves and pull any two of them at least one digit
+  //    closer, so they leave exactly one number alone, its ring is n long at every depth, and v falls into it. (The
+  //    contraction rule, run on n steps at once.)
+  //  - exact return: doing the step n times gives back v itself, whatever the other names are (checked as algebra).
+  //    Then the last k digits come back every n steps at every depth, and they can't come back sooner, because the
+  //    last digit takes n steps.
   ringProof(v, n) {
-    const f = this.F.get(v), sub = new Map();
-    for (const d of f.names()) if (d !== v) { const i = this.info.get(d); if (!(i && i.type === 'const' && i.value.k === 'num')) return null; sub.set(d, Poly.num(i.value.q)); }
-    const g = f.subst(sub), slope = g.deriv(v), vals = [];
-    const o = this.orbit([v], 10n, 1, (st) => vals.push(st.get(v)));
+    const f = this.F.get(v);
+    for (const d of this.closure([v])) if (d !== v) { const i = this.info.get(d); if (!(i && (i.type === 'const' || i.type === 'settled') && (i.value.k === 'num' || i.value.k === 'end'))) return null; }
+    const states = [];
+    const o = this.orbit([v], 10n, 1, (st) => states.push(st));
     if (!o || o.period !== n) return null;
-    const ring = vals.slice(o.first);
+    const ring = states.slice(o.first), digits = ring.map((st) => st.get(v));
+    // the other names must already be frozen on their last digit round the ring (settled names end up frozen)
+    for (const d of o.cl) if (d !== v && !ring.every((st) => st.get(d) === ring[0].get(d))) return null;
+    const slope = f.deriv(v);
     let prod = 1n;
-    for (const x of ring) { const s = slope.evalMod(new Map([[v, x]]), 10n); if (s === null) return null; prod = (prod * s) % 10n; }
-    if (prod !== 0n) return null;
-    return 'And that is proved: the slopes of the step at ' + ring.join(', ') + ' multiply to a number ending in 0, so every ' + plural(n, 'step') + ' pin at least one more digit for good, and ' + v + ' is going round a ring of ' + n + ' endless numbers forever';
+    for (const st of ring) { const s = slope.evalMod(st, 10n); if (s === null) { prod = null; break; } prod = (prod * s) % 10n; }
+    if (prod === 0n) return 'And that is proved: the slopes of the step at ' + digits.join(', ') + ' multiply to a number ending in 0, so every ' + plural(n, 'step') + ' pin at least one more digit for good, and ' + v + ' is going round a ring of ' + n + ' endless numbers forever';
+    // exact return: only a step of degree 1 in v can come back to v itself
+    try {
+      if (n > 64 || [...f.t.values()].some(({ e }) => (e[v] || 0) > 1)) return null;
+      let g = Poly.name(v);
+      for (let i = 0; i < n; i++) g = f.subst(new Map([[v, g]]));
+      if (!g.sub(Poly.name(v)).isZero()) return null;
+    } catch (e) { if (e instanceof TooBig) return null; throw e; }
+    return 'And that is proved: doing the step ' + plural(n, 'time') + ' in a row gives back exactly ' + v + ', whatever it was, and its last digit only comes back after all ' + n + ', so ' + v + ' is going round a ring of ' + n + ' endless numbers forever';
   }
   // no proof of settling: look for proof of NOT settling (last digits going round), else say so
   byCycling(group) {

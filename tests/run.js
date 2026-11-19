@@ -155,6 +155,20 @@ has(F.text('x = 0\nforever: x = x × x + 1\nwhy x'), 'And that is proved: the sl
   }
   is(proved > 100 && wrong.length === 0, true, 'proved rings hold on 60 digits (' + proved + ' proved, wrong: ' + wrong.join('; ') + ')');
 }
+// Copilot (2026-11-19): y = 2 × x − y with x a settled endless number comes back to y every 2 steps, exactly, but
+// the ring proof only took fixed whole numbers. It now takes settled names too, and proves rings that come back
+// exactly (checked as algebra), in separate loops or the same one. x − 3 × y (Copilot's second probe) goes wild.
+has(F.text('x = 5\nforever: x = x × x\ny = 1\nforever: y = 2 × x - y\nwhy y'), 'And that is proved: doing the step 2 times in a row gives back exactly y', 'a ring that comes back exactly, leaning on a settled endless number');
+has(F.text('x = 5\ny = 1\nforever:\n  x = x × x\n  y = 2 × x - y\nwhy y'), 'And that is proved: doing the step 2 times in a row gives back exactly y', 'the same, with x settling in the same loop');
+has(F.text('x = 5\nforever: x = x × x\ny = 0\nforever: y = y × y + x\nwhy y'), 'And that is proved: the slopes of the step at 0, 5 multiply to a number ending in 0', 'slopes, with a settled endless number in the step');
+{ const t = F.text('x = 5\nforever: x = x × x\ny = 1\nforever:\n  y = 3 × y + x\n  y = 2 × x - y\nwhy y');
+  is(/take 4, 20, 200, 2000/.test(t) && !/proved/.test(t), true, 'x − 3 × y goes wild, and nothing is called proved'); }
+// Copilot (2026-11-19): a branch test with and, or or not got no answer. Each part reads only last digits, so the
+// whole test does too.
+is(out('x = 10\nforever:\n  if x is even and x ends in 0: x = x × x\nshow x'), '0', 'and in a branch test');
+is(out('x = 10\nforever:\n  if x is even or x ends in 3: x = x × x\nshow x'), '0', 'or in a branch test');
+is(out('x = 3\nforever:\n  if not x is even: x = x + 1\nshow x'), '4', 'not in a branch test');
+is(out('x = 7\nforever:\n  if x ends in 7 or x ends in 1: x = 3 × x\n  else: x = x + 1\nshow x'), 'never settles', 'or with else: a ring of 6 on the last digit');
 // Copilot (2026-11-18): c = 8 looks settled in its last digit (0, 8, 2, 2…) but its last 2 digits go round 72, 92.
 is(out('x = 0\nforever: x = x × x + 8\nshow x'), 'never settles', 'x × x + 8 is not fooled by its calm last digit');
 // Copilot (2026-11-18): repeat 10 ^ 64 had no time limit and froze the page. It now stops with a clear message.

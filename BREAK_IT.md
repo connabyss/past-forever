@@ -52,4 +52,10 @@ with the code and what it printed.
    number into a song, which became `sing`, found counts that climb, like `f = f × f`, that it couldn't finish, and `x = x ^ x`, which provably never settles
    (from 7 it's a liar: its last 2 to 4 digits flip between two values, then the 5th goes wild).
    (November 2026)
+8. **GitHub Copilot, two finds in one night.** Hunting for a wrong `proved`, it found two loops Past Forever
+   undersold. `y = 2 × x − y`, with x the endless …212890625, comes back to y every 2 steps, exactly, but the answer
+   only said `As far as I can see`: the ring proof took fixed whole numbers, not settled endless ones. And
+   `if x is even and x ends in 0: x = x × x`, from 10, got `can't see the end`, because branch tests couldn't mix
+   with `and`, `or` and `not`. It settles on 0. Both are now proved, the separate checker double-checks the new
+   rings, and the robot referee now mixes tests with and, or and not. (November 2026)
 

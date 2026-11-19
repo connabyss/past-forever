@@ -24,6 +24,27 @@ if (process.argv[2] === 'towers') {
   for (let x0 = 2; x0 <= 40; x0++) run({ kind: 'selfpower', x0, src: `x = ${x0}\nforever: x = x ^ x\nshow 60 digits of x\n` });
   process.exit(0);
 }
+// node tests/certify_gen.js rings2: y leaning on a settled x. x settles (own square from 5, 1/7, 1/9 or −7/9); then
+// y = y0, forever: y = (terms in x and y) / q, linear or square in y. Only loops Past Forever says never settle are
+// written (that is what the checker certifies here: never settles, and any ring it calls proved).
+if (process.argv[2] === 'rings2') {
+  const XS = [{ cs: [0, 0, 1], q: 1, p0: 5, q0: 1, s: 'x = 5\nforever: x = x × x' }, { cs: [0, 2, -7], q: 1, p0: 3, q0: 1, s: 'x = 3\nforever: x = x × (2 − 7 × x)' },
+    { cs: [-1, 10], q: 1, p0: 0, q0: 1, s: 'x = 0\nforever: x = 10 × x − 1' }, { cs: [7, 10], q: 1, p0: 0, q0: 1, s: 'x = 0\nforever: x = 10 × x + 7' }];
+  const MON = [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [2, 1], [1, 2]];
+  for (let i = 0; i < 400; i++) {
+    const X = pick(XS), terms = [];
+    for (const [a, b] of MON) { const c = pick([0, 0, 0, 1, -1, 2, -2, 3, 5, 10, small()]); if (c) terms.push([a, b, c]); }
+    if (!terms.some(([, b]) => b)) terms.push([0, 1, -1]);
+    const q = pick([1, 1, 1, 3, 7]), y0 = small();
+    const body = terms.map(([a, b, c]) => lit(c) + ' × x'.repeat(a) + ' × y'.repeat(b)).join(' + ');
+    const src = X.s + '\ny = ' + lit(y0) + '\nforever: y = ' + (q > 1 ? '(' + body + ') / ' + q : body) + '\nshow y\nwhy y\n';
+    let r; try { r = F.run(src, { huntMs: 2000 }); } catch (e) { continue; }
+    if (r.error || !r.lines[0] || r.lines[0].text !== 'never settles') continue;
+    const ring = provedRing(r);
+    console.log(JSON.stringify({ kind: 'ring2', xs: { cs: X.cs, q: X.q, p0: X.p0, q0: X.q0 }, ys: { terms, q, y0 }, src, out: r.lines[0].text, ...(ring ? { ring } : {}) }));
+  }
+  process.exit(0);
+}
 for (let i = 0; i < N; i++) {
   const d = 1 + rnd(4), cs = [];
   for (let j = 0; j <= d; j++) cs.push(j === d ? (small() || 1) : pick([0, small(), small(), 10 * small(), 5 * small(), 2 * small()]));
