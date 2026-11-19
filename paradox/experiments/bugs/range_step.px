@@ -1,3 +1,5 @@
+# FIXED: range takes start, stop and step exactly as Python does. Original report:
+#
 # BUG: a third argument to range is not a step here. It is read as the upper bound.
 # This loop says "count 0, 2, 4" and ends with y = 2, so the timeline where y == 3 does not exist.
 # Silently: no error, just a wrong answer.

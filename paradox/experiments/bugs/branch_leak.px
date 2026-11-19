@@ -1,3 +1,6 @@
+# FIXED: reading a name that has no value in some timeline now crashes that timeline (as Python would),
+# so only x = 3 survives. What follows is the original report.
+#
 # BUG: z is assigned only inside "if x == 3", so outside that branch it should not exist.
 # It does. A variable's first assignment ignores whether its branch was taken, so z is 1 for
 # every x, the test below never fires, and the program is satisfied by all 256 messages.

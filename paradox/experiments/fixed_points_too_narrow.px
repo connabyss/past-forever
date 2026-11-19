@@ -1,3 +1,6 @@
+# FIXED: PARADOX now does exact arithmetic (values never wrap), so this returns the true four:
+# 0, 1, 9376, 90625. What follows is how it used to go wrong, kept as a regression check.
+#
 # The same question squeezed into 32 bits: a wrong answer that looks exactly like a right one.
 #
 # 90625 * 90625 = 8212890625 does not fit in 32 bits, so the program being solved is not the

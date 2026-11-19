@@ -1,3 +1,5 @@
+# FIXED: the explanation now handles list futures. Original report:
+#
 # BUG: when a list future has no consistent timeline, the "show why" guesses crash:
 # z3.z3types.Z3Exception: Z3 expression expected, because paradox.py substitutes a whole
 # list of future variables into z3.substitute. The one case that matters - a list paradox -

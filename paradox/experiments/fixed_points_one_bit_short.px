@@ -1,3 +1,6 @@
+# FIXED: with exact arithmetic this now returns all four, 0, 1, 109376, 890625.
+# What follows is how it used to go wrong, kept as a regression check.
+#
 # The same question one bit too narrow, and one true answer disappears.
 #
 # 890625 * 890625 = 793212890625. That fits in 40 bits (2^40 = 1099511627776), so you might

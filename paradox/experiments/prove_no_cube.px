@@ -1,6 +1,6 @@
 # A theorem, proved by having no timeline.
 #
-# Claim: no 8-bit number has a cube equal to 2. (Check it yourself: the cubes mod 256 are
+# Claim: no 8-bit number has a cube that ends in 2 in 8-bit arithmetic (a * a * a % 256 == 2). (Check it yourself: the cubes mod 256 are
 # 147 of the 256 values, and 2 is not one of them.)
 #
 # PARADOX has no "for all". It does not need one. Read the fixed point backwards:
@@ -10,5 +10,5 @@
 # counterexample cannot survive being sent.
 bits 8
 a = future(a)
-if a * a * a != 2:
+if a * a * a % 256 != 2:
     a = a + 1

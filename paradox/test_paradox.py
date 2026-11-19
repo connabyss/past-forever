@@ -24,10 +24,10 @@ expect('self-describing: exactly one timeline', 'Exactly 1 consistent timeline' 
 expect('self-describing: digit i counts the i\'s', len(d) == 10 and all(int(d[i]) == d.count(str(i)) for i in range(10)), d)
 
 out = run(['paradox/paradox.py', 'paradox/examples/square_root.px'])
-xs = [int(v) for v in re.findall(r'x = (\d+)', out)]
-expect('square root: exactly 4 timelines', 'Exactly 4 consistent timelines' in out and len(xs) == 4, out)
-expect('square root: 1234 is one of them', 1234 in xs, str(xs))
-expect('square root: every one squares to 1522756 in 64-bit arithmetic', all(x * x % 2 ** 64 == 1522756 and x < 2 ** 63 for x in xs), str(xs))
+xs = [int(v) for v in re.findall(r'x = (-?\d+)', out)]
+expect('square root: exactly one timeline, 1234 (no wraparound answers)', 'Exactly 1 consistent timeline' in out and xs == [1234], out)
+
+# More regressions (exact arithmetic, range, branches, lists) live in paradox/experiments/check.py.
 
 if '--slow' in sys.argv:
     out = run(['paradox/autogram.py'])
