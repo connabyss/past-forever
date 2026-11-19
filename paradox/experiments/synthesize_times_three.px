@@ -1,0 +1,38 @@
+# A program, invented by the future.
+#
+# The messages are not numbers this time: the future sends a whole 3-instruction program.
+# The program is checked against every 8-bit input, and a candidate that gets even one of
+# them wrong edits its own first instruction, so that timeline cannot be the message that
+# was sent. What survives is a program that is correct on all 256 inputs.
+#
+# Spec: for every a in 0..255, end with t == 3 * a (8-bit arithmetic, so it wraps).
+# Instruction set (op is the whole instruction):
+#   0: t = t + a      1: t = t << 1     2: t = t ^ a     3: t = t + 1     4: t = t - a
+# Start: t = 0. Three instructions. That is 5^3 = 125 candidate programs.
+bits 8
+prog = future(prog, 3)
+bad = 0
+for i in range(256):
+    a = i
+    t = 0
+    for k in range(3):
+        op = prog[k]
+        if op < 0 or op > 4:
+            bad = 1
+        if op == 0:
+            t = t + a
+        elif op == 1:
+            t = t << 1
+        elif op == 2:
+            t = t ^ a
+        elif op == 3:
+            t = t + 1
+        elif op == 4:
+            t = t - a
+    if t != a * 3:
+        bad = 1
+if bad != 0:
+    prog[0] = prog[0] + 1
+show prog[0]
+show prog[1]
+show prog[2]

@@ -1,0 +1,14 @@
+# A theorem, proved by having no timeline.
+#
+# Claim: no 8-bit number has a cube equal to 2. (Check it yourself: the cubes mod 256 are
+# 147 of the 256 values, and 2 is not one of them.)
+#
+# PARADOX has no "for all". It does not need one. Read the fixed point backwards:
+#   consistent  <=>  a * a * a == 2   (any other message changes itself and dies)
+# so the timelines ARE the counterexamples to the claim. A claim with no counterexample has
+# no timeline at all, and "no timeline" is the proof. a -> a + 1 has no fixed point, so a
+# counterexample cannot survive being sent.
+bits 8
+a = future(a)
+if a * a * a != 2:
+    a = a + 1

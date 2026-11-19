@@ -1,0 +1,16 @@
+# The same question one bit too narrow, and one true answer disappears.
+#
+# 890625 * 890625 = 793212890625. That fits in 40 bits (2^40 = 1099511627776), so you might
+# expect this to work. It does not: 793212890625 is bigger than 2^39, so as a signed 40-bit
+# number the square is NEGATIVE, and `%` here is C's signed remainder (z3 SRem), which keeps
+# the sign of the dividend. The remainder comes out negative, 890625 does not match it, and the
+# engine prints "Exactly 3" - having proved, correctly, that the program it was given has three
+# fixed points. The other answer, 109376, squares to 11963109376 < 2^39 and survives.
+#
+# The width rule for modular work here is x * x < 2^(W - 1), not x * x < 2^W. At 41 bits this
+# file returns all four (see fixed_points_of_squaring.px for the comfortable 44-bit version).
+bits 40
+x = future(x)
+if x * x % 1000000 != x:
+    x = x + 1
+show x

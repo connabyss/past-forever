@@ -58,3 +58,7 @@ This one is new because of its wording; the idea is his.
 - Checks: `python3 paradox/test_paradox.py` (add `--slow` to rebuild the autogram and re-count its letters).
 
 Built live in a GitHub Codespace by an explorer agent.
+
+Guest additions that go past these four: [experiments/](experiments/) - a proof by having no
+timeline, a program the future writes, and the fixed points of squaring (which are the ends of
+`past-forever`'s two hero numbers). Plus the width trap that silently eats one of them.
