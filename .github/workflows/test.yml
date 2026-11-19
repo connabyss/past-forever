@@ -58,7 +58,7 @@ jobs:
         run: node tests/page.js
       - name: PARADOX (its checks, the experiments, and the audit's brute force against plain Python)
         run: |
-          pip install z3-solver
-          python3 paradox/test_paradox.py
-          python3 paradox/experiments/check.py
-          python3 paradox/audit_2026/check.py
+          python3 -m venv /tmp/z3 && /tmp/z3/bin/pip install -q z3-solver   # its own venv: the runner's Python refuses pip installs
+          /tmp/z3/bin/python paradox/test_paradox.py
+          /tmp/z3/bin/python paradox/experiments/check.py
+          /tmp/z3/bin/python paradox/audit_2026/check.py
