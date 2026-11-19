@@ -88,6 +88,7 @@ function tens(a) {                     // how many 10s divide a (a is a BigInt, 
 }
 
 class LangError extends Error {}
+class CountTooBig extends LangError { constructor() { super('a count past forever got a power of forever too big to write down exactly'); } }
 
 // ───────────────────────── counts past forever (ordinals below w^w) ─────────────────────────
 // a count is a list of [power, times] pairs, biggest power first.  [[1,2n],[0,3n]] = forever × 2 + 3
@@ -106,7 +107,11 @@ const O = {
   mulTerm(a, e, c) {                   // a × (forever^e × c)
     if (!a.length || c === 0n) return [];
     if (e === 0) return [[a[0][0], a[0][1] * c]].concat(a.slice(1));
-    return [[a[0][0] + e, c]];
+    const top = a[0][0] + e;
+    // a power of forever too big to hold exactly (a = a × a doubles it every step): say so, never round it
+    // (a breaker agent, 2026-11-19: forever^1024 squared became forever^Infinity, which looked like a loop at rest)
+    if (!Number.isSafeInteger(top) || top > 1e9) throw new CountTooBig();
+    return [[top, c]];
   },
   mul(a, b) { let out = []; for (const [e, c] of b) out = O.add(out, O.mulTerm(a, e, c)); return out; },
   cmp(a, b) {
@@ -892,7 +897,9 @@ function runForever(m, loop) {
   if (branchLoop(m, loop, pure, start)) return;
   // ── C. give up honestly
   m.env = new Map(start);
-  const note = 'I watched ' + plural(A.steps, 'step') + ' and the loop never came back to a state it had been in, and none of the rules I can prove things with fit this loop';
+  const note = A.countTooBig
+    ? 'after ' + plural(A.steps, 'step') + ' a count\'s power of forever had grown past what I can write down exactly, and it was still growing. If it keeps growing, the top of that climb is forever ^ forever, a number this language can\'t write yet'
+    : 'I watched ' + plural(A.steps, 'step') + ' and the loop never came back to a state it had been in, and none of the rules I can prove things with fit this loop';
   for (const v of assigned) {
     if (pure.has(v)) continue;
     if (A.flagsYes.has(v)) m.env.set(v, bool(true, 'it became yes at step ' + A.flagsYes.get(v) + ' and nothing in the loop can turn it back', 'found at step ' + A.flagsYes.get(v)));
@@ -1383,6 +1390,7 @@ function watch(m, body, stateNames, pure, start) {
       res.steps = step + 1;
       for (const v of stateNames) {
         const cur = m.env.get(v);
+        if (!cur) continue;               // a name the loop hasn't given a value yet (a breaker agent, 2026-11-19: this crashed)
         if (cur.k === 'num' && (abs(cur.q.n) > m.limits.size || cur.q.d > m.limits.size)) tooBig = true;
         if (cur.k === 'bool' && oneWay.get(v) === (cur.v ? 'y' : 'n') && !res.flagsYes.has(v)) {
           const was = start.get(v); if (!was || was.k !== 'bool' || was.v !== cur.v) res.flagsYes.set(v, step + 1);
@@ -1393,6 +1401,7 @@ function watch(m, body, stateNames, pure, start) {
   } catch (e) {
     m.quiet--;
     if (e instanceof Unseen) { m.env = new Map(start); res.unseen = e.v; return res; }
+    if (e instanceof CountTooBig) { m.env = new Map(start); res.countTooBig = true; return res; }
     throw e;
   }
   m.quiet--;
