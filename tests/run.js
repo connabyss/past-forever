@@ -433,5 +433,17 @@ is(ex('zero_twins.txt'), '…918212890625\n…081787109376\n0\n1', 'the README z
 is(out('x = 5\nforever: x = x × x\ny = 6\nforever: y = y ^ 5\nshow x × y = 0\nshow x = 0\nshow y = 0'), 'yes\nno  (proved)\nno  (proved)', 'the twins multiply to exactly 0, and neither one is 0');
 is(BigInt(625) * 9376n, 5860000n, 'the hand check in the README is right');
 
+// ── an outside review (2026-11-19): each line below failed before its fix
+// a show before a hunt is not the hunt's show (it used to sort every number as "settles" by the 42)
+has(out('show 42\nhunt c from 0 to 0:\n    x = c'), 'a hunt needs a show line inside it', 'hunt: a show before it does not count');
+is(out('show 42\nhunt c from 0 to 1:\n    show c = 0\nshow 1'), '42\nhunt c from 0 to 1: tried 2 numbers, 2 kinds of answer\n  yes  1   0\n  no   1   1\n1', 'hunt: a show before it changes nothing');
+is(out('hunt c from 0 to 1:\n    hunt d from 0 to 0:\n        show d\n    show c'), 'hunt c from 0 to 1: tried 2 numbers, 1 kind of answer\n  settles  2   0, 1', 'hunt: a hunt inside a hunt keeps the outer show');
+{ // in a browser there is no process: a number too big must still say so, not throw "process is not defined"
+  const vm = require('vm'), ctx = { console }; ctx.window = ctx; vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'forever.js'), 'utf8'), ctx);
+  let got; try { got = ctx.Forever.run('show ' + '('.repeat(20000) + '1' + ')'.repeat(20000)).error; } catch (e) { got = 'threw ' + e.message; }
+  is(got, 'that number got too big for this machine', 'browser: too big is an answer, not a crash');
+}
+
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);

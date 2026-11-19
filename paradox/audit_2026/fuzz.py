@@ -7,7 +7,7 @@ Each program gets x from the future (bits 4, so x is -8..7). For every one of th
 program; a crash (dividing by 0, an index off the end, a name with no value yet) means that timeline can't happen.
 The consistent timelines are the messages whose program ends with x equal to what was sent. PARADOX must find
 exactly the same set. The programs mix the things that only run sometimes: if/else, for loops inside branches,
-`a if c else b`, `and`/`or` that stop early, and functions that return early.
+`a if c else b`, `and`/`or` and chains like a < b < c that stop early, and functions that return early.
 """
 import ast, random, sys
 from pathlib import Path
@@ -34,6 +34,7 @@ def expr(r, d=0):
 
 def cond(r, d=0):
     a = f'{expr(r, d+1)} {r.choice(["==", "!=", "<", ">="])} {expr(r, d+1)}'
+    if r.random() < 0.3: a += f' {r.choice(["<", "<=", "!="])} {expr(r, d+1)}'      # a chain: a < b < c
     if r.random() < 0.35: a = f'({a} {r.choice(["and", "or"])} {expr(r, d+1)} {r.choice(["==", "<"])} {expr(r, d+1)})'
     return a
 

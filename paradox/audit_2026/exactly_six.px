@@ -1,0 +1,6 @@
+# 3-bit messages: every x except 0 and 1 stays put, so there are exactly 6 timelines, and all 6 are listed.
+bits 3
+x = future(x)
+if x == 0 or x == 1:
+    x = x + 1
+show x

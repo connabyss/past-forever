@@ -1,0 +1,4 @@
+# x is sent as two items but ends as one. A one-item list never equals a two-item one: no timeline.
+bits 4
+x = future(x, 2)
+x = [1]

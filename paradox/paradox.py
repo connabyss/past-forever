@@ -46,7 +46,10 @@ def const(v):       # the Python int if v is the same in every timeline, else No
 def pair(a, b, lo, hi):
     w = need(min(lo, a.lo, b.lo), max(hi, a.hi, b.hi)); return a.at(w), b.at(w), w
 def ite(c, a, b):
-    if isinstance(a, list): return [ite(c, x, y) for x, y in zip(a, b)]
+    if isinstance(a, list) or isinstance(b, list):
+        if not (isinstance(a, list) and isinstance(b, list) and len(a) == len(b)):
+            raise SyntaxError('a name must keep the same shape in every timeline (one list length, or a number)')
+        return [ite(c, x, y) for x, y in zip(a, b)]
     if isinstance(a, z3.BoolRef) or isinstance(b, z3.BoolRef): return z3.If(c, a, b)
     x, y, w = pair(a, b, min(a.lo, b.lo), max(a.hi, b.hi))
     return V(z3.If(c, x, y), min(a.lo, b.lo), max(a.hi, b.hi))
@@ -155,9 +158,12 @@ class Prog:
             if t in (ast.BitAnd, ast.BitOr, ast.BitXor): return bitop(t, a, b)
             if t in (ast.LShift, ast.RShift): return shift(a, b, t is ast.LShift)
         if isinstance(e, ast.Compare):
-            a = self.val(e.left, env); out = []
+            a = self.val(e.left, env); out = []; outer = self.live    # a < b < c stops at the first false, like Python
             for op, rt in zip(e.ops, e.comparators):
-                b = self.val(rt, env); out.append(cmp(type(op), a, b)); a = b
+                b = self.val(rt, env) if not out else self.maybe(lambda: self.val(rt, env), z3.And(outer, *out))
+                if b is None: out.append(z3.BoolVal(False)); break    # no timeline gets here alive
+                out.append(cmp(type(op), a, b)); a = b
+            self.live = outer
             return z3.And(*out) if len(out) > 1 else out[0]
         if isinstance(e, ast.BoolOp):                      # `and` / `or` stop early: later parts only run (and crash) when reached
             outer = self.live; vs = []; reach = outer; is_and = isinstance(e.op, ast.And)
@@ -181,7 +187,8 @@ class Prog:
                 if name not in self.futures:
                     k = self.idx(e.args[1], env) if len(e.args) > 1 else None
                     mk = lambda tag: V(z3.BitVec(tag, W), -(1 << (W - 1)), (1 << (W - 1)) - 1)
-                    self.futures[name] = mk('future_' + name) if k is None else [mk(f'future_{name}{i}') for i in range(k)]
+                    # brackets keep the names apart: future(x, 2)'s second item is not future(x1)
+                    self.futures[name] = mk('future_' + name) if k is None else [mk(f'future_{name}[{i}]') for i in range(k)]
                 fv = self.futures[name]; return list(fv) if isinstance(fv, list) else fv
             if f == 'abs': a = self.val(e.args[0], env); return ite(cmp(ast.Lt, a, C(0)), neg(a), a)
             if f in ('min', 'max'):
@@ -189,6 +196,7 @@ class Prog:
                 return ite(c, a, b) if f == 'min' else ite(c, b, a)
             if f == 'len': return C(len(self.val(e.args[0], env)))
             fn = self.fns[f]
+            if len(e.args) != len(fn.args.args): raise TypeError(f'{f} takes {len(fn.args.args)} values but was given {len(e.args)}')
             local = {a.arg: (self.val(x, env), z3.BoolVal(True)) for a, x in zip(fn.args.args, e.args)}
             st = {'live': self.live, 'done': z3.BoolVal(False), 'ret': C(0)}
             outer = self.live; self.block(fn.body, local, st); self.live = outer
@@ -199,7 +207,8 @@ class Prog:
         if k is None: raise SyntaxError('a list index, list size or range bound must be the same in every timeline')
         return k
     def assign(self, env, name, v, live):
-        if name in env:
+        if name in env and z3.is_true(z3.simplify(live)): d = live    # every timeline: just replace it (its shape may change)
+        elif name in env:
             old, d = env[name]; v = ite(live, v, old); d = z3.simplify(z3.Or(d, live))
         else: d = live
         if isinstance(v, V): v = V(z3.simplify(v.e), v.lo, v.hi)      # fold what is already known (keeps formulas small)
@@ -257,12 +266,14 @@ def run(path):
     t0 = time.time()
     P.block(main, env, st)
     names = list(P.futures)
-    pairs = []
+    pairs, shapes = [], []
     for n, fv in P.futures.items():
         end = P.read(env, n) if n in env else fv
-        pairs += list(zip(end, fv)) if isinstance(fv, list) else [(end, fv)]
-    flat = [f for _, f in pairs]
-    consistent = [cmp(ast.Eq, a, b) for a, b in pairs] + P.guards
+        if isinstance(end, list) != isinstance(fv, list) or (isinstance(fv, list) and len(end) != len(fv)):
+            shapes.append(z3.BoolVal(False))                # ends a different shape than was sent: never the same
+        else: pairs += list(zip(end, fv)) if isinstance(fv, list) else [(end, fv)]
+    flat = [f for fv in P.futures.values() for f in (fv if isinstance(fv, list) else [fv])]
+    consistent = [cmp(ast.Eq, a, b) for a, b in pairs] + shapes + P.guards
     s = z3.SolverFor('QF_BV'); s.add(*consistent)          # the bit-vector solver: much faster at listing every timeline
     total = f'{2 ** (W * len(flat)):,}' if W * len(flat) <= 192 else f'2^{W * len(flat)}'
     print('PARADOX: ' + ', '.join(names) + (' arrives' if len(names) == 1 else ' arrive') + f' from the future. Searching every possible message at once ({total} of them) for consistent timelines...')
@@ -289,7 +300,7 @@ def run(path):
         print(f'\nChose the timeline with the {kind} {nm} ({dt:.2f} s):')
     else:
         print(f'\n{"Exactly " + str(len(timelines)) if not more else "More than " + str(len(timelines) - 1)} consistent timeline{"s" if len(timelines) != 1 else ""} ({dt:.2f} s):')
-    for i, mdl in enumerate(timelines[:5], 1):
+    for i, mdl in enumerate(timelines[:5] if more else timelines, 1):   # "Exactly 6" lists all 6
         vals = [f'{e} = ' + text(mdl, P.val(ast.parse(e, mode='eval').body, env)) for e in (P.shows or names)]
         print(f'   timeline {i}: ' + ', '.join(vals))
 
