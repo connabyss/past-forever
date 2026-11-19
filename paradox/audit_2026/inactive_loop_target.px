@@ -1,0 +1,9 @@
+# When the branch is skipped, i must remain 7; the unrolled loop must not leak i=1.
+bits 4
+x = future(x)
+i = 7
+if x == 0:
+    for i in range(2):
+        pass
+x = i
+show x

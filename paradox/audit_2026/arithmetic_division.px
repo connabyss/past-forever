@@ -1,0 +1,5 @@
+# 4-bit signed division truncates toward zero; zero is the sole fixed point.
+bits 4
+x = future(x)
+x = x // -3
+show x

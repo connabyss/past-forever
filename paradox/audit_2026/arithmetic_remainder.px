@@ -1,0 +1,5 @@
+# 4-bit signed C-style remainder. Every input in [-8, 7] is checked.
+bits 4
+x = future(x)
+x = x % -3
+show x

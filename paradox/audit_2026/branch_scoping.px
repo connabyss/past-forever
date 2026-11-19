@@ -1,0 +1,8 @@
+# Branches must produce a conditional value, not leak assignments across arms.
+bits 4
+x = future(x)
+if x == 0:
+    x = 1
+else:
+    x = 0
+show x
