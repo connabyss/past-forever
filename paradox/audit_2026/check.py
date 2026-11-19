@@ -123,6 +123,13 @@ r = run("deep_nesting.px")
 deep_shown = timeline_values(r.stdout)
 ok &= check("deep nested branches: all sampled timelines are valid", r.returncode == 0 and len(deep_expected) == 15 and "More than 5 consistent timelines" in r.stdout and len(deep_shown) == 5 and all(x in deep_expected for x in deep_shown), f"brute force count={len(deep_expected)}; shown={deep_shown}")
 
+# Surprise: x -> 5x+12 appears to amplify values, but in Z/256Z it has
+# four fixed points because 4x = -12 has four solutions modulo 256.
+modular_expected = sorted(signed(x, 8) for x in range(256) if (5 * x + 12) % 256 == x)
+r = run("modular_fixed_points.px")
+modular_actual = timeline_values(r.stdout)
+ok &= check("surprise: independently enumerate four modular fixed points", r.returncode == 0 and modular_expected == [-67, -3, 61, 125] and sorted(modular_actual) == modular_expected, f"brute force={modular_expected}; solver={sorted(modular_actual)}")
+
 # A program with no future inputs has one ordinary empty-message execution.
 r = run("no_future.px")
 no_future_ok = (r.returncode == 0 and "Exactly 1 consistent timeline" in r.stdout and "timeline 1: x = 3" in r.stdout)

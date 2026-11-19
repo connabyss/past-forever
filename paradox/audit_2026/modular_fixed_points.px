@@ -1,0 +1,5 @@
+# A seemingly runaway update has four consistent 8-bit timelines because of wraparound.
+bits 8
+x = future(x)
+x = 5 * x + 12
+show x

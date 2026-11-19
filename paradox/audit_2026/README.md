@@ -59,6 +59,14 @@ asserts the discrepancy.
   displayed samples are valid.
 - A program without future variables yields one ordinary timeline.
 
+### Independently verified surprise
+
+`modular_fixed_points.px` asks for a fixed point of `x -> 5*x + 12` in 8-bit
+wrapping arithmetic. Although the update looks like it should run away, the
+congruence is `4*x = -12 (mod 256)`, which has four solutions because 4 is not
+invertible modulo 256. PARADOX finds `61, 125, -3, -67`. A separate Python loop
+enumerating all 256 bit patterns confirms this exact set.
+
 ## Verdict
 
 **Partly impressed.** The exact arithmetic, tested range boundary, branch
