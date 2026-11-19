@@ -76,7 +76,8 @@ steps as its last digit does. For example `x = x × x × x + 1` goes 0, 1, 2, 9,
 3. So g, started at 0, freezes one more digit every round and has one limit z ending in 0, with g(z) = z. f's ring
    through z is r long on every depth (it can't be shorter, because on the last digit it is r long), and 0's path
    falls into it. Squares are different: the same step only works when the ring's slopes multiply to a multiple
-   of 10, and for most c they don't. (Also checked by machine: every c below 200 with powers 3, 5 and 7, on 1 digit and on 30, comes round in the same
+   of 10, and for most c they don't. Past Forever now uses this argument itself: ask `why x` and a ring like this
+   one says `And that is proved`. (Also checked by machine: every c below 200 with powers 3, 5 and 7, on 1 digit and on 30, comes round in the same
    number of steps.)
 
 **Even powers: some lie, some can't.** Squares aren't the only liars. `x = x ^ 4 + c`, from 0, lies too, and its

@@ -2012,6 +2012,23 @@ class System {
     for (const p of this.F.values()) if (p && p.t) for (const { c } of p.t.values()) see(c);
     return Math.min(d, 400);
   }
+  // a ring that is proved to keep its length at every depth: v's step uses only v and fixed numbers, its last digit
+  // goes round a ring of n, and the step's slopes at those n digits multiply to a number ending in 0. Then n steps
+  // done in a row map the numbers ending in the ring's first digit into themselves and pull any two of them at
+  // least one digit closer, so they have exactly one number left alone, its ring is n long at every depth, and v
+  // falls into it. (The same argument as the contraction rule, run on n steps at once.)
+  ringProof(v, n) {
+    const f = this.F.get(v), sub = new Map();
+    for (const d of f.names()) if (d !== v) { const i = this.info.get(d); if (!(i && i.type === 'const' && i.value.k === 'num')) return null; sub.set(d, Poly.num(i.value.q)); }
+    const g = f.subst(sub), slope = g.deriv(v), vals = [];
+    const o = this.orbit([v], 10n, 1, (st) => vals.push(st.get(v)));
+    if (!o || o.period !== n) return null;
+    const ring = vals.slice(o.first);
+    let prod = 1n;
+    for (const x of ring) { const s = slope.evalMod(new Map([[v, x]]), 10n); if (s === null) return null; prod = (prod * s) % 10n; }
+    if (prod !== 0n) return null;
+    return 'And that is proved: the slopes of the step at ' + ring.join(', ') + ' multiply to a number ending in 0, so every ' + plural(n, 'step') + ' pin at least one more digit for good, and ' + v + ' is going round a ring of ' + n + ' endless numbers forever';
+  }
   // no proof of settling: look for proof of NOT settling (last digits going round), else say so
   byCycling(group) {
     const out = new Map();
@@ -2033,7 +2050,7 @@ class System {
           const deeper = pers.length < 3 ? '' : !same && run >= DEEP
             ? '. Looking deeper, the last 1 to ' + run + ' digits come round every ' + plural(pers[0], 'step') + ', and the next ones take ' + pers.slice(run).join(', ') + ' steps'
             : same
-            ? '. Looking deeper, the last 1 to ' + pers.length + ' digits all come round every ' + plural(pers[0], 'step') + ' too. As far as I can see, ' + v + ' is going round a ring of ' + pers[0] + ' endless numbers'
+            ? '. Looking deeper, the last 1 to ' + pers.length + ' digits all come round every ' + plural(pers[0], 'step') + ' too. ' + (this.ringProof(v, pers[0]) || 'As far as I can see, ' + v + ' is going round a ring of ' + pers[0] + ' endless numbers')
             : '. Looking deeper, the last 1, 2, 3… digits take ' + pers.join(', ') + ' steps to come round';
           // when most of those digits never move, name the one that does
           const strs = cyc.map((x) => String(x).padStart(k, '0'));

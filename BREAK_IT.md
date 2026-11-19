@@ -15,6 +15,8 @@ Back to the [README](README.md).
   explain the odd 1s (61 = 60 + 1, 21 = 20 + 1), and for squares 60 = 5 + 5 + 25 + 25, where the two 5s follow
   from a short argument ([liars/README.md](liars/README.md#where-the-60-comes-from)). Prove the two 25s, explain
   the 20s, or show a count that changes further down.
+- **Break a proved ring.** When a loop's answer says `And that is proved` and names a ring of N, find a depth where
+  its last digits don't come round every N steps ([the rule](HOW_IT_KNOWS.md)).
 - **Why only four magnets?** Every c that stays calm for k digits shares its last k − 2 base-5 digits with one of
   the four magnets in [liars/README.md](liars/README.md#why-they-lie) (checked to 1000 digits by [tests/magnets.py](tests/magnets.py)). Write a real
   proof for every k, or show a c that stays calm for k digits while sharing fewer than k − 2 with all four.

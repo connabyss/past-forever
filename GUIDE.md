@@ -124,6 +124,8 @@ hunt c from 0 to 99: tried 100 numbers, 5 kinds of answer
 
 `ring of N` in a hunt means every digit Past Forever looked at, 40 deep, came round every N steps. It is what it
 saw, not a proof, and a liar calmer than that fools it: c = 5^45 − 2 shows `ring of 2` but goes wild at digit 47.
+Open one c on its own (`why x`) to see whether its ring is proved: `x = x × x + 1` says `And that is proved`,
+because its ring passes 0, where the slope 2x is 0.
 
 In the playground every number becomes a coloured square. Some wild loops are **liars**: their last digits
 go round a ring of 2 for a while, then the next digit breaks it. Brighter means it lied for longer.

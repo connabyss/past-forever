@@ -39,6 +39,13 @@ the rest are checked by the robot referee only.
   extra parts times a number ending in 0, like `x = 3 ^ x − 10 × x`.
 - The last digits go round a ring that never stops: proved never to settle. **(2nd)** for one-name polynomial loops
   and `x = x ^ x`.
+- The ring's length, for a one-name polynomial loop like `x = x × x + 1`: if the rule's slopes at the ring's last
+  digits multiply to a number ending in 0, the answer says `And that is proved` and names the ring. Doing the rule
+  once round the ring is then a step whose slope ends in 0, so, as in the rule above, it locks one more digit every
+  round: there is exactly one ring of that length, at every depth, and x falls into it. Otherwise the answer says
+  `As far as I can see`, because a liar can keep a ring for 46 digits and then go wild. The separate checker doesn't check
+  this rule yet; [tests/run.js](tests/run.js) checks every ring it proves for `x^p + c` (p 2 to 5, c from −20 to 60)
+  against plain arithmetic on the last 60 digits.
 - None of these fit: `can't see the end`.
 
 ## Honest notes
@@ -78,5 +85,6 @@ the rest are checked by the robot referee only.
   every answer against a plain modular simulation, up to 110 digits deep, on every build. 0 wrong; 18 of the third
   kind say `can't see the end` (honest, but a gap). That is a finite check, not a proof: it looks at a fixed set of
   depths and loop families, and a loop shape it doesn't try could still hide a bug.
-- Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring.
+- Rings and liars are checked 40 digits deep. A liar that lies for more than 40 digits would look like a ring, unless
+  its answer says `And that is proved` (no liar can: its ring never passes a slope ending in 0).
 - `can't see the end` comes up a lot. That's the language being honest, not a bug.
