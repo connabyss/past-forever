@@ -1,6 +1,6 @@
 # Break it
 
-Find one of these and your name goes in the Hall of Fame below.
+Find one of these and your name goes in the [Hall of Fame](HALL_OF_FAME.md#breakers).
 
 Back to the [README](README.md).
 
@@ -26,36 +26,5 @@ with the code and what it printed.
 
 ## Hall of Fame
 
-1. **Leo AI in Brave (Qwen).** Its "numbers that are their own square" challenge turned up a loop that starts
-   on its own answer, …081787109376 squared forever, where Past Forever said `can't see the end`. It settles,
-   and now Past Forever proves it. (November 2026)
-2. **GPT Luna in Brave.** `x = (M + 1) × x + M` with M = 1 and 40 zeros: the last 40 digits never move, but the
-   41st goes round 0 to 9 forever. Past Forever only looked 9 digits in and said `can't see the end`. Now it looks
-   as deep as the biggest number in the loop, and proves `never settles`. (November 2026)
-3. **GitHub Copilot.** `repeat 10 ^ 64: x = x + 1` had no time limit, so it froze the playground. Not a wrong answer,
-   but a real hang. Now `repeat` stops with a clear message after 15 seconds (8 in the playground). (November 2026)
-4. **A fresh Claude Opus agent, and GitHub Copilot.** Asked only to take a look, Opus tried a tower of 2s,
-   `x = 2 ^ x`, where Past Forever said `can't see the end`. It settles, on …075353432948736. Copilot found the same
-   gap with `x = 10 ^ x`, which settles on 0. Now every tower on a whole number from 2 up settles by its own rule.
-   (November 2026)
-5. **Two fresh Claude Opus agents, separately.** Asked to "use this language like a researcher", both worked out
-   why liars exist (the 5s clock and the four special values of c), found the 34-digit record
-   `8616755347677791280982`, and showed c = 5^k − 2 is a liar as long as you like. One of those, 5^45 − 2, fooled the
-   hunt into saying `ring of 2`, so the hunt's why now says that rings are what it saw, not proofs. (November 2026)
-6. **The Liar Race: Claude Haiku, Sonnet and Opus.** Three fresh agents raced to find the smallest c that stays calm
-   for 35 digits. All three found `38533618339183472936432`, each by building the calm remainders in base 5. Sonnet
-   got there first: "go count to 3.85e22 by hand." (November 2026)
-7. **An explorer agent in a GitHub Codespace.** Found two loops it could answer by hand where Past Forever said
-   `can't see the end`: `if x is even: x = x + 1, else: x = x + 3` (its last digit goes round all ten digits forever),
-   and `y = 10 × y + x` with x the endless …918212890625 (it settles on −x ÷ 9). Both are now proved, with two new
-   rules in [HOW_IT_KNOWS.md](HOW_IT_KNOWS.md) and two new families of loops for the robot referee. It also turned the last 360 digits of Graham's
-   number into a song, which became `sing`, found counts that climb, like `f = f × f`, that it couldn't finish, and `x = x ^ x`, which provably never settles
-   (from 7 it's a liar: its last 2 to 4 digits flip between two values, then the 5th goes wild).
-   (November 2026)
-8. **GitHub Copilot, two finds in one night.** Hunting for a wrong `proved`, it found two loops Past Forever
-   undersold. `y = 2 × x − y`, with x the endless …212890625, comes back to y every 2 steps, exactly, but the answer
-   only said `As far as I can see`: the ring proof took fixed whole numbers, not settled endless ones. And
-   `if x is even and x ends in 0: x = x × x`, from 10, got `can't see the end`, because branch tests couldn't mix
-   with `and`, `or` and `not`. It settles on 0. Both are now proved, the separate checker double-checks the new
-   rings, and the robot referee now mixes tests with and, or and not. (November 2026)
-
+The Hall of Fame has its own page now, in two parts: [Finds](HALL_OF_FAME.md#finds), new checkable results found
+with Past Forever, and [Breakers](HALL_OF_FAME.md#breakers), everyone who caught it out, each linked to the fix.

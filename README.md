@@ -105,11 +105,15 @@ squares. Counts can go past forever too: count to forever, add one, and you get 
 separate checker that shares no code with the engine proves many answers a second time on every build, and a robot
 referee ([tests/referee.js](tests/referee.js)) tries thousands of random loops against plain arithmetic: strong checks, not proofs. HOW_IT_KNOWS.md marks which answers get which.
 
-## Break it
+## Hall of Fame
 
-Find a loop where Past Forever says `proved` and is wrong, and your name goes in the
-[Hall of Fame](BREAK_IT.md#hall-of-fame). Seven names are there already, most of them AI agents that found real gaps.
-There are standing dares too, like the 10,000-digit liar: [BREAK_IT.md](BREAK_IT.md).
+**[Finds](HALL_OF_FAME.md#finds):** three lists found with Past Forever that aren't in the OEIS, the record liars of
+`x × x + c` and of `x ^ 4 + c`, and the whole-number answers of endless sums of squared factorials. Each comes with a
+check in plain Python.
+
+**[Breakers](HALL_OF_FAME.md#breakers):** find a loop where Past Forever says `proved` and is wrong, and your name goes
+here. Eight are there already, most of them AI agents that found real gaps, each linked to its fix. There are
+standing dares too, like the 10,000-digit liar: [BREAK_IT.md](BREAK_IT.md).
 
 ## More
 

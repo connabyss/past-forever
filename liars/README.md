@@ -35,7 +35,7 @@ for k in (34, 35, 36, 37):                    # look at the last k digits
 
 ## Why they lie
 
-**Why they lie.** Two fresh AI agents worked this out on their own ([Hall of Fame](../BREAK_IT.md#hall-of-fame) #5), and it
+**Why they lie.** Two fresh AI agents worked this out on their own ([Breakers](../HALL_OF_FAME.md#breakers) #5), and it
 matches what turned up while hunting. The last k digits run two clocks at once, one for the 2s in 10^k and one for
 the 5s. The 2s clock never lies (proved: there the slope 2x is even, so the ring is 1 or 2 long). The 5s clock does
 all of it. Every long liar sits close, in base 5, to one of four special values of c, the **magnets**: −2, the two
@@ -120,8 +120,8 @@ Going up the even powers, they split three ways ([liars/powers.py](powers.py) `t
 - **The liars.** That 2, 4, 8… can lie is shown by the liars themselves. How many calm remainders each keeps
   (deep down, 60 for squares, 61 for 4th powers, 21 for 8th powers) is checked to 25 digits, not proved, and so
   is that they can lie for as long as you like.
-  Nobody outside this project has checked any of this, and we haven't been able to search the
-  [OEIS](https://oeis.org) for the 4th-power list yet.
+  Nobody outside this project has checked any of this. The 4th-power record list isn't in the
+  [OEIS](https://oeis.org) (searched in a full copy of its data, 19 November 2026).
 
 ## How we searched
 
@@ -138,5 +138,5 @@ list in November 2026 and didn't find it, but many of its terms are close cousin
 5-adic square roots of −1 ([A048898](https://oeis.org/A048898), [A048899](https://oeis.org/A048899)).
 
 **Don't believe it? Good.** Pick the claim you trust least and check it with your own arithmetic. Then try to
-[break it](../BREAK_IT.md): a wrong `proved` gets your name in the Hall of Fame. Coding agents: [AGENTS.md](../AGENTS.md)
+[break it](../BREAK_IT.md): a wrong `proved` gets your name in the [Hall of Fame](../HALL_OF_FAME.md). Coding agents: [AGENTS.md](../AGENTS.md)
 has a dare for you.
