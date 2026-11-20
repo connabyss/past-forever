@@ -2579,8 +2579,9 @@ function dailyShow(n, guess) {
   const [w, m] = dailyStats(); $('dscore').textContent = 'You have called ' + w + ' of ' + m + (m === 1 ? ' day.' : ' days.') + ' A new loop comes tomorrow.'; $('dscore').hidden = false;
   $('dshare').hidden = false; $('dshare').textContent = 'Share how you did (no spoilers)'; $('dedit').hidden = false;
 }
+let dailyN = 1;   // the loop on screen: share and edit use it, not the clock (Arena's find: past midnight they jumped to tomorrow's loop)
 function openDaily() {
-  const n = dayNo(); $('tour').hidden = true; $('answers').hidden = true; $('daily').hidden = false; calm();
+  const n = dailyN = dayNo(); $('tour').hidden = true; $('answers').hidden = true; $('daily').hidden = false; calm();
   $('dcount').textContent = 'One Loop #' + n; $('dsrc').textContent = dailySrc(n);
   $('dout').hidden = true; $('dscore').hidden = true; $('dshare').hidden = true; $('dedit').hidden = true;
   guessButtons($('dguess'), ENDS.map(([, t]) => [t]), (j) => dailyShow(n, ENDS[j][0]));
@@ -2589,9 +2590,9 @@ function openDaily() {
 }
 $('dailyb').onclick = openDaily;
 $('dclose').onclick = () => { $('daily').hidden = true; setHash(''); $('dailyb').focus(); };
-$('dedit').onclick = () => { code.value = dailySrc(dayNo()); openOwn(); filled(); $('own').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+$('dedit').onclick = () => { code.value = dailySrc(dailyN); openOwn(); filled(); $('own').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
 $('dshare').onclick = () => {
-  const n = dayNo(), [w, m] = dailyStats();
+  const n = dailyN, [w, m] = dailyStats();
   const line = 'Past Forever · One Loop #' + n + ' · ' + (dlog[n] && dlog[n].right ? 'called it ✓' : 'it fooled me ✗') + ' · ' + w + ' of ' + m + ' so far\n' + location.href.split('#')[0] + '#today';
   copyText($('dshare'), line, 'Copied ✓ Paste it anywhere');
 };

@@ -125,6 +125,15 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
    checks++;{const c=await q.evaluate(()=>window.__copied);if(!c||!c.startsWith('Past Forever · One Loop #')||/settle|see the end|…/.test(c)||!c.endsWith('#today')){fails++;console.log('FAIL share line spoils or is missing',c);}}
    await q.reload();await q.waitForTimeout(400);await q.evaluate(()=>{navigator.clipboard.writeText=async t=>{window.__copied=t;};});
    checks++;if(!(await q.locator('#dout').isVisible())||!(await q.locator('#dguess button').nth(0).isDisabled())){fails++;console.log('FAIL today remembers your guess');}
+   // Arena's find (11-20): open today's loop at 23:59, guess, wait past midnight. Share and edit must still mean the loop on screen
+   { const m=await ctx.newPage();await m.clock.install({time:new Date(2026,10,20,23,59,0)});
+     await m.goto('file://'+f+'#today');await m.waitForTimeout(300);await m.evaluate(()=>{localStorage.removeItem('pf-daily');navigator.clipboard.writeText=async t=>{window.__c=t;};});
+     await m.reload();await m.waitForTimeout(300);await m.evaluate(()=>{navigator.clipboard.writeText=async t=>{window.__c=t;};});
+     const shown=await m.locator('#dsrc').textContent();await m.locator('#dguess button').nth(0).click();
+     await m.clock.fastForward('02:00');await m.click('#dshare');await m.waitForTimeout(100);
+     const c=await m.evaluate(()=>window.__c);await m.click('#dedit');const ed=await m.inputValue('#code');
+     checks++;if(!c||!c.startsWith('Past Forever · One Loop #1 · called it ✓')||ed!==shown){fails++;console.log('FAIL today past midnight',c,JSON.stringify(ed));}
+     await m.close(); }
    // every loop in the list gets a real answer from the engine (no errors), and all three endings come up
    checks++;{const k=await q.evaluate(()=>{const c={};for(let n=1;n<=DAILY.length;n++){const r=Forever.run(dailySrc(n),{repeatMs:8000});const e=r.error?'error':endOf(r.lines[0].text)||'other';c[e]=(c[e]||0)+1;}return c;});
      if(k.error||k.other||!(k.settles>=15&&k.never>=15&&k.cant>=15)){fails++;console.log('FAIL today list',k);}}
