@@ -9,7 +9,7 @@ Back to the [README](README.md). Want in? [BREAK_IT.md](BREAK_IT.md) has the dar
 
 Each one below has a Python check you can run without Past Forever, and a note on what is already known. "Not in the
 OEIS" means we searched the [OEIS](https://oeis.org) (a full copy of its data, taken 19 November 2026) and found no
-list containing these terms. It doesn't mean new maths: the ideas underneath are old, and an expert may see each list
+list containing these terms. It doesn't mean new math: the ideas underneath are old, and an expert may see each list
 as a close cousin of one that is there.
 
 1. **The record liars of `x = x × x + c`.** 2, 7, 57, 182, 1068, 14557, 30982, 265357, … Start at 0, square, add c,

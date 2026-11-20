@@ -1,4 +1,4 @@
-<!-- Thanks for the PR! Tick what applies, or write n/a on a line that doesn't. -->
+<!-- Thanks for the PR! Check what applies, or write n/a on a line that doesn't. -->
 
 ## What this changes
 

@@ -96,7 +96,7 @@ function size() {
 function draw(n) {                               // note n (can be a fraction) sits on the bar
   at = n;
   cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, w, WH);
-  const rh = RHU * u, y0 = BARY + n * rh;          // screen y of note 0's centre
+  const rh = RHU * u, y0 = BARY + n * rh;          // screen y of note 0's center
   const top = y0 - (N - 1 + 0.5 + TAILU) * rh, bot = y0 + LEADU * rh;
   // the paper
   cx.save();

@@ -14,7 +14,7 @@ show x
 
 5, 25, 625, 390625… squared forever, and the digits on the right freeze. **Check it on any calculator:**
 `90625 × 90625 = 8212890625`, which ends in `90625` again. Every digit you keep does the same. It is its own square.
-Numbers whose digits run on forever to the left are old maths, the 10-adic numbers (Hensel, 1897). Past Forever lets
+Numbers whose digits run on forever to the left are old math, the 10-adic numbers (Hensel, 1897). Past Forever lets
 you write loops in them.
 
 <p align="center"><img src="media/hero.gif" width="460" alt="5 squared again and again: the digits on the right freeze one or more at a time, and Past Forever gives the final ending ...918212890625"></p>
@@ -117,7 +117,7 @@ standing dares too, like the 10,000-digit liar: [BREAK_IT.md](BREAK_IT.md).
 
 ## More
 
-- [Try this on a calculator first](CALCULATOR.md): seven steps, two minutes, no maths needed.
+- [Try this on a calculator first](CALCULATOR.md): seven steps, two minutes, no math needed.
 - [A tour of the language](GUIDE.md): four lines that square forever, the last digits of Graham's number (and a
   song made of them), and `hunt`, which tries a whole range of loops at once.
 - [Liars](liars/README.md): why they lie, the records, and which powers can lie.
@@ -151,4 +151,4 @@ connabyss asked Claude (an AI) for a strange new language that would grow out of
 One idea from that play was a loop that finishes forever, and connabyss picked it. The language was built in a day
 with Claude Code, and the liar loops turned up while hunting with it.
 
-MIT licence. The piano roll's paper is Paper 001 from [ambientCG](https://ambientcg.com/view?id=Paper001), CC0.
+MIT license. The piano roll's paper is Paper 001 from [ambientCG](https://ambientcg.com/view?id=Paper001), CC0.

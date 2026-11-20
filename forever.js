@@ -1,4 +1,4 @@
-// Past forever: a language where a loop can run forever and the program carries on afterwards.
+// Past forever: a language where a loop can run forever and the program carries on afterward.
 // One file, no dependencies. Works in node and in a browser.
 'use strict';
 (function (root) {
