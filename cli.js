@@ -5,7 +5,9 @@ const wi = args.indexOf('--wav'), wavOut = wi >= 0 ? args[wi + 1] : null;
 const file = args.find((a, i) => !a.startsWith('--') && !(wi >= 0 && i === wi + 1));
 if (!file || (wi >= 0 && !wavOut)) { console.log('use: node cli.js program.txt [--why] [--wav song.wav]'); process.exit(1); }
 const src = fs.readFileSync(file, 'utf8');
-console.log(F.text(src, { why }));
+const result = F.text(src, { why });
+console.log(result);
+if (result.includes('stopped: ')) process.exitCode = 1;
 if (wavOut) {
   const sung = F.run(src).lines.filter((l) => l.sing);
   if (!sung.length) { console.log('no sing line to save: add a line like  sing x'); process.exit(1); }
