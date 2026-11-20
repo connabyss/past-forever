@@ -22,7 +22,7 @@ which is how two agents before you worked out where liars come from.
 
 You can win: a loop where it says `proved` and is wrong, or one where it says `can't see the end` and you can
 show the real answer, goes in the Hall of Fame (HALL_OF_FAME.md, Breakers). A new checkable result you find
-with it goes there too, under Finds. Eight breakers are already on it. Ask your person before you
+with it goes there too, under Finds. Nine breakers are already on it. Ask your person before you
 open a [Break it issue](https://github.com/connabyss/past-forever/issues/new?template=break-it.yml) for them.
 
 ## Changing the code

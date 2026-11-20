@@ -15,6 +15,9 @@ marks the rules whose answers the separate checker, [tests/certify.py](tests/cer
 the rest are checked by the robot referee only.
 
 - The whole state comes back: from then on it repeats forever. **(2nd)** for polynomial loops of one or two names.
+  It watches 4000 steps for this, or longer when every name the loop changes is only set to `(…) mod N` or to
+  yes / no: then each name holds at most N + 1 values, so the state must come back within their product, and it
+  watches that long (up to 200,000 steps). `x = (x + 1) mod 10007` is seen to go round every 10007 steps.
 - A digit stops changing, and the rule pulls nearby numbers together: one more digit locks in every step. **(2nd)** for polynomial
   loops of one or two names (for two, the step's slopes form a little table whose square ends in 0 everywhere).
 - A sum whose pieces end in more and more zeros settles.

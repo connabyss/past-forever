@@ -101,6 +101,52 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
    await q.click('#tedit');await q.waitForTimeout(500);
    checks++;if(!(await q.locator('#code').isVisible())||(await q.inputValue('#code'))!=='x = 3\nforever: x = 3 ^ x\nshow x\nshow 3 ^ x = x'){fails++;console.log('FAIL change it opens the editor');}
    await q.click('#tback');checks++;if(await q.locator('#tcode').isVisible()){fails++;console.log('FAIL code hides on the next wonder');}
+   // guess before the reveal (Arena's idea, 11-20): a wrong guess says so, the right one lights up, and the tour keeps score
+   await q.goto('file://'+f+'#wonders/1');await q.waitForTimeout(400);
+   checks++;if((await q.locator('#tguess button').count())!==2||await q.locator('#treveal').isVisible()){fails++;console.log('FAIL wonder 1 guesses');}
+   await q.locator('#tguess button',{hasText:'No, they keep changing'}).click();await q.waitForTimeout(400);
+   checks++;{const r=await q.locator('#treveal').textContent();const sc=await q.locator('#tscore').textContent();const ok=await q.locator('#tguess button.right').textContent();
+     if(!r.startsWith('Not quite. They do!')||sc!=='Your guesses so far: 0 right of 1.'||ok!=='Yes, they freeze'||!(await q.locator('#tguess button.picked').count())||(await q.locator('#out .val').first().textContent())!=='…918212890625'){fails++;console.log('FAIL wrong guess',r,sc,ok);}}
+   await q.click('#tnext');await q.locator('#tguess button',{hasText:'Add: 1. Multiply: 0'}).click();await q.waitForTimeout(400);
+   checks++;{const r=await q.locator('#treveal').textContent();const sc=await q.locator('#tscore').textContent();if(!r.startsWith('You called it. ')||sc!=='Your guesses so far: 1 right of 2.'){fails++;console.log('FAIL right guess',r,sc);}}
+   await q.click('#tback');await q.locator('#tguess button',{hasText:'Yes, they freeze'}).click();await q.waitForTimeout(300);
+   checks++;{const sc=await q.locator('#tscore').textContent();if(sc!=='Your guesses so far: 1 right of 2.'){fails++;console.log('FAIL a second guess changed the score',sc);}}
+   // the tests' own GUESSES: exactly one right answer per wonder
+   checks++;{const g=await q.evaluate(()=>GUESSES.map((o)=>o.filter((x)=>x[1]).length));if(g.length!==7||g.some((x)=>x!==1)){fails++;console.log('FAIL one right guess per wonder',g);}}
+   // today's loop: #today opens it, guess, the engine's own answer shows, the share line gives nothing away
+   await q.goto('file://'+f+'#today');await q.waitForTimeout(400);
+   checks++;{const want=await q.evaluate(()=>[dayNo(),dailySrc(dayNo())]);
+     if(!(await q.locator('#daily').isVisible())||(await q.locator('#dcount').textContent())!=='One Loop #'+want[0]||(await q.locator('#dsrc').textContent())!==want[1]||await q.locator('#dout').isVisible()||await q.locator('#dshare').isVisible()){fails++;console.log('FAIL today opens',want);}}
+   const truth=await q.evaluate(()=>endOf(Forever.run(dailySrc(dayNo())).lines[0].text));
+   await q.locator('#dguess button').nth(0).click();await q.waitForTimeout(400);
+   checks++;{const r=await q.locator('#dreveal').textContent();const word={settles:'It settles.',never:'It never settles.',cant:"Past Forever can't see the end."}[truth];
+     if(!word||!r.includes(word)||!r.startsWith(truth==='settles'?'You called it.':'Not this time.')||(await q.locator('#dguess button.right').count())!==1||!(await q.locator('#dscore').textContent()).startsWith('You have called '+(truth==='settles'?1:0)+' of 1 day.')){fails++;console.log('FAIL today reveal',truth,r);}}
+   await q.click('#dshare');await q.waitForTimeout(200);
+   checks++;{const c=await q.evaluate(()=>window.__copied);if(!c||!c.startsWith('Past Forever · One Loop #')||/settle|see the end|…/.test(c)||!c.endsWith('#today')){fails++;console.log('FAIL share line spoils or is missing',c);}}
+   await q.reload();await q.waitForTimeout(400);await q.evaluate(()=>{navigator.clipboard.writeText=async t=>{window.__copied=t;};});
+   checks++;if(!(await q.locator('#dout').isVisible())||!(await q.locator('#dguess button').nth(0).isDisabled())){fails++;console.log('FAIL today remembers your guess');}
+   // Arena's find (11-20): open today's loop at 23:59, guess, wait past midnight. Share and edit must still mean the loop on screen
+   { const m=await ctx.newPage();await m.clock.install({time:new Date(2026,10,20,23,59,0)});
+     await m.goto('file://'+f+'#today');await m.waitForTimeout(300);await m.evaluate(()=>{localStorage.removeItem('pf-daily');navigator.clipboard.writeText=async t=>{window.__c=t;};});
+     await m.reload();await m.waitForTimeout(300);await m.evaluate(()=>{navigator.clipboard.writeText=async t=>{window.__c=t;};});
+     const shown=await m.locator('#dsrc').textContent();await m.locator('#dguess button').nth(0).click();
+     await m.clock.fastForward('02:00');await m.click('#dshare');await m.waitForTimeout(100);
+     const c=await m.evaluate(()=>window.__c);await m.click('#dedit');const ed=await m.inputValue('#code');
+     checks++;if(!c||!c.startsWith('Past Forever · One Loop #1 · called it ✓')||ed!==shown){fails++;console.log('FAIL today past midnight',c,JSON.stringify(ed));}
+     await m.close(); }
+   // every loop in the list gets a real answer from the engine (no errors), and all three endings come up
+   checks++;{const k=await q.evaluate(()=>{const c={};for(let n=1;n<=DAILY.length;n++){const r=Forever.run(dailySrc(n),{repeatMs:8000});const e=r.error?'error':endOf(r.lines[0].text)||'other';c[e]=(c[e]||0)+1;}return c;});
+     if(k.error||k.other||!(k.settles>=15&&k.never>=15&&k.cant>=15)){fails++;console.log('FAIL today list',k);}}
+   // a link to your own loop: copy it, open it, the same loop is in the editor and nothing has run yet
+   await q.evaluate(()=>localStorage.setItem('pf-code','x = 2'));
+   await q.goto('file://'+f);await q.waitForTimeout(300);await q.evaluate(()=>{navigator.clipboard.writeText=async t=>{window.__copied=t;};});
+   await q.fill('#code','# mine\nx = 0\nforever: x = x × x + 14557\nshow x');await q.click('#run');await q.waitForTimeout(400);
+   await q.click('#out .copyl');await q.waitForTimeout(200);
+   const link=await q.evaluate(()=>window.__copied);
+   checks++;if(!link||!link.startsWith('file://'+f+'#code=')){fails++;console.log('FAIL copy link',link);}
+   await q.evaluate(()=>localStorage.setItem('pf-code','x = 2'));
+   await q.goto(link);await q.waitForTimeout(400);
+   checks++;if((await q.inputValue('#code'))!=='# mine\nx = 0\nforever: x = x × x + 14557\nshow x'||await q.locator('#answers').isVisible()||await q.evaluate(()=>localStorage.getItem('pf-code'))!=='x = 2'){fails++;console.log('FAIL opening a loop link',await q.inputValue('#code'));}
    await q.goto('file://'+f+'#wonders/99');await q.waitForTimeout(400);
    checks++;if((await q.locator('#tcount').textContent())!=='Wonder 1 of 7'){fails++;console.log('FAIL bad wonder number');}
    await q.close(); }

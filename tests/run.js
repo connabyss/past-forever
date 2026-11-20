@@ -445,5 +445,60 @@ is(out('hunt c from 0 to 1:\n    hunt d from 0 to 0:\n        show d\n    show c
   is(got, 'that number got too big for this machine', 'browser: too big is an answer, not a crash');
 }
 
+// ── the LMArena agent (2026-11-20 duel): x = (x + 1) mod 10007 said "can't see the end" because the watch stopped at
+// 4000 steps. A loop whose names are only ever set to (…) mod N can be in so few states that watching longer always
+// sees it come round. Each answer is checked against a plain simulation that looks for the first repeat.
+{
+  const sim = (x0, f) => { const seen = new Map(); let x = x0, i = 0; while (!seen.has(x)) { seen.set(x, i++); x = f(x); } return i - seen.get(x) === 1 ? String(x) : 'never settles'; };
+  is(out('x = 0\nforever: x = (x + 1) mod 10007\nshow x'), sim(0n, (x) => (x + 1n) % 10007n), 'a ring of 10007 is seen (it said can\'t see the end)');
+  has(F.run('x = 0\nforever: x = (x + 1) mod 10007\nshow x\nwhy x').lines[1].why || out('x = 0\nforever: x = (x + 1) mod 10007\nwhy x'), 'every 10007 steps', 'the ring of 10007 says how long it is');
+  is(out('x = 0\nforever: x = (x + 1) mod 99991\nshow x'), 'never settles', 'a ring of 99991');
+  is(out('x = 2\nforever: x = (x × x + 1) mod 65537\nshow x'), sim(2n, (x) => (x * x + 1n) % 65537n), 'x × x + 1 mod 65537 against a plain simulation');
+  is(out('x = 1\nforever: x = (x × 3) mod 40961\nshow x'), sim(1n, (x) => (x * 3n) % 40961n), 'x × 3 mod 40961 against a plain simulation');
+  is(out('x = 7\nforever: x = (x × x) mod 4096\nshow x'), sim(7n, (x) => (x * x) % 4096n), 'squares mod 4096 settle, against a plain simulation');
+  // two names, and a flag: still a few states, still seen
+  is(out('x = 0   y = 0\nforever: x = (x + 1) mod 4999   y = (y + 2) mod 3\nshow x'), 'never settles', 'two names held in by mod');
+  is(out('x = 0   f = no\nforever: x = (x + 1) mod 6007   f = x = 5000\nshow f'), 'never settles', 'a flag that turns on and off with a ring of 6007');
+  // too many states to watch: it still says so honestly, never a guess
+  is(out('x = 0\nforever: x = (x + 1) mod 1000003\nshow x'), "can't see the end", 'a ring too long to watch stays honest');
+  // a loop that isn't held in by mod keeps the old watch
+  is(out('x = 196\nforever: x = x + backwards(x)\nshow x'), "can't see the end", '196 still can\'t see the end');
+}
+
+// ── the LMArena agent, deep round (2026-11-20): two ifs that both count n. x = x × x + 1 from 3 is even every other
+// step, so n goes up forever; the engine read only the last if (never true) and said n is exactly 0. Now it must
+// never say a finite number here (forever, or an honest can't see the end).
+{
+  const twoIfs = (a, b) => out('count n = 0\nx = 3\nforever:\n    x = x × x + 1\n    if x ' + a + ': n = n + 1\n    if x ' + b + ': n = n + 1\nshow n');
+  for (const got of [twoIfs('is even', 'ends in 9'), twoIfs('ends in 9', 'is even')]) {
+    n++; if (!(got === 'forever' || got === "can't see the end")) { bad++; console.log('FAIL two ifs on one count gave a wrong answer: ' + JSON.stringify(got)); }
+  }
+  is(out('count n = 0\nx = 3\nforever:\n    x = x × x + 1\n    if x is even: n = n + 1\nshow n'), 'forever', 'one if on a count still works');
+}
+
+// ── the LMArena agent, merge-gate pass (2026-11-20): a lamp the loop can only turn OFF came out as yes when the watch saw
+// it turn off but never saw the loop come round (x = (x + 1) mod 200003, lamp off at x = 3000; wrong on main too)
+{
+  const lamp = (at) => out('x = 0\nlamp = yes\nforever:\n    x = (x + 1) mod 200003\n    if x = ' + at + ': lamp = no\nshow lamp');
+  is(lamp(3000), 'no  (found at step 3000)', 'a lamp turned off at step 3000 stays off (it said yes)');
+  is(lamp(5000), 'no  (found at step 5000)', 'a lamp turned off at step 5000 stays off (it said yes)');
+  is(out('x = 0\nlamp = no\nforever:\n    x = (x + 1) mod 200003\n    if x = 3000: lamp = yes\nshow lamp'), 'yes  (found at step 3000)', 'a lamp turned on still says yes');
+  // two ifs that set one flag to the SAME value are read together, so this proof is kept
+  is(out('x = 0\nlamp = no\nforever:\n    x = x + 1\n    if x × x = 2: lamp = yes\n    if x × x = 3: lamp = yes\nshow lamp'), 'no  (proved)', 'two ifs on one flag, neither ever true: still proved no');
+  is(out('x = 0\nlamp = no\nforever:\n    x = x + 1\n    if x × x = 2: lamp = yes\n    if x × x = 4: lamp = yes\nshow lamp'), 'yes  (found at step 2)', 'two ifs on one flag, the second one true');
+  n++; { const g = out('x = 0\nlamp = no\nforever:\n    x = x + 1\n    if x × x = 4: lamp = yes\n    if x × x = 2: lamp = no\nshow lamp'); if (g !== 'yes  (found at step 2)' && g !== "can't see the end") { bad++; console.log('FAIL two ifs setting one flag both ways: ' + g); } }
+}
+
+// ── the LMArena agent, re-check (2026-11-20): 80 ifs setting one flag walked the same 100,000 digit states 80 times
+// (8 s in the CLI, 4 s frozen in the playground). The walk is now done once and reused.
+{
+  const ifs = Array.from({ length: 80 }, (_, i) => '    if x ends in ' + String(10 * i + 1).padStart(6, '0') + ': lamp = yes').join('\n');
+  const before = F.STATS.orbitWalks;
+  is(out('x = 0\nlamp = no\nforever:\n    x = x + 10\n' + ifs + '\nshow lamp'), 'no  (proved)', '80 ifs on one flag, none can hold (x ends in 0)');
+  const walks = F.STATS.orbitWalks - before;
+  n++; if (walks > 5) { bad++; console.log('FAIL 80 ifs on the same digits should share one walk, ran ' + walks); }
+  is(out('x = 0\nlamp = no\nforever:\n    x = x + 10\n' + ifs + '\n    if x ends in 000790: lamp = yes\nshow lamp'), 'yes  (found at step 79)', 'the same 80 plus one that does hold (x = 790 at step 79)');
+}
+
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);

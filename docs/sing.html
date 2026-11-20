@@ -903,7 +903,9 @@ function runForever(m, loop) {
     : 'I watched ' + plural(A.steps, 'step') + ' and the loop never came back to a state it had been in, and none of the rules I can prove things with fit this loop';
   for (const v of assigned) {
     if (pure.has(v)) continue;
-    if (A.flagsYes.has(v)) m.env.set(v, bool(true, 'it became yes at step ' + A.flagsYes.get(v) + ' and nothing in the loop can turn it back', 'found at step ' + A.flagsYes.get(v)));
+    // the flag ends on the one value the loop can give it, yes or no (the LMArena agent, 2026-11-20: a lamp turned off
+    // at step 3000 came out as yes, because this line always said yes)
+    if (A.flagsYes.has(v)) { const to = oneWayFlags(body).get(v) === 'y'; m.env.set(v, bool(to, 'it became ' + (to ? 'yes' : 'no') + ' at step ' + A.flagsYes.get(v) + ' and nothing in the loop can turn it back', 'found at step ' + A.flagsYes.get(v))); }
     else m.env.set(v, unknown(note));
   }
   settlePureCounts(m, body, pure, start);
@@ -1367,8 +1369,38 @@ function oneWayFlags(body) {
   return seen;
 }
 
+// How many different states can the loop be in? When every name the loop changes is only ever set to
+// (something) mod N, with N a plain number, or to yes / no, each name can hold at most N + 1 values (its start, then
+// 0 … N − 1), so the whole state must come back within the product of those counts, plus one step. Then watching
+// that long is enough to see it come round. (The LMArena agent, 2026-11-20: x = (x + 1) mod 10007 said "can't see
+// the end" because the watch stopped at 4000 steps.) Returns that count, or 0 when some name isn't held in like this.
+const BOOLISH = new Set(['bool', 'not', 'and', 'or', 'eq', 'cmp', 'endsin', 'endsmod']);
+function stateCount(body, stateNames) {
+  const room = new Map();
+  let ok = true;
+  (function walk(list) {
+    for (const s of list) {
+      if (s.t === 'set') {
+        const e = s.e;
+        let n = 0n;
+        if (e && e.t === 'bin' && e.op === 'mod' && e.b.t === 'num' && e.b.v > 0n) n = e.b.v + 1n;
+        else if (e && (BOOLISH.has(e.t) || (e.t === 'fn' && e.f === 'palindrome'))) n = 3n;
+        if (!n) ok = false;
+        else room.set(s.name, room.has(s.name) ? (room.get(s.name) > n ? room.get(s.name) : n) : n);
+      } else if (s.t !== 'if') ok = false;     // only plain sets and ifs: no inner loops, no shows
+      if (s.body) walk(s.body); if (s.else) walk(s.else);
+    }
+  })(body);
+  if (!ok) return 0;
+  let total = 1n;
+  for (const v of stateNames) { if (!room.has(v)) return 0; total *= room.get(v); if (total > 10n ** 9n) return 0; }
+  return Number(total) + 1;
+}
+
 function watch(m, body, stateNames, pure, start) {
   const res = { done: false, steps: 0, flagsYes: new Map() };
+  const held = stateCount(body, stateNames);
+  const maxSteps = held > m.limits.steps ? Math.min(held, m.limits.orbit) : m.limits.steps;
   const oneWay = oneWayFlags(body);
   for (const v of stateNames) { const cur = m.env.get(v); if (cur && keyOf(cur) === null) { res.skipped = true; return res; } }
   const seen = new Map(), hist = [];
@@ -1379,12 +1411,12 @@ function watch(m, body, stateNames, pure, start) {
   m.quiet++;
   const shown = [];
   try {
-    for (let step = 0; step <= m.limits.steps; step++) {
+    for (let step = 0; step <= maxSteps; step++) {
       const key = snap();
       if (key === null) break;
       if (seen.has(key)) { hit = { first: seen.get(key), again: step }; break; }
       seen.set(key, step); hist.push({ env: new Map(m.env), pure: pureNow() });
-      if (step === m.limits.steps || Date.now() - t0 > m.limits.ms) break;
+      if (step === maxSteps || Date.now() - t0 > m.limits.ms) break;
       let tooBig = false;
       if (step < 4) { m.quiet--; const before = m.out.length; try { m.run(body); } finally { m.quiet++; } shown.push(...m.out.splice(before)); }
       else m.run(body);
@@ -1507,6 +1539,12 @@ function reason(m, body, assigned, pure, start, A) {
       else throw new NotPoly();
     } else throw new NotPoly();
   }
+  // one watcher per name: two ifs that both change the same count or flag can't be read one at a time (the LMArena
+  // agent, 2026-11-20: with two ifs on n, the last one won and n = forever came out as exactly 0)
+  // Several ifs may set the same flag to the same value: they are read together below.
+  const counted = watchers.filter((w) => w.count).map((w) => w.count);
+  if (new Set(counted).size !== counted.length) throw new NotPoly();
+  for (const w of watchers) if (w.flag && watchers.some((o) => o.flag === w.flag && o.to !== w.to)) throw new NotPoly();
   const names = [...new Set([...cur.keys()].flatMap((v) => [v, ...cur.get(v).names()]))];
   for (const w of watchers) for (const v of w.cond.p.names()) if (!names.includes(v)) names.push(v);
   for (const v of names) if (kinds.get(v) !== 'plain' && kinds.get(v) !== 'newplain') throw new NotPoly();
@@ -1518,15 +1556,21 @@ function reason(m, body, assigned, pure, start, A) {
   // write the results back
   m.env = new Map(start);
   for (const v of cur.keys()) m.env.set(v, info.get(v).value);
+  const flagDone = new Set();
   for (const w of watchers) {
-    const r = sys.everTrue(w.cond);
     if (w.flag) {
+      // all the ifs that set this flag (one value): yes if any test ever holds, unchanged if none ever does
+      if (flagDone.has(w.flag)) continue; flagDone.add(w.flag);
+      const rs = watchers.filter((o) => o.flag === w.flag).map((o) => sys.everTrue(o.cond));
+      const hit = rs.find((x) => x.ever === true);
+      const r = hit || (rs.every((x) => x.ever === false) ? { ever: false, why: rs.map((x) => x.why).join('; and ') } : rs.find((x) => x.ever === undefined));
       const was = start.get(w.flag);
       if (A.flagsYes.has(w.flag)) m.env.set(w.flag, bool(w.to, 'it happened at step ' + A.flagsYes.get(w.flag) + ', and nothing in the loop can turn it back', 'found at step ' + A.flagsYes.get(w.flag)));
       else if (r.ever === true) m.env.set(w.flag, bool(w.to, r.why, 'proved'));
       else if (r.ever === false) { if (was) m.env.set(w.flag, bool(was.v, r.why, 'proved')); else m.env.set(w.flag, unknown('this name is never given a value: ' + r.why)); }
       else m.env.set(w.flag, unknown(r.why));
     } else {
+      const r = sys.everTrue(w.cond);
       // a count that goes up only when the test holds
       const from = start.get(w.count).o;
       if (r.ever === undefined) m.env.set(w.count, unknown(r.why));
@@ -1540,6 +1584,7 @@ function reason(m, body, assigned, pure, start, A) {
   return true;
 }
 
+const STATS = { orbitWalks: 0 };   // how many fresh digit walks were run (tests check that repeats are reused)
 class System {
   constructor(names, F, start) {
     this.names = names; this.F = new Map(names.map((v) => [v, F(v)])); this.start = start;
@@ -1554,16 +1599,21 @@ class System {
   // run the closed set of names on remainders only, until the remainders come round again
   orbit(vs, M, k, visit) {
     const cl = this.closure(vs);
+    // the last orbit walked is kept, so many tests on the same digits (80 ifs setting one flag, from the LMArena
+    // agent, 2026-11-20) replay it instead of walking up to 200,000 states again for each test
+    const ck = cl.join(',') + '|' + M + '|' + k, c = this.orbitCache;
+    if (c && c.ck === ck) { if (visit && c.res) c.states.forEach((st, i) => visit(st, i)); return c.res; }
+    STATS.orbitWalks++;
     let st = new Map(cl.map((v) => [v, mod(this.init(v, k), M)]));
-    const seen = new Map(); let step = 0;
+    const seen = new Map(), states = []; let step = 0;
     for (;;) {
       const key = cl.map((v) => st.get(v)).join(',');
-      if (seen.has(key)) return { first: seen.get(key), period: step - seen.get(key), cl };
-      if (step > LIMITS.orbit) return null;
-      seen.set(key, step);
+      if (seen.has(key)) { const res = { first: seen.get(key), period: step - seen.get(key), cl }; this.orbitCache = { ck, states, res }; return res; }
+      if (step > LIMITS.orbit) { this.orbitCache = { ck, states: null, res: null }; return null; }
+      seen.set(key, step); states.push(st);
       if (visit) visit(st, step);
       const nx = new Map();
-      for (const v of cl) { const r = this.F.get(v).evalMod(st, M); if (r === null) return null; nx.set(v, r); }
+      for (const v of cl) { const r = this.F.get(v).evalMod(st, M); if (r === null) { this.orbitCache = { ck, states: null, res: null }; return null; } nx.set(v, r); }
       st = nx; step++;
     }
   }
@@ -2048,7 +2098,7 @@ function text(src, opts = {}) {
   return out.join('\n');
 }
 
-const api = { run, text, parse, O, Q, Poly, LangError, notes, song, wav, VOICES, NOTE_SEC, version: '0.2' };
+const api = { run, text, parse, O, Q, Poly, LangError, notes, song, wav, VOICES, NOTE_SEC, STATS, version: '0.2' };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Forever = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 

@@ -112,7 +112,7 @@ referee ([tests/referee.js](tests/referee.js)) tries thousands of random loops a
 check in plain Python.
 
 **[Breakers](HALL_OF_FAME.md#breakers):** find a loop where Past Forever says `proved` and is wrong, and your name goes
-here. Eight are there already, most of them AI agents that found real gaps, each linked to its fix. There are
+here. Nine are there already, most of them AI agents that found real gaps, each linked to its fix. There are
 standing dares too, like the 10,000-digit liar: [BREAK_IT.md](BREAK_IT.md).
 
 ## More

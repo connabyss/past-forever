@@ -108,6 +108,18 @@ details .live{margin-top:12px}
 .tour .share{overflow-wrap:anywhere;text-align:left}
 .tcode[hidden]{display:none}
 .tcode pre{margin:6px 0 0;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font:400 14px/1.6 var(--mono);color:var(--ink);white-space:pre;overflow-x:auto}
+/* guesses: tap one before the answer shows (the tour and today's loop) */
+.guess{display:flex;flex-wrap:wrap;gap:8px}
+.guess[hidden]{display:none}
+.guess button{font:600 15px var(--sans);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;text-align:left}
+.guess button:disabled{cursor:default;opacity:.55}
+.guess button.picked{opacity:1;border-color:var(--bad);color:var(--bad)}
+.guess button.right{opacity:1;border-color:var(--ok);color:var(--ok)}
+.tscore{color:var(--soft);font-size:15px;margin:0}
+.tscore[hidden],.dout[hidden],#dedit[hidden]{display:none}
+.start button.report{background:transparent;border:0;cursor:pointer;text-align:left}
+.dout .val{display:block;margin-top:2px}
+.copyl{font:500 14px var(--sans);color:var(--blue);background:transparent;border:0;padding:4px 2px;cursor:pointer;align-self:flex-start;text-align:left;overflow-wrap:anywhere}
 .tcode button{font:600 14px var(--sans);color:var(--blue);background:transparent;border:0;padding:8px 0 0;cursor:pointer;text-align:left}
 </style>
 <div class="wrap">
@@ -119,7 +131,8 @@ details .live{margin-top:12px}
   </header>
   <div class="start">
     <button class="tourb" id="tourb" type="button" aria-controls="tour">Take the Wonders tour</button>
-    <p class="hint">7 surprises, one tap each. No maths or code needed.</p>
+    <p class="hint">7 surprises. Guess first, then see. No maths or code needed.</p>
+    <button class="report" id="dailyb" type="button" aria-controls="daily">Today's loop: guess how it ends, then watch it run →</button>
     <a class="report" href="https://github.com/connabyss/past-forever#readme" target="_blank" rel="noopener">What is this? The story, the proofs and the dares, on GitHub →</a>
     <a class="report" href="sing.html">Or hear the last 360 digits of Graham's number, played on a paper piano roll →</a>
   </div>
@@ -127,11 +140,23 @@ details .live{margin-top:12px}
   <section class="tour" id="tour" hidden aria-label="Wonders tour" tabindex="-1">
     <div class="count"><span id="tcount"></span><button class="x" id="tclose" type="button" aria-label="Close the tour">Close ✕</button></div>
     <p class="q" id="tq"></p>
-    <button class="show" id="tshow" type="button">Show me</button>
+    <div class="guess" id="tguess" role="group" aria-label="Your guess"></div>
+    <button class="show" id="tshow" type="button">Just show me</button>
     <p class="reveal" id="treveal" hidden aria-live="polite"></p>
+    <p class="tscore" id="tscore" hidden></p>
     <div class="tcode" id="tcode" hidden><div class="label">The code that ran</div><pre id="tsrc"></pre><button id="tedit" type="button">Change it and run it yourself →</button></div>
     <button class="share" id="tshare" type="button" hidden>Share this wonder</button>
     <div class="nav"><button id="tback" type="button">← Back</button><button id="tnext" type="button">Next →</button></div>
+  </section>
+  <section class="tour" id="daily" hidden aria-label="Today's loop" tabindex="-1">
+    <div class="count"><span id="dcount"></span><button class="x" id="dclose" type="button" aria-label="Close today's loop">Close ✕</button></div>
+    <p class="q">Today's loop. How does it end? Guess, then it runs.</p>
+    <div class="tcode"><pre id="dsrc"></pre></div>
+    <div class="guess" id="dguess" role="group" aria-label="Your guess"></div>
+    <div class="dout" id="dout" hidden aria-live="polite"><p class="reveal" id="dreveal"></p><p class="hint" id="dwhy"></p></div>
+    <p class="tscore" id="dscore" hidden></p>
+    <button class="share" id="dshare" type="button" hidden>Share how you did (no spoilers)</button>
+    <div class="tcode"><button id="dedit" type="button" hidden>Change it and run it yourself →</button></div>
   </section>
   <button class="ownb" id="ownb" type="button" aria-expanded="false" aria-controls="own">Or write your own loop</button>
   <div class="own" id="own" hidden>
@@ -284,6 +309,7 @@ function go() {
     if (!r.lines.length && !r.error) out.appendChild(el('div', 'empty', 'Nothing was shown. Add a line like: show x'));
     $('time').textContent = '· ' + ms + ' ms';
     out.appendChild(reportLink(code.value, r));
+    out.appendChild(copyLinkButton(code.value));
   }, 20);
 }
 const HUES = { 'settles': 'var(--gold)', 'goes wild': 'var(--bad)', 'never settles': '#6b7280', "can't see the end": '#2a3340', 'yes': 'var(--ok)', 'no': '#6b7280', 'stops with an error': '#a34b5a' };
@@ -386,6 +412,26 @@ function reportLink(src, r) {
   a.href = 'https://github.com/connabyss/past-forever/issues/new?' + q.toString(); a.target = '_blank'; a.rel = 'noopener';
   return a;
 }
+// a link to any loop: #code= carries the program itself, so whoever opens it gets the same loop in the editor
+function codeLink(src) { return location.href.split('#')[0] + '#code=' + encodeURIComponent(src); }
+async function copyText(b, text, done) {
+  try { await navigator.clipboard.writeText(text); b.textContent = done; } catch (e) { b.textContent = text; }
+}
+function copyLinkButton(src) {
+  const b = el('button', 'copyl', 'Copy a link to this loop'); b.type = 'button';
+  b.onclick = () => copyText(b, codeLink(src), 'Link copied ✓ Whoever opens it gets this loop');
+  return b;
+}
+function codeFromHash() {
+  if (!location.hash.startsWith('#code=')) return false;
+  let src; try { src = decodeURIComponent(location.hash.slice(6)); } catch (e) { return false; }
+  if (!src.trim()) return false;
+  // not saved over your own loop until you run or change it; nothing runs until you press Run
+  code.value = src; [...$('chips').children].forEach((x) => x.setAttribute('aria-pressed', 'false'));
+  $('answers').hidden = true; out.textContent = ''; openOwn();
+  setTimeout(() => $('own').scrollIntoView({ block: 'start' }), 60);
+  return true;
+}
 // the live first screen: square 5 again and again, digits that can never change again turn gold
 (function live() {
   const box = $('steps'), W = 16n, M = 10n ** 24n;
@@ -435,9 +481,39 @@ const WONDERS = [
    'x = 3\nforever: x = 3 ^ x\nshow x\nshow 3 ^ x = x',
    "Yes: …262464195387. Once the tower is a few floors tall, every new floor freezes one more digit on the right. <a href=\"https://en.wikipedia.org/wiki/Graham%27s_number\" target=\"_blank\" rel=\"noopener\">Graham's number</a> is far taller than that, so it ends in exactly these digits. Nobody knows its first digit."],
 ];
-let wonder = 0;
+// a guess for each wonder, tapped before the answer shows; the right one is marked true
+const GUESSES = [
+  [['Yes, they freeze', true], ['No, they keep changing']],
+  [['Both are new endless numbers'], ['Add: 1. Multiply: 0', true], ['Add: 0. Multiply: 1']],
+  [['There is no answer without a decimal point'], ['A whole number', true], ['0.142857…, the usual way']],
+  [['Infinity'], ['Nothing, it never ends'], ['−1', true]],
+  [['A row of 3s'], ['A row of 6s ending in 7', true], ['There is no answer']],
+  [['Yes, it calms down'], ['No, it never settles', true]],
+  [['Yes, its last digits are known', true], ['No, nobody can ever know']],
+];
+let wonder = 0, guessed = {};
+function guessButtons(box, options, onPick) {
+  box.textContent = ''; box.hidden = false;
+  options.forEach(([label], j) => {
+    const b = el('button', '', label); b.type = 'button';
+    b.onclick = () => {
+      [...box.children].forEach((x, k) => { x.disabled = true; if (options[k][1]) x.classList.add('right'); });
+      if (!options[j][1]) b.classList.add('picked');
+      onPick(j, !!options[j][1]);
+    };
+    box.appendChild(b);
+  });
+}
+function tourScore() {
+  const n = Object.keys(guessed).length, r = Object.values(guessed).filter(Boolean).length;
+  if (!n) return '';
+  if (wonder === WONDERS.length - 1) return n === WONDERS.length ? 'You called ' + r + ' of ' + n + '.' : 'You called ' + r + ' of the ' + n + ' you guessed.';
+  return 'Your guesses so far: ' + r + ' right of ' + n + '.';
+}
 function showWonder(i) {
   wonder = i; const [q] = WONDERS[i];
+  guessButtons($('tguess'), GUESSES[i], (j, right) => { if (!(i in guessed)) guessed[i] = right; reveal(right ? 'You called it. ' : 'Not quite. '); });
+  $('tscore').hidden = true;
   $('tcount').textContent = 'Wonder ' + (i + 1) + ' of ' + WONDERS.length;
   $('tq').textContent = q; $('treveal').hidden = true; $('tshow').hidden = false;
   $('tback').disabled = i === 0; $('tnext').textContent = i === WONDERS.length - 1 ? 'Done' : 'Next →';
@@ -447,7 +523,7 @@ function showWonder(i) {
 // each wonder has its own link, #wonders/1 to #wonders/7; the link opens the question, never the answer
 function setHash(h) { try { history.replaceState(null, '', h || location.pathname + location.search); } catch (e) {} }
 function wonderLink() { return location.href.split('#')[0] + '#wonders/' + (wonder + 1); }
-function openTour(i) { $('tour').hidden = false; calm(); showWonder(i || 0); $('tour').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('tour').focus({ preventScroll: true }); }
+function openTour(i) { if (!i) guessed = {}; $('daily').hidden = true; $('tour').hidden = false; calm(); showWonder(i || 0); $('tour').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('tour').focus({ preventScroll: true }); }
 function closeTour() { $('tour').hidden = true; setHash(''); $('tourb').focus(); }
 $('tourb').onclick = () => openTour(0);
 $('tclose').onclick = closeTour;
@@ -461,22 +537,67 @@ $('tshare').onclick = async () => {
   try { await navigator.clipboard.writeText(url); b.textContent = 'Link copied ✓'; }
   catch (e) { b.textContent = url; }
 };
-$('tshow').onclick = () => {
-  const [, src, reveal] = WONDERS[wonder];
+function reveal(lead) {
+  const [, src, text] = WONDERS[wonder];
   code.value = src; [...$('chips').children].forEach((x) => x.setAttribute('aria-pressed', 'false'));
-  go(); $('treveal').innerHTML = reveal; $('treveal').hidden = false; $('tshow').hidden = true; $('tshare').hidden = false;
+  go(); $('treveal').innerHTML = text; if (lead) $('treveal').prepend(el('strong', '', lead));
+  $('treveal').hidden = false; $('tshow').hidden = true; $('tshare').hidden = false;
+  [...$('tguess').children].forEach((x) => { x.disabled = true; });
+  const sc = tourScore(); $('tscore').textContent = sc; $('tscore').hidden = !sc;
   $('tsrc').textContent = src; $('tcode').hidden = false;
-};
+}
+$('tshow').onclick = () => reveal('');
 // the code behind each wonder, a few lines, with a way into the editor
 $('tedit').onclick = () => { code.value = WONDERS[wonder][1]; openOwn(); filled(); $('own').scrollIntoView({ behavior: 'smooth', block: 'start' }); code.focus({ preventScroll: true }); };
+// today's loop: the date picks one loop from this list, the same for everyone that day. The answer is never stored
+// here: the engine works it out when you guess, so the page can only say what Past Forever itself proves
+const DAILY = [["0", "x × x × x + 10"], ["80", "x × x + digitsum(x)"], ["76", "76 ^ x"], ["70", "x × (2 − 70 × x)"], ["0", "x × x + 10"], ["0", "x × x + 53"], ["0", "x × x × x + 45"], ["1", "(x × x + 1) / 71"], ["0", "x × x + 32"], ["1", "(x × x × x + 16) / 7"], ["0", "x^4 + 27"], ["0", "x × x × x + 80"], ["0", "(x × x + 81) / 3"], ["0", "(x × x + 93) / 3"], ["0", "x^4 + 90"], ["0", "(x × x + 97) / 3"], ["0", "x^4 + 11"], ["0", "x × x + 72"], ["78", "x × x + digitsum(x)"], ["76", "x × (2 − 76 × x)"], ["0", "x^4 + 10"], ["19", "x × x + digitsum(x)"], ["1", "(x × x + 1) / 74"], ["96", "x × x + digitsum(x)"], ["85", "x × (2 − 85 × x)"], ["0", "x^4 + 42"], ["0", "(x × x + 61) / 3"], ["84", "84 ^ x"], ["16", "x × (2 − 16 × x)"], ["37", "37 ^ x"], ["63", "x × x + digitsum(x)"], ["1", "(x × x + 1) / 46"], ["0", "x × x + 45"], ["99", "99 ^ x"], ["86", "86 ^ x"], ["0", "x × x × x + 30"], ["9", "x × x + digitsum(x)"], ["96", "x × (2 − 96 × x)"], ["94", "x × (2 − 94 × x)"], ["0", "x × x + 98"], ["89", "x × (2 − 89 × x)"], ["1", "(x × x × x + 6) / 7"], ["1", "(x × x × x + 78) / 7"], ["1", "(x × x × x + 2) / 7"], ["61", "x × (2 − 61 × x)"], ["0", "x × x + 6"], ["1", "(x × x × x + 40) / 7"], ["0", "x × x + 61"], ["9", "x × (2 − 9 × x)"], ["68", "x × x + digitsum(x)"], ["87", "x × x + digitsum(x)"], ["0", "x × x × x + 20"], ["56", "x × (2 − 56 × x)"], ["27", "x × x + digitsum(x)"], ["28", "x × x + digitsum(x)"], ["0", "x × x × x + 95"], ["78", "78 ^ x"], ["1", "(x × x × x + 71) / 7"], ["84", "x × x + digitsum(x)"], ["0", "x × x + 54"], ["56", "56 ^ x"], ["77", "x × x + digitsum(x)"], ["72", "x × x + digitsum(x)"], ["7", "x × x + digitsum(x)"], ["1", "(x × x + 1) / 82"], ["31", "x × (2 − 31 × x)"], ["69", "x × (2 − 69 × x)"], ["0", "x^4 + 66"], ["0", "x × x × x + 49"], ["1", "(x × x × x + 70) / 7"], ["1", "(x × x × x + 10) / 7"], ["0", "x^4 + 45"], ["1", "(x × x + 1) / 6"], ["44", "x × x + digitsum(x)"], ["41", "x × x + digitsum(x)"], ["98", "98 ^ x"], ["81", "x × (2 − 81 × x)"], ["0", "x^4 + 25"], ["5", "x × (2 − 5 × x)"], ["54", "x × (2 − 54 × x)"], ["80", "80 ^ x"], ["0", "(x × x + 51) / 3"], ["81", "81 ^ x"], ["0", "(x × x + 80) / 3"], ["0", "(x × x + 20) / 3"], ["1", "(x × x × x + 76) / 7"], ["11", "x × (2 − 11 × x)"], ["34", "x × (2 − 34 × x)"], ["46", "x × (2 − 46 × x)"], ["0", "(x × x + 57) / 3"]];
+const DAY0 = Date.UTC(2026, 10, 20);   // One Loop #1
+function dayNo(d) { d = d || new Date(); return Math.max(1, Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - DAY0) / 864e5) + 1); }
+function dailySrc(n) { const [a, b] = DAILY[(n - 1) % DAILY.length]; return 'x = ' + a + '\nforever: x = ' + b + '\nshow x'; }
+const ENDS = [['settles', 'It settles'], ['never', 'It never settles'], ['cant', "Past Forever can't see the end"]];
+function endOf(t) { return /^never settles/.test(t) ? 'never' : /^can't see the end/.test(t) ? 'cant' : /^(…|-?\d)/.test(t) ? 'settles' : null; }
+let dlog = {}; try { dlog = JSON.parse(localStorage.getItem('pf-daily') || '{}') || {}; } catch (e) {}
+function dailyStats() { const v = Object.values(dlog); return [v.filter((x) => x.right).length, v.length]; }
+function dailyShow(n, guess) {
+  const r = Forever.run(dailySrc(n), { repeatMs: 8000 }), l = r.lines[0], end = l && endOf(l.text);
+  const right = guess === end;
+  if (!(n in dlog) && end) { dlog[n] = { guess, right }; try { localStorage.setItem('pf-daily', JSON.stringify(dlog)); } catch (e) {} }
+  const word = { settles: 'It settles.', never: 'It never settles.', cant: "Past Forever can't see the end. It doesn't guess, and nor can it prove one." }[end] || 'It stopped: ' + (r.error || 'no answer');
+  $('dreveal').textContent = ''; $('dreveal').appendChild(el('strong', '', (!end ? '' : (n in dlog ? dlog[n].right : right) ? 'You called it. ' : 'Not this time. ')));
+  $('dreveal').append(word); if (l) $('dreveal').appendChild(el('span', 'val', l.text));
+  $('dwhy').textContent = l && l.why ? l.why : ''; $('dout').hidden = false;
+  [...$('dguess').children].forEach((x, k) => { x.disabled = true; if (ENDS[k][0] === end) x.classList.add('right'); else if (ENDS[k][0] === guess) x.classList.add('picked'); });
+  const [w, m] = dailyStats(); $('dscore').textContent = 'You have called ' + w + ' of ' + m + (m === 1 ? ' day.' : ' days.') + ' A new loop comes tomorrow.'; $('dscore').hidden = false;
+  $('dshare').hidden = false; $('dshare').textContent = 'Share how you did (no spoilers)'; $('dedit').hidden = false;
+}
+let dailyN = 1;   // the loop on screen: share and edit use it, not the clock (Arena's find: past midnight they jumped to tomorrow's loop)
+function openDaily() {
+  const n = dailyN = dayNo(); $('tour').hidden = true; $('answers').hidden = true; $('daily').hidden = false; calm();
+  $('dcount').textContent = 'One Loop #' + n; $('dsrc').textContent = dailySrc(n);
+  $('dout').hidden = true; $('dscore').hidden = true; $('dshare').hidden = true; $('dedit').hidden = true;
+  guessButtons($('dguess'), ENDS.map(([, t]) => [t]), (j) => dailyShow(n, ENDS[j][0]));
+  if (dlog[n]) dailyShow(n, dlog[n].guess);
+  setHash('#today'); $('daily').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('daily').focus({ preventScroll: true });
+}
+$('dailyb').onclick = openDaily;
+$('dclose').onclick = () => { $('daily').hidden = true; setHash(''); $('dailyb').focus(); };
+$('dedit').onclick = () => { code.value = dailySrc(dailyN); openOwn(); filled(); $('own').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+$('dshare').onclick = () => {
+  const n = dailyN, [w, m] = dailyStats();
+  const line = 'Past Forever · One Loop #' + n + ' · ' + (dlog[n] && dlog[n].right ? 'called it ✓' : 'it fooled me ✗') + ' · ' + w + ' of ' + m + ' so far\n' + location.href.split('#')[0] + '#today';
+  copyText($('dshare'), line, 'Copied ✓ Paste it anywhere');
+};
 function tourFromHash() {
+  if (location.hash === '#today') { openDaily(); return; }
+  if (codeFromHash()) return;
   const m = /^#wonders(?:\/(\d+))?$/.exec(location.hash); if (!m) return;
   const n = m[1] ? parseInt(m[1], 10) : 1; openTour(n >= 1 && n <= WONDERS.length ? n - 1 : 0);
 }
 addEventListener('hashchange', tourFromHash);
 setTimeout(tourFromHash, 50);
 $('run').onclick = go;
-code.addEventListener('input', () => { filled(); [...$('chips').children].forEach((c) => c.setAttribute('aria-pressed', 'false')); });
+code.addEventListener('input', () => { if (location.hash.startsWith('#code=')) setHash(''); filled(); [...$('chips').children].forEach((c) => c.setAttribute('aria-pressed', 'false')); });
 let saved = null; try { saved = localStorage.getItem('pf-code'); } catch (e) {}
 // first visit: one calm button and nothing running; a returning visitor gets their own loop back, not run yet
 if (saved && saved.trim()) { code.value = saved; openOwn(); }
