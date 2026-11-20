@@ -445,5 +445,25 @@ is(out('hunt c from 0 to 1:\n    hunt d from 0 to 0:\n        show d\n    show c
   is(got, 'that number got too big for this machine', 'browser: too big is an answer, not a crash');
 }
 
+// ── the LMArena agent (2026-11-20 duel): x = (x + 1) mod 10007 said "can't see the end" because the watch stopped at
+// 4000 steps. A loop whose names are only ever set to (…) mod N can be in so few states that watching longer always
+// sees it come round. Each answer is checked against a plain simulation that looks for the first repeat.
+{
+  const sim = (x0, f) => { const seen = new Map(); let x = x0, i = 0; while (!seen.has(x)) { seen.set(x, i++); x = f(x); } return i - seen.get(x) === 1 ? String(x) : 'never settles'; };
+  is(out('x = 0\nforever: x = (x + 1) mod 10007\nshow x'), sim(0n, (x) => (x + 1n) % 10007n), 'a ring of 10007 is seen (it said can\'t see the end)');
+  has(F.run('x = 0\nforever: x = (x + 1) mod 10007\nshow x\nwhy x').lines[1].why || out('x = 0\nforever: x = (x + 1) mod 10007\nwhy x'), 'every 10007 steps', 'the ring of 10007 says how long it is');
+  is(out('x = 0\nforever: x = (x + 1) mod 99991\nshow x'), 'never settles', 'a ring of 99991');
+  is(out('x = 2\nforever: x = (x × x + 1) mod 65537\nshow x'), sim(2n, (x) => (x * x + 1n) % 65537n), 'x × x + 1 mod 65537 against a plain simulation');
+  is(out('x = 1\nforever: x = (x × 3) mod 40961\nshow x'), sim(1n, (x) => (x * 3n) % 40961n), 'x × 3 mod 40961 against a plain simulation');
+  is(out('x = 7\nforever: x = (x × x) mod 4096\nshow x'), sim(7n, (x) => (x * x) % 4096n), 'squares mod 4096 settle, against a plain simulation');
+  // two names, and a flag: still a few states, still seen
+  is(out('x = 0   y = 0\nforever: x = (x + 1) mod 4999   y = (y + 2) mod 3\nshow x'), 'never settles', 'two names held in by mod');
+  is(out('x = 0   f = no\nforever: x = (x + 1) mod 6007   f = x = 5000\nshow f'), 'never settles', 'a flag that turns on and off with a ring of 6007');
+  // too many states to watch: it still says so honestly, never a guess
+  is(out('x = 0\nforever: x = (x + 1) mod 1000003\nshow x'), "can't see the end", 'a ring too long to watch stays honest');
+  // a loop that isn't held in by mod keeps the old watch
+  is(out('x = 196\nforever: x = x + backwards(x)\nshow x'), "can't see the end", '196 still can\'t see the end');
+}
+
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);

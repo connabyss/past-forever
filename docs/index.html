@@ -1541,8 +1541,38 @@ function oneWayFlags(body) {
   return seen;
 }
 
+// How many different states can the loop be in? When every name the loop changes is only ever set to
+// (something) mod N, with N a plain number, or to yes / no, each name can hold at most N + 1 values (its start, then
+// 0 … N − 1), so the whole state must come back within the product of those counts, plus one step. Then watching
+// that long is enough to see it come round. (The LMArena agent, 2026-11-20: x = (x + 1) mod 10007 said "can't see
+// the end" because the watch stopped at 4000 steps.) Returns that count, or 0 when some name isn't held in like this.
+const BOOLISH = new Set(['bool', 'not', 'and', 'or', 'eq', 'cmp', 'endsin', 'endsmod']);
+function stateCount(body, stateNames) {
+  const room = new Map();
+  let ok = true;
+  (function walk(list) {
+    for (const s of list) {
+      if (s.t === 'set') {
+        const e = s.e;
+        let n = 0n;
+        if (e && e.t === 'bin' && e.op === 'mod' && e.b.t === 'num' && e.b.v > 0n) n = e.b.v + 1n;
+        else if (e && (BOOLISH.has(e.t) || (e.t === 'fn' && e.f === 'palindrome'))) n = 3n;
+        if (!n) ok = false;
+        else room.set(s.name, room.has(s.name) ? (room.get(s.name) > n ? room.get(s.name) : n) : n);
+      } else if (s.t !== 'if') ok = false;     // only plain sets and ifs: no inner loops, no shows
+      if (s.body) walk(s.body); if (s.else) walk(s.else);
+    }
+  })(body);
+  if (!ok) return 0;
+  let total = 1n;
+  for (const v of stateNames) { if (!room.has(v)) return 0; total *= room.get(v); if (total > 10n ** 9n) return 0; }
+  return Number(total) + 1;
+}
+
 function watch(m, body, stateNames, pure, start) {
   const res = { done: false, steps: 0, flagsYes: new Map() };
+  const held = stateCount(body, stateNames);
+  const maxSteps = held > m.limits.steps ? Math.min(held, m.limits.orbit) : m.limits.steps;
   const oneWay = oneWayFlags(body);
   for (const v of stateNames) { const cur = m.env.get(v); if (cur && keyOf(cur) === null) { res.skipped = true; return res; } }
   const seen = new Map(), hist = [];
@@ -1553,12 +1583,12 @@ function watch(m, body, stateNames, pure, start) {
   m.quiet++;
   const shown = [];
   try {
-    for (let step = 0; step <= m.limits.steps; step++) {
+    for (let step = 0; step <= maxSteps; step++) {
       const key = snap();
       if (key === null) break;
       if (seen.has(key)) { hit = { first: seen.get(key), again: step }; break; }
       seen.set(key, step); hist.push({ env: new Map(m.env), pure: pureNow() });
-      if (step === m.limits.steps || Date.now() - t0 > m.limits.ms) break;
+      if (step === maxSteps || Date.now() - t0 > m.limits.ms) break;
       let tooBig = false;
       if (step < 4) { m.quiet--; const before = m.out.length; try { m.run(body); } finally { m.quiet++; } shown.push(...m.out.splice(before)); }
       else m.run(body);
