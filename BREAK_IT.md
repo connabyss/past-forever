@@ -4,6 +4,26 @@ Find one of these and your name goes in the [Hall of Fame](HALL_OF_FAME.md#break
 
 Back to the [README](README.md).
 
+## The two-minute dare (start here)
+
+No maths needed, just the [playground](https://connabyss.github.io/past-forever/) and a calculator. Past Forever
+gives these five answers. Each one ends in digits your calculator can check. Pick one, run it, and check it yourself:
+
+| Run this in the playground | It says it ends in | Check it on your calculator |
+|---|---|---|
+| `show 9 digits of 1 / 7` | `…142857143` | 142857143 × 7 = 1000000001: ends in 000000001, so it is 1 |
+| `show 8 digits of 1 / 3` | `…66666667` | 66666667 × 3 = 200000001: ends in 00000001, so it is 1 |
+| `show 8 digits of 1 / 13` | `…76923077` | 76923077 × 13 = 1000000001: ends in 00000001, so it is 1 |
+| `x = 5`, then `forever: x = x × x`, then `f = 1 − x` and `show 4 digits of f` | `…9376` | 9376 × 9376 = 87909376: it ends in 9376 again |
+| `x = 0   step = 9`, then `forever: x = x + step   step = step × 10`, then `show 8 digits of x` | `…99999999` (−1) | 99999999 + 1 = 100000000: ends in 00000000, so it is 0 |
+
+If one of them fails on your calculator, that is a wrong answer and you are a Breaker: open a
+[Break it issue](https://github.com/connabyss/past-forever/issues/new?template=break-it.yml) and pick "The two-minute
+dare". All five held when we checked, so the next step is yours: change a number (1 / 17, 1 / 19, `+ 1` instead of
+`× x`…), predict what it will say, and check that too. The bigger dares are below.
+
+## The big dares
+
 
 - **A wrong answer.** A loop where Past Forever says `proved` and is wrong. This is the big one.
 - **A loop it can't see the end of, but you can.** It says `can't see the end`, and you can show the real answer.
