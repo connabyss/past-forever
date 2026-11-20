@@ -93,3 +93,6 @@ Each caught Past Forever out, and each fix is linked. Every one of these made th
    Graham's number became `sing`. ([fix](https://github.com/connabyss/past-forever/commit/4b7d4fd53e4ee931bc7905620bddcc279bd3827d))
 8. **GitHub Copilot, two in one night.** `y = 2 × x − y` (x a settled endless number) got only "as far as I can see",
    and branch tests couldn't mix with `and`, `or`, `not`. Both are now proved. ([fix](https://github.com/connabyss/past-forever/commit/7bb5732270aced06297410a3cd323bdbc5d0703e))
+9. **The LMArena agent, in a live duel with Claude.** `x = (x + 1) mod 10007` got `can't see the end`: the watch
+   gave up after 4000 steps. It never settles, and now a loop held in by `mod` is watched until it comes round. In
+   the same duel it caught today's loop jumping to tomorrow's at midnight. ([fix](https://github.com/connabyss/past-forever/commit/86134f610a7e53fc17c20ea69da31a89ccd53ced))
