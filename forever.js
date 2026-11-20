@@ -1490,6 +1490,10 @@ function reason(m, body, assigned, pure, start, A) {
       else throw new NotPoly();
     } else throw new NotPoly();
   }
+  // one watcher per name: two ifs that both change the same count or flag can't be read one at a time (the LMArena
+  // agent, 2026-11-20: with two ifs on n, the last one won and n = forever came out as exactly 0)
+  const targets = watchers.map((w) => w.count || w.flag);
+  if (new Set(targets).size !== targets.length) throw new NotPoly();
   const names = [...new Set([...cur.keys()].flatMap((v) => [v, ...cur.get(v).names()]))];
   for (const w of watchers) for (const v of w.cond.p.names()) if (!names.includes(v)) names.push(v);
   for (const v of names) if (kinds.get(v) !== 'plain' && kinds.get(v) !== 'newplain') throw new NotPoly();

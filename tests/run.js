@@ -465,5 +465,16 @@ is(out('hunt c from 0 to 1:\n    hunt d from 0 to 0:\n        show d\n    show c
   is(out('x = 196\nforever: x = x + backwards(x)\nshow x'), "can't see the end", '196 still can\'t see the end');
 }
 
+// ── the LMArena agent, deep round (2026-11-20): two ifs that both count n. x = x × x + 1 from 3 is even every other
+// step, so n goes up forever; the engine read only the last if (never true) and said n is exactly 0. Now it must
+// never say a finite number here (forever, or an honest can't see the end).
+{
+  const twoIfs = (a, b) => out('count n = 0\nx = 3\nforever:\n    x = x × x + 1\n    if x ' + a + ': n = n + 1\n    if x ' + b + ': n = n + 1\nshow n');
+  for (const got of [twoIfs('is even', 'ends in 9'), twoIfs('ends in 9', 'is even')]) {
+    n++; if (!(got === 'forever' || got === "can't see the end")) { bad++; console.log('FAIL two ifs on one count gave a wrong answer: ' + JSON.stringify(got)); }
+  }
+  is(out('count n = 0\nx = 3\nforever:\n    x = x × x + 1\n    if x is even: n = n + 1\nshow n'), 'forever', 'one if on a count still works');
+}
+
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);
