@@ -1537,6 +1537,7 @@ function reason(m, body, assigned, pure, start, A) {
   return true;
 }
 
+const STATS = { orbitWalks: 0 };   // how many fresh digit walks were run (tests check that repeats are reused)
 class System {
   constructor(names, F, start) {
     this.names = names; this.F = new Map(names.map((v) => [v, F(v)])); this.start = start;
@@ -1551,16 +1552,21 @@ class System {
   // run the closed set of names on remainders only, until the remainders come round again
   orbit(vs, M, k, visit) {
     const cl = this.closure(vs);
+    // the last orbit walked is kept, so many tests on the same digits (80 ifs setting one flag, from the LMArena
+    // agent, 2026-11-20) replay it instead of walking up to 200,000 states again for each test
+    const ck = cl.join(',') + '|' + M + '|' + k, c = this.orbitCache;
+    if (c && c.ck === ck) { if (visit && c.res) c.states.forEach((st, i) => visit(st, i)); return c.res; }
+    STATS.orbitWalks++;
     let st = new Map(cl.map((v) => [v, mod(this.init(v, k), M)]));
-    const seen = new Map(); let step = 0;
+    const seen = new Map(), states = []; let step = 0;
     for (;;) {
       const key = cl.map((v) => st.get(v)).join(',');
-      if (seen.has(key)) return { first: seen.get(key), period: step - seen.get(key), cl };
-      if (step > LIMITS.orbit) return null;
-      seen.set(key, step);
+      if (seen.has(key)) { const res = { first: seen.get(key), period: step - seen.get(key), cl }; this.orbitCache = { ck, states, res }; return res; }
+      if (step > LIMITS.orbit) { this.orbitCache = { ck, states: null, res: null }; return null; }
+      seen.set(key, step); states.push(st);
       if (visit) visit(st, step);
       const nx = new Map();
-      for (const v of cl) { const r = this.F.get(v).evalMod(st, M); if (r === null) return null; nx.set(v, r); }
+      for (const v of cl) { const r = this.F.get(v).evalMod(st, M); if (r === null) { this.orbitCache = { ck, states: null, res: null }; return null; } nx.set(v, r); }
       st = nx; step++;
     }
   }
@@ -2045,6 +2051,6 @@ function text(src, opts = {}) {
   return out.join('\n');
 }
 
-const api = { run, text, parse, O, Q, Poly, LangError, notes, song, wav, VOICES, NOTE_SEC, version: '0.2' };
+const api = { run, text, parse, O, Q, Poly, LangError, notes, song, wav, VOICES, NOTE_SEC, STATS, version: '0.2' };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Forever = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -489,5 +489,16 @@ is(out('hunt c from 0 to 1:\n    hunt d from 0 to 0:\n        show d\n    show c
   n++; { const g = out('x = 0\nlamp = no\nforever:\n    x = x + 1\n    if x × x = 4: lamp = yes\n    if x × x = 2: lamp = no\nshow lamp'); if (g !== 'yes  (found at step 2)' && g !== "can't see the end") { bad++; console.log('FAIL two ifs setting one flag both ways: ' + g); } }
 }
 
+// ── the LMArena agent, re-check (2026-11-20): 80 ifs setting one flag walked the same 100,000 digit states 80 times
+// (8 s in the CLI, 4 s frozen in the playground). The walk is now done once and reused.
+{
+  const ifs = Array.from({ length: 80 }, (_, i) => '    if x ends in ' + String(10 * i + 1).padStart(6, '0') + ': lamp = yes').join('\n');
+  const before = F.STATS.orbitWalks;
+  is(out('x = 0\nlamp = no\nforever:\n    x = x + 10\n' + ifs + '\nshow lamp'), 'no  (proved)', '80 ifs on one flag, none can hold (x ends in 0)');
+  const walks = F.STATS.orbitWalks - before;
+  n++; if (walks > 5) { bad++; console.log('FAIL 80 ifs on the same digits should share one walk, ran ' + walks); }
+  is(out('x = 0\nlamp = no\nforever:\n    x = x + 10\n' + ifs + '\n    if x ends in 000790: lamp = yes\nshow lamp'), 'yes  (found at step 79)', 'the same 80 plus one that does hold (x = 790 at step 79)');
+}
+
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);
