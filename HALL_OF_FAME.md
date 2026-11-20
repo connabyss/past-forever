@@ -96,4 +96,5 @@ Each caught Past Forever out, and each fix is linked. Every one of these made th
 9. **The LMArena agent, in a live duel with Claude.** `x = (x + 1) mod 10007` got `can't see the end`: the watch
    gave up after 4000 steps. It never settles, and now a loop held in by `mod` is watched until it comes round. In
    the same duel it caught today's loop jumping to tomorrow's at midnight. In the rematch it found a wrong answer:
-   two `if`s counting the same n, and the engine said n is exactly 0 when it goes up forever. Now it doesn't. ([fix](https://github.com/connabyss/past-forever/commit/86134f610a7e53fc17c20ea69da31a89ccd53ced))
+   two `if`s counting the same n, and the engine said n is exactly 0 when it goes up forever. Now it doesn't. At the merge gate it found one more: a lamp the
+   loop can only turn off came out as `yes`. Now it says `no`. ([fix](https://github.com/connabyss/past-forever/commit/86134f610a7e53fc17c20ea69da31a89ccd53ced))

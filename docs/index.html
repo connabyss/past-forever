@@ -1077,7 +1077,9 @@ function runForever(m, loop) {
     : 'I watched ' + plural(A.steps, 'step') + ' and the loop never came back to a state it had been in, and none of the rules I can prove things with fit this loop';
   for (const v of assigned) {
     if (pure.has(v)) continue;
-    if (A.flagsYes.has(v)) m.env.set(v, bool(true, 'it became yes at step ' + A.flagsYes.get(v) + ' and nothing in the loop can turn it back', 'found at step ' + A.flagsYes.get(v)));
+    // the flag ends on the one value the loop can give it, yes or no (the LMArena agent, 2026-11-20: a lamp turned off
+    // at step 3000 came out as yes, because this line always said yes)
+    if (A.flagsYes.has(v)) { const to = oneWayFlags(body).get(v) === 'y'; m.env.set(v, bool(to, 'it became ' + (to ? 'yes' : 'no') + ' at step ' + A.flagsYes.get(v) + ' and nothing in the loop can turn it back', 'found at step ' + A.flagsYes.get(v))); }
     else m.env.set(v, unknown(note));
   }
   settlePureCounts(m, body, pure, start);
@@ -1713,8 +1715,10 @@ function reason(m, body, assigned, pure, start, A) {
   }
   // one watcher per name: two ifs that both change the same count or flag can't be read one at a time (the LMArena
   // agent, 2026-11-20: with two ifs on n, the last one won and n = forever came out as exactly 0)
-  const targets = watchers.map((w) => w.count || w.flag);
-  if (new Set(targets).size !== targets.length) throw new NotPoly();
+  // Several ifs may set the same flag to the same value: they are read together below.
+  const counted = watchers.filter((w) => w.count).map((w) => w.count);
+  if (new Set(counted).size !== counted.length) throw new NotPoly();
+  for (const w of watchers) if (w.flag && watchers.some((o) => o.flag === w.flag && o.to !== w.to)) throw new NotPoly();
   const names = [...new Set([...cur.keys()].flatMap((v) => [v, ...cur.get(v).names()]))];
   for (const w of watchers) for (const v of w.cond.p.names()) if (!names.includes(v)) names.push(v);
   for (const v of names) if (kinds.get(v) !== 'plain' && kinds.get(v) !== 'newplain') throw new NotPoly();
@@ -1726,15 +1730,21 @@ function reason(m, body, assigned, pure, start, A) {
   // write the results back
   m.env = new Map(start);
   for (const v of cur.keys()) m.env.set(v, info.get(v).value);
+  const flagDone = new Set();
   for (const w of watchers) {
-    const r = sys.everTrue(w.cond);
     if (w.flag) {
+      // all the ifs that set this flag (one value): yes if any test ever holds, unchanged if none ever does
+      if (flagDone.has(w.flag)) continue; flagDone.add(w.flag);
+      const rs = watchers.filter((o) => o.flag === w.flag).map((o) => sys.everTrue(o.cond));
+      const hit = rs.find((x) => x.ever === true);
+      const r = hit || (rs.every((x) => x.ever === false) ? { ever: false, why: rs.map((x) => x.why).join('; and ') } : rs.find((x) => x.ever === undefined));
       const was = start.get(w.flag);
       if (A.flagsYes.has(w.flag)) m.env.set(w.flag, bool(w.to, 'it happened at step ' + A.flagsYes.get(w.flag) + ', and nothing in the loop can turn it back', 'found at step ' + A.flagsYes.get(w.flag)));
       else if (r.ever === true) m.env.set(w.flag, bool(w.to, r.why, 'proved'));
       else if (r.ever === false) { if (was) m.env.set(w.flag, bool(was.v, r.why, 'proved')); else m.env.set(w.flag, unknown('this name is never given a value: ' + r.why)); }
       else m.env.set(w.flag, unknown(r.why));
     } else {
+      const r = sys.everTrue(w.cond);
       // a count that goes up only when the test holds
       const from = start.get(w.count).o;
       if (r.ever === undefined) m.env.set(w.count, unknown(r.why));

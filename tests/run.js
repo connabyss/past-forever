@@ -476,5 +476,18 @@ is(out('hunt c from 0 to 1:\n    hunt d from 0 to 0:\n        show d\n    show c
   is(out('count n = 0\nx = 3\nforever:\n    x = x × x + 1\n    if x is even: n = n + 1\nshow n'), 'forever', 'one if on a count still works');
 }
 
+// ── the LMArena agent, merge-gate pass (2026-11-20): a lamp the loop can only turn OFF came out as yes when the watch saw
+// it turn off but never saw the loop come round (x = (x + 1) mod 200003, lamp off at x = 3000; wrong on main too)
+{
+  const lamp = (at) => out('x = 0\nlamp = yes\nforever:\n    x = (x + 1) mod 200003\n    if x = ' + at + ': lamp = no\nshow lamp');
+  is(lamp(3000), 'no  (found at step 3000)', 'a lamp turned off at step 3000 stays off (it said yes)');
+  is(lamp(5000), 'no  (found at step 5000)', 'a lamp turned off at step 5000 stays off (it said yes)');
+  is(out('x = 0\nlamp = no\nforever:\n    x = (x + 1) mod 200003\n    if x = 3000: lamp = yes\nshow lamp'), 'yes  (found at step 3000)', 'a lamp turned on still says yes');
+  // two ifs that set one flag to the SAME value are read together, so this proof is kept
+  is(out('x = 0\nlamp = no\nforever:\n    x = x + 1\n    if x × x = 2: lamp = yes\n    if x × x = 3: lamp = yes\nshow lamp'), 'no  (proved)', 'two ifs on one flag, neither ever true: still proved no');
+  is(out('x = 0\nlamp = no\nforever:\n    x = x + 1\n    if x × x = 2: lamp = yes\n    if x × x = 4: lamp = yes\nshow lamp'), 'yes  (found at step 2)', 'two ifs on one flag, the second one true');
+  n++; { const g = out('x = 0\nlamp = no\nforever:\n    x = x + 1\n    if x × x = 4: lamp = yes\n    if x × x = 2: lamp = no\nshow lamp'); if (g !== 'yes  (found at step 2)' && g !== "can't see the end") { bad++; console.log('FAIL two ifs setting one flag both ways: ' + g); } }
+}
+
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);
