@@ -6,7 +6,7 @@ Back to the [README](README.md).
 
 ## The two-minute dare (start here)
 
-No maths needed, just the [playground](https://connabyss.github.io/past-forever/) and a calculator. Past Forever
+No math needed, just the [playground](https://connabyss.github.io/past-forever/) and a calculator. Past Forever
 gives these five answers. Each one ends in digits your calculator can check. Pick one, run it, and check it yourself:
 
 | Run this in the playground | It says it ends in | Check it on your calculator |

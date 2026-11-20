@@ -63,7 +63,7 @@ the rest are checked by the robot referee only.
 
 ## Honest notes
 
-- **The maths is old.** Numbers that run off to the left are the 10-adic numbers (see [the tour](GUIDE.md#how-this-ties-to-past-forever)). Counting past forever
+- **The math is old.** Numbers that run off to the left are the 10-adic numbers (see [the tour](GUIDE.md#how-this-ties-to-past-forever)). Counting past forever
   is Cantor's ordinals. The …212890625 number is an automorphic number. The frozen last digits of towers of 3s have been known for a long time too. What is new here, as far as we found,
   is a language you can actually run where code keeps going after a forever loop. Closest cousins: the
   Zeno esolang (an imaginary machine) and infinite time Turing machines

@@ -4,7 +4,7 @@ Back to the [README](README.md).
 
 ## How this ties to Past Forever
 
-This is real, old maths with one different rule: digits go left forever, and two numbers count as close when their
+This is real, old math with one different rule: digits go left forever, and two numbers count as close when their
 endings match. Mathematicians call these 10-adic numbers, the base-10 cousin of
 [p-adic numbers](https://en.wikipedia.org/wiki/P-adic_number) (Hensel, 1897). In that world …142857142857143 times 7
 is exactly 1, and it counts as a whole number there (a 10-adic integer). It is not one of the ordinary whole numbers
@@ -127,7 +127,7 @@ saw, not a proof, and a liar calmer than that fools it: c = 5^45 − 2 shows `ri
 Open one c on its own (`why x`) to see whether its ring is proved: `x = x × x + 1` says `And that is proved`,
 because its ring passes 0, where the slope 2x is 0.
 
-In the playground every number becomes a coloured square. Some wild loops are **liars**: their last digits
+In the playground every number becomes a colored square. Some wild loops are **liars**: their last digits
 go round a ring of 2 for a while, then the next digit breaks it. Brighter means it lied for longer.
 Tap the brightest square and **Zoom in** (`ends in 123`) to see only numbers ending in those digits.
 Following the brightest one goes 123 → 78123 → 5078123 → 205078123 → 85205078123, and that last one lies for 13 digits.
