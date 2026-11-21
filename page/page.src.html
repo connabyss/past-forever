@@ -35,6 +35,7 @@ textarea{display:block;width:100%;box-sizing:border-box;min-height:190px;resize:
   padding:7px 12px;cursor:pointer}
 .run{font:600 17px var(--sans);color:#14110a;background:var(--gold);border:0;border-radius:12px;padding:15px;cursor:pointer}
 .run:active{transform:translateY(1px)}
+.run.stop{background:transparent;color:var(--gold);box-shadow:inset 0 0 0 2px var(--gold)}
 .out{display:flex;flex-direction:column;gap:8px;min-height:60px}
 .row{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 14px;min-width:0}
 .ans{display:flex;gap:10px;align-items:baseline;justify-content:space-between}
@@ -216,7 +217,7 @@ details .live{margin-top:12px}
     </section>
   </details>
 </div>
-<script>
+<script id="engine">
 /*ENGINE*/
 </script>
 <script>
@@ -253,7 +254,7 @@ function pick(i) {
   filled();
 }
 // new code in the box: old answers go away, and nothing runs until you press Run
-function filled() { save(); $('answers').hidden = true; out.textContent = ''; }
+function filled() { stopRun(''); save(); $('answers').hidden = true; out.textContent = ''; }
 EXAMPLES.forEach(([name], i) => { const b = el('button', 'chip', name); b.type = 'button'; b.onclick = () => pick(i); $('chips').appendChild(b); });
 ['×', '−', ' ^ ', 'forever: ', 'show ', 'why '].forEach((k) => {
   const b = el('button', 'key', k.trim()); b.type = 'button';
@@ -285,32 +286,61 @@ function singButtons(digits) {
   box.appendChild(play); box.appendChild(save);
   return box;
 }
+// Long loops run in a web worker (a second thread), so the page never freezes and Stop works.
+// If a browser can't start one, the loop runs here as before.
+const RUN_LIMIT_MS = 60000;
+let worker = null, runId = 0, watchdog = null, busy = false;
+function makeWorker() {
+  try {
+    const glue = '\nonmessage = (e) => { let r; try { const x = Forever.run(e.data.src, e.data.opts); r = { lines: x.lines, error: x.error }; }' +
+      ' catch (err) { r = { lines: [], error: "the language itself broke here: " + err.message }; } postMessage({ id: e.data.id, r }); };';
+    return new Worker(URL.createObjectURL(new Blob([$('engine').textContent + glue], { type: 'text/javascript' })));
+  } catch (e) { return null; }
+}
+function runHere(src) {
+  try { return Forever.run(src, { huntMs: 8000, repeatMs: 8000 }); } catch (e) { return { lines: [], error: 'the language itself broke here: ' + e.message }; }
+}
+function running(on) { busy = on; $('run').textContent = on ? 'Stop' : 'Run'; $('run').classList.toggle('stop', on); }
+function stopRun(why) {
+  if (!busy) return;
+  clearTimeout(watchdog); watchdog = null;
+  if (worker) { worker.terminate(); worker = null; }      // the only way to stop a loop mid-step: end the whole thread
+  runId++; running(false);
+  if (why) { out.textContent = ''; const row = el('div', 'row bad'); row.appendChild(el('div', 'val', 'stopped: ' + why)); out.appendChild(row); }
+}
 function go() {
+  stopRun('');
   save(); placeAnswers(); $('answers').hidden = false;
   out.textContent = ''; out.appendChild(el('div', 'empty', 'Running…')); $('time').textContent = '';
-  setTimeout(() => {
-    const t0 = performance.now(); let r;
-    try { r = Forever.run(code.value, { huntMs: 8000, repeatMs: 8000 }); } catch (e) { r = { lines: [], error: 'the language itself broke here: ' + e.message }; }
-    const ms = Math.round(performance.now() - t0);
-    out.textContent = '';
-    for (const l of r.lines) {
-      if (l.hunt) { out.appendChild(huntRow(l)); continue; }
-      const row = el('div', 'row' + (/^(never settles|can't see the end)/.test(l.text) ? ' dim' : ''));
-      const top = el('div', 'ans'); top.appendChild(el('div', 'val', l.text));
-      if (l.why) {
-        const b = el('button', 'whyb', 'why?'); b.type = 'button';
-        const w = el('div', 'why', l.why); w.hidden = true;
-        b.onclick = () => { w.hidden = !w.hidden; b.textContent = w.hidden ? 'why?' : 'hide'; };
-        top.appendChild(b); row.appendChild(top); if (l.sing) row.appendChild(singButtons(l.sing.digits)); row.appendChild(w);
-      } else { row.appendChild(top); if (l.sing) row.appendChild(singButtons(l.sing.digits)); }
-      out.appendChild(row);
-    }
-    if (r.error) { const row = el('div', 'row bad'); row.appendChild(el('div', 'val', 'stopped: ' + r.error)); out.appendChild(row); }
-    if (!r.lines.length && !r.error) out.appendChild(el('div', 'empty', 'Nothing was shown. Add a line like: show x'));
-    $('time').textContent = '· ' + ms + ' ms';
-    out.appendChild(reportLink(code.value, r));
-    out.appendChild(copyLinkButton(code.value));
-  }, 20);
+  const id = ++runId, src = code.value, t0 = performance.now();
+  const done = (r) => { if (id !== runId) return; clearTimeout(watchdog); watchdog = null; running(false); answer(r, Math.round(performance.now() - t0), src); };
+  running(true);
+  if (!worker) worker = makeWorker();
+  if (!worker) { watchdog = setTimeout(() => done(runHere(src)), 20); return; }
+  worker.onmessage = (e) => { if (e.data.id === id) done(e.data.r); };
+  worker.onerror = (e) => { e.preventDefault(); worker = null; done({ lines: [], error: 'the language itself broke here: ' + e.message }); };
+  worker.postMessage({ id, src, opts: { huntMs: 8000, repeatMs: 8000 } });
+  watchdog = setTimeout(() => stopRun('it ran for over a minute, so I stopped it'), RUN_LIMIT_MS);
+}
+function answer(r, ms, src) {
+  out.textContent = '';
+  for (const l of r.lines) {
+    if (l.hunt) { out.appendChild(huntRow(l)); continue; }
+    const row = el('div', 'row' + (/^(never settles|can't see the end)/.test(l.text) ? ' dim' : ''));
+    const top = el('div', 'ans'); top.appendChild(el('div', 'val', l.text));
+    if (l.why) {
+      const b = el('button', 'whyb', 'why?'); b.type = 'button';
+      const w = el('div', 'why', l.why); w.hidden = true;
+      b.onclick = () => { w.hidden = !w.hidden; b.textContent = w.hidden ? 'why?' : 'hide'; };
+      top.appendChild(b); row.appendChild(top); if (l.sing) row.appendChild(singButtons(l.sing.digits)); row.appendChild(w);
+    } else { row.appendChild(top); if (l.sing) row.appendChild(singButtons(l.sing.digits)); }
+    out.appendChild(row);
+  }
+  if (r.error) { const row = el('div', 'row bad'); row.appendChild(el('div', 'val', 'stopped: ' + r.error)); out.appendChild(row); }
+  if (!r.lines.length && !r.error) out.appendChild(el('div', 'empty', 'Nothing was shown. Add a line like: show x'));
+  $('time').textContent = '· ' + ms + ' ms';
+  out.appendChild(reportLink(src, r));
+  out.appendChild(copyLinkButton(src));
 }
 const HUES = { 'settles': 'var(--gold)', 'goes wild': 'var(--bad)', 'never settles': '#6b7280', "can't see the end": '#2a3340', 'yes': 'var(--ok)', 'no': '#6b7280', 'stops with an error': '#a34b5a' };
 const RINGS = ['var(--blue)', '#2dd4bf', '#c084fc', '#38bdf8', '#a3e635', '#fb923c'];
@@ -596,7 +626,7 @@ function tourFromHash() {
 }
 addEventListener('hashchange', tourFromHash);
 setTimeout(tourFromHash, 50);
-$('run').onclick = go;
+$('run').onclick = () => (busy ? stopRun('you pressed Stop') : go());
 code.addEventListener('input', () => { if (location.hash.startsWith('#code=')) setHash(''); filled(); [...$('chips').children].forEach((c) => c.setAttribute('aria-pressed', 'false')); });
 let saved = null; try { saved = localStorage.getItem('pf-code'); } catch (e) {}
 // first visit: one calm button and nothing running; a returning visitor gets their own loop back, not run yet

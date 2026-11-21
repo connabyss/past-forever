@@ -150,5 +150,16 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
    await q.goto('file://'+f+'#wonders/99');await q.waitForTimeout(400);
    checks++;if((await q.locator('#tcount').textContent())!=='Wonder 1 of 7'){fails++;console.log('FAIL bad wonder number');}
    await q.close(); }
+ // #9: a long run happens off the page's own thread, so the page still answers, and Stop ends it
+ { const w=await ctx.newPage();w.on('pageerror',e=>errs.push(e.message));await w.route('**/*',r=>r.request().url().startsWith('https://fonts')?r.abort():r.continue());
+   await w.setContent(html);await w.waitForTimeout(300);await w.click('#ownb');
+   await w.fill('#code','hunt c from 0 to 1999:\n    x = c\n    forever: x = x × x + 7\n    show 300 digits of x');await w.click('#run');await w.waitForTimeout(500);
+   const t=Date.now();const label=await w.evaluate(()=>document.querySelector('#run').textContent);const lag=Date.now()-t;
+   checks++;if(lag>1000||label!=='Stop'){fails++;console.log('FAIL the page froze during a long run',lag+' ms',label);}
+   await w.click('#run');await w.waitForTimeout(200);
+   checks++;if((await w.locator('#out').innerText()).trim()!=='stopped: you pressed Stop'||(await w.locator('#run').textContent())!=='Run'){fails++;console.log('FAIL Stop ends a long run');}
+   await w.fill('#code','show 1 / 7');await w.click('#run');await w.waitForFunction(()=>document.querySelector('#run').textContent==='Run'&&document.querySelectorAll('#out .row').length>0,null,{timeout:15000});
+   checks++;if((await w.locator('#out .val').first().textContent())!=='…857142857143  (this is 1/7)'){fails++;console.log('FAIL a run after Stop works');}
+   await w.close(); }
  checks++;if(errs.length){fails++;console.log('FAIL page errors',errs);}
  console.log(fails?('FAILED '+fails+' of '+checks):('ok: '+checks+' page checks'));await b.close();process.exitCode=fails?1:0;})().catch(e=>{console.log('FAILED: page.js broke:',e.message);process.exit(1);});
