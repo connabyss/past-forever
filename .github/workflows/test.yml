@@ -15,23 +15,23 @@ jobs:
   engine:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 20 }
       - run: node tests/run.js
       - run: python3 page/build.py && git diff --exit-code docs/index.html docs/sing.html
   referee:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 20 }
       - run: node tests/referee.js 3000
   liars:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 20 }
       - name: record liars, re-found by a second program and by brute force below 10 million
         run: node tests/liars.js
@@ -42,8 +42,8 @@ jobs:
   second-opinion:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 20 }
       - name: second opinion (an independent checker in Python re-proves 300 answers, fails on any it can't prove)
         shell: bash
@@ -84,8 +84,8 @@ jobs:
   browser:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 20 }
       - name: the singing roll plays the engine's own digits, a hole on the bar for each note, and fits a phone
         run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium && node tests/sing.js
