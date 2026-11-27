@@ -33,7 +33,7 @@ add, the more zeros), and the last digits of [Graham's number](GUIDE.md#the-last
 **Two numbers, neither one zero, that multiply to exactly 0.** Run a second loop, `y = 6` then
 `forever: y = y ^ 5`, and it settles to `…081787109376`. Now `show x × y` prints `0`, and `show x + y` prints
 `1`. Check the last 4 digits by hand: `0625 × 9376 = 5860000` (four zeros) and `0625 + 9376 = 10001`. Take more
-digits and you get more zeros. In these numbers, 0 has two non-zero factors (`node cli.js examples/zero_twins.txt`, or tap the second wonder in
+digits and you get more zeros. In these numbers, 0 has two non-zero factors (`node cli.js examples/zero_twins.txt`, or tap the second example of the guided tour in
 the [playground](https://connabyss.github.io/past-forever/)).
 
 **What it can and can't do.** Past Forever answers loops of plain arithmetic on one or a few numbers: adding,
@@ -66,12 +66,12 @@ for k in (34, 35, 36, 37):                    # look at the last k digits
 
 </details>
 
-Why they lie, the four special numbers ("magnets") every liar sits close to, liars of other powers, and how the records were found:
+Why they lie, the four special numbers every liar sits close to, liars of other powers, and how the records were found:
 [liars/README.md](liars/README.md).
 
 <p align="center"><a href="https://connabyss.github.io/past-forever/"><img src="media/try-it-now.svg" width="300" alt="Try it now: open the playground in your browser"></a></p>
 
-<p align="center">or take the <a href="https://connabyss.github.io/past-forever/#wonders">Wonders tour</a>: 7 surprises, one tap each</p>
+<p align="center">or take the <a href="https://connabyss.github.io/past-forever/#wonders">guided tour</a>: 7 examples, one tap each</p>
 
 ## The whole language on one screen
 
@@ -102,18 +102,21 @@ squares. Counts can go past forever too: count to forever, add one, and you get 
 
 **A word on `proved`.** It means proved by the engine's own hand-written rules, listed in
 [HOW_IT_KNOWS.md](HOW_IT_KNOWS.md). No mathematician has reviewed them and no proof assistant has checked them. A
-separate checker that shares no code with the engine proves many answers a second time on every build, and a robot
-referee ([tests/referee.js](tests/referee.js)) tries thousands of random loops against plain arithmetic: strong checks, not proofs. HOW_IT_KNOWS.md marks which answers get which.
+separate checker that shares no code with the engine proves many answers a second time on every build, and a random
+cross-check ([tests/referee.js](tests/referee.js)) tries thousands of random loops against plain arithmetic: strong checks, not proofs. HOW_IT_KNOWS.md marks which answers get which.
 
-## Hall of Fame
+## Results and corrections
 
 **[Finds](HALL_OF_FAME.md#finds):** three lists found with Past Forever that aren't in the OEIS, the record liars of
 `x × x + c` and of `x ^ 4 + c`, and the whole-number answers of endless sums of squared factorials. Each comes with a
 check in plain Python.
 
-**[Breakers](HALL_OF_FAME.md#breakers):** find a loop where Past Forever says `proved` and is wrong, and your name goes
+**[Corrections](HALL_OF_FAME.md#breakers):** find a loop where Past Forever says `proved` and is wrong, and your name goes
 here. Nine are there already, most of them AI agents that found real gaps, each linked to its fix. There are
-standing dares too, like the 10,000-digit liar: [BREAK_IT.md](BREAK_IT.md).
+open challenges too, like a liar that stays calm for 10,000 digits: [BREAK_IT.md](BREAK_IT.md).
+
+To check any claim here yourself, or to rerun someone else's check, open a case: [CASES.md](CASES.md) has the
+steps and the list so far.
 
 ## More
 
@@ -130,9 +133,9 @@ You need Node.js 18 or newer. There are no dependencies.
 ```
 git clone https://github.com/connabyss/past-forever && cd past-forever
 node cli.js examples/own_square.txt --why
-node tests/run.js        # ok: 690 checks
-node tests/referee.js    # the robot referee, about 5 minutes
-node tests/certify_gen.js 300 2027 | python3 tests/certify.py   # the second opinion, about a minute
+node tests/run.js        # ok: 712 checks
+node tests/referee.js    # the random cross-check, about 5 minutes
+node tests/certify_gen.js 300 2027 | python3 tests/certify.py   # the independent checker, about a minute
 ```
 
 The playground is one file, [docs/index.html](docs/index.html), and the piano roll is [docs/sing.html](docs/sing.html). Rebuild both
@@ -149,6 +152,6 @@ the one 10-digit number that describes itself, `6210001000`. It runs on Python a
 
 connabyss asked Claude (an AI) for a strange new language that would grow out of playing with numbers.
 One idea from that play was a loop that finishes forever, and connabyss picked it. The language was built in a day
-with Claude Code, and the liar loops turned up while hunting with it.
+with Claude Code, and the liar loops turned up while searching with it.
 
 MIT license. The piano roll's paper is Paper 001 from [ambientCG](https://ambientcg.com/view?id=Paper001), CC0.
