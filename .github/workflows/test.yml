@@ -1,5 +1,8 @@
 name: test
 on: [push, pull_request]
+# Read-only token: the tests only need to check out the code.
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest

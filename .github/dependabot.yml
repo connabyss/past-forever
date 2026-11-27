@@ -1,0 +1,18 @@
+# Dependabot: keeps the GitHub Actions in .github/workflows up to date.
+# Past Forever has no package dependencies (forever.js is one plain file), so Actions are the only entry.
+# Quiet on purpose: once a week, all in one pull request.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns: ["*"]
