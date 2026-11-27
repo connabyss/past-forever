@@ -500,5 +500,15 @@ is(out('hunt c from 0 to 1:\n    hunt d from 0 to 0:\n        show d\n    show c
   is(out('x = 0\nlamp = no\nforever:\n    x = x + 10\n' + ifs + '\n    if x ends in 000790: lamp = yes\nshow lamp'), 'yes  (found at step 79)', 'the same 80 plus one that does hold (x = 790 at step 79)');
 }
 
+// ── CodeQL alerts (2026-11-27): the pages never put text back in as HTML, and the sing test's server stays in docs/
+{
+  for (const f of ['page.src.html', 'sing.src.html']) {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'page', f), 'utf8');
+    is(/\.innerHTML\s*=\s*[^;]*\.textContent/.test(src), false, f + ': no text read back in as innerHTML (DOM text reinterpreted as HTML)');
+  }
+  const sing = fs.readFileSync(path.join(__dirname, 'sing.js'), 'utf8');
+  has(sing, "startsWith(docs + path.sep)", 'tests/sing.js serves only files inside docs/ (uncontrolled path)');
+}
+
 console.log(bad ? 'FAILED: ' + bad + ' of ' + n + ' checks' : 'ok: ' + n + ' checks');
 process.exit(bad ? 1 : 0);

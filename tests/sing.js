@@ -8,7 +8,10 @@ const Forever = require('../forever.js');
   // served over http on this machine (a file:// page can't read its own canvas back)
   const docs = path.join(__dirname, '..', 'docs'), types = { html: 'text/html', jpg: 'image/jpeg', png: 'image/png' };
   const server = require('http').createServer((q, s) => {
-    const f = path.join(docs, path.normalize(decodeURIComponent(q.url.split('?')[0])).replace(/^([\\/]|\.\.)+/, '') || 'index.html');
+    // serve only files inside docs/: resolve the path, then refuse anything that lands outside it
+    let f = path.resolve(docs, '.' + path.sep + decodeURIComponent(q.url.split('?')[0]));
+    if (f === docs) f = path.join(docs, 'index.html');
+    if (!f.startsWith(docs + path.sep)) { s.writeHead(403); s.end(); return; }
     require('fs').readFile(f, (e, d) => { if (e) { s.writeHead(404); s.end(); } else { s.writeHead(200, { 'content-type': types[f.split('.').pop()] || 'application/octet-stream' }); s.end(d); } });
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));

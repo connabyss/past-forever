@@ -55,8 +55,11 @@ const line = r.lines.find((l) => l.sing);
 const DIG = line.sing.digits;                  // last digit last
 const D = DIG.split('').reverse();             // D[0] is the very last digit
 const N = D.length, NOTE = Forever.NOTE_SEC;
-$('foot').textContent = 'The loop above worked these ' + N + ' digits out just now, in your browser, in ' + Math.max(1, Math.round(performance.now() - t0)) + ' ms. They end …' + DIG.slice(-12) + '.';
-$('foot').innerHTML = $('foot').textContent.replace(/…\d+\./, (x) => '<span style="white-space:nowrap">' + x + '</span>');
+// built as text nodes, never innerHTML, so nothing in it can turn into markup
+const tail = document.createElement('span');
+tail.style.whiteSpace = 'nowrap';                // keep "…262464195387." on one line
+tail.textContent = '…' + DIG.slice(-12) + '.';
+$('foot').replaceChildren('The loop above worked these ' + N + ' digits out just now, in your browser, in ' + Math.max(1, Math.round(performance.now() - t0)) + ' ms. They end ', tail);
 
 // roll geometry, in roll units (318 across); u turns a unit into screen pixels
 const UW = 318, RHU = 19, LU = 46, RU = UW - 20, COLU = (RU - LU) / 9, LEADU = 11.5, TAILU = 12;
