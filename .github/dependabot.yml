@@ -1,4 +1,6 @@
-# Dependabot: keeps the GitHub Actions in .github/workflows up to date.
+# Dependabot (minor and patch updates are grouped and safe to auto-merge once the tests pass;
+# major updates come in a separate "-major" PR to review by hand):
+# It keeps the GitHub Actions in .github/workflows up to date.
 # Past Forever has no package dependencies (forever.js is one plain file), so Actions are the only entry.
 # Quiet on purpose: once a week, all in one pull request.
 version: 2
@@ -10,9 +12,13 @@ updates:
       day: monday
       time: "06:00"
       timezone: America/New_York
-    open-pull-requests-limit: 1
+    open-pull-requests-limit: 2
     commit-message:
       prefix: "ci"
     groups:
       actions:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
+      actions-major:   # breaking versions come in their own PR: review it by hand, don't auto-merge
+        patterns: ["*"]
+        update-types: ["major"]
