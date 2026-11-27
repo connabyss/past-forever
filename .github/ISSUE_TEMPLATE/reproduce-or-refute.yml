@@ -1,0 +1,58 @@
+name: Reproduce or refute
+description: "State one claim about Past Forever or a result made with it, with steps anyone can rerun. For example: an answer it printed, a Find, or a number in the README."
+title: "Claim: "
+labels: ["case"]
+body:
+  - type: markdown
+    attributes:
+      value: "One claim per issue. A case counts as Reproduced only after someone other than you reruns it. See [CASES.md](https://github.com/connabyss/past-forever/blob/main/CASES.md)."
+  - type: textarea
+    id: claim
+    attributes:
+      label: Claim
+      description: The one thing you say is true (or false), in a sentence.
+      placeholder: "c = 38533618339183472936432 stays calm for exactly 35 digits."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: The exact command, input or minimal program, cut down as small as it goes.
+      placeholder: "node cli.js examples/own_square.txt --why"
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: What the claim says should happen.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: What happened when you ran the steps, pasted as printed.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: Version, OS, and the commit or release you ran.
+      placeholder: "Node 22, Windows 11, commit abc1234"
+    validations:
+      required: true
+  - type: input
+    id: other
+    attributes:
+      label: Rerunning someone else's case?
+      description: Link it here, and your result counts toward its Reproduced or refuted status.
+  - type: input
+    id: credit
+    attributes:
+      label: Name for credit
+      description: Your GitHub name is used if you leave this empty.
