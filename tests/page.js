@@ -13,6 +13,7 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
  // CH 16 Nov: answers only after Run. Opening the editor shows code, not answers
  checks++;if(await p.locator('#answers').isVisible()){fails++;console.log('FAIL write your own ran before Run was pressed');}
  checks++;if(!(await p.locator('#code').isVisible())||(await p.inputValue('#code'))!=='x = 5\nforever: x = x × x\nshow x\nshow x × x = x'||await p.locator('#ownb').isVisible()){fails++;console.log('FAIL write your own opens');}
+ checks++;if(await p.locator('.kbd-hint').isVisible()){fails++;console.log('FAIL kbd hint shows on phones');}
  const n=await p.locator('.chip').count();
  const want={'Own square':['…918212890625','yes  (proved)'],'Tower of 3s':['…262464195387','yes  (proved)'],'Minus one':['…999999999999  (this is -1)','0'],'One third':['…666666666667  (this is 1/3)','1'],'196':["can't see the end"],'6 squared':['never settles'],'Twins':['…081787109376','1','0'],'The lamp':['never settles'],'Forever twice':['forever × forever'],'Powers of 2':['no  (proved)'],'Collatz 27':['yes  (proved)','never settles'],'Endless search':['no  (proved)'],'Past forever':['forever + 1','forever × 2','yes'],'Hunt':[],'Adds to −1':['…999999999999  (this is -1)','s: what gets added each step (f × n × n + 2 × f × n + f) settles to 0, and here a sum settles as soon as its pieces do. More than that: s + (− n − 1) × f is the same after every step, so the total is exactly -1'],'Exactly 3':['3','s: what gets added each step (f × n × n × n − 4 × f × n + f) settles to 0, and here a sum settles as soon as its pieces do. More than that: s + (− n + 3) × f is the same after every step, so the total is exactly 3'],'Ring of six':['never settles','x: the last digit of x goes round 0, 1, 2, 5, 6, 7 every 6 steps and never stops. Looking deeper, the last 1 to 40 digits all come round every 6 steps too. And that is proved: the slopes of the step at 0, 1, 2, 5, 6, 7 multiply to a number ending in 0, so every 6 steps pin at least one more digit for good, and x is going round a ring of 6 endless numbers forever'],'The liar':['never settles','x: the last digit of x goes round 6, 3 every 2 steps and never stops. Looking deeper, the last 1, 2, 3… digits take 2, 2, 2, 2, 2, 2, 8, 8, 40, 200, 1000, 5000 steps to come round'],'Hunt squares':[],'Hunt thirds':[],'Sing it':['♪ …527518332898844615089404248265018193851562535796399618993967905496638003222348723967018485186439059104575627262464195387'],'All factorials':['0','…039052556442336528920420940313']};
  for(let i=0;i<n;i++){const c=p.locator('.chip').nth(i);const name=await c.textContent();await c.click();
@@ -60,6 +61,15 @@ const {chromium,devices}=require('playwright');const fs=require('fs');
  checks++;if((await p.locator('#out .val').first().textContent())!=='42'){fails++;console.log('FAIL typed program',await p.locator('#out').textContent());}
  await p.fill('#code','show 1 / 2');await p.click('#run');await p.waitForTimeout(300);
  checks++;if(!(await p.locator('#out .row.bad').count())){fails++;console.log('FAIL error row');}
+ // Ctrl+Enter runs the loop without the mouse, Cmd+Enter too, and plain Enter still makes a new line
+ await p.fill('#code','x = 6\nforever: x = x × x\nshow x');await p.keyboard.press('Control+Enter');
+ await p.waitForFunction(()=>document.querySelectorAll('#out .row').length>0,null,{timeout:15000});
+ checks++;if((await p.locator('#out .val').first().textContent())!=='never settles'){fails++;console.log('FAIL Ctrl+Enter runs it');}
+ await p.fill('#code','x = 6\nforever: x = x × x\nshow x');await p.keyboard.press('Meta+Enter');
+ await p.waitForFunction(()=>document.querySelectorAll('#out .row').length>0,null,{timeout:15000});
+ checks++;if((await p.locator('#out .val').first().textContent())!=='never settles'){fails++;console.log('FAIL Cmd+Enter runs it');}
+ await p.fill('#code','show 1');await p.keyboard.press('Enter');
+ checks++;if((await p.inputValue('#code'))!=='show 1\n'||(await p.locator('#out .row').count())){fails++;console.log('FAIL plain Enter makes a new line');}
  await p.locator('.chip').nth(0).click();await p.click('#run');await p.waitForTimeout(500);await p.locator('.whyb').first().click();
  checks++;if(!(await p.locator('.why').first().isVisible())){fails++;console.log('FAIL why toggle');}
  // report link carries the program and the answer; live box freezes 390625's last five digits in gold
