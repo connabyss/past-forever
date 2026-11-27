@@ -97,3 +97,15 @@ jobs:
           /tmp/z3/bin/python paradox/test_paradox.py
           /tmp/z3/bin/python paradox/experiments/check.py
           /tmp/z3/bin/python paradox/audit_2026/check.py
+  test:
+    # One summary check named "test", the name main's branch protection requires.
+    # It passes only when all five jobs above passed.
+    needs: [engine, referee, liars, second-opinion, browser]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          for r in $RESULTS; do [ "$r" = success ] || exit 1; done
