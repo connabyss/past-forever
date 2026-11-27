@@ -30,4 +30,4 @@ closes as Resolved once the reason is written down.
 
 | Case | Claim | Opened by | Reproduced by | Status |
 |---|---|---|---|---|
-| [#?](https://github.com/connabyss/past-forever/issues) | Every record liar in [liars/records.txt](liars/records.txt) stays calm for exactly the number of digits listed. `python3 liars/check.py 40` checks the first 34 in seconds; `python3 liars/check.py` checks all of them in about 8 minutes. | connabyss | waiting for a rerun | Open |
+| [#37](https://github.com/connabyss/past-forever/issues/37) | Every record liar in [liars/records.txt](liars/records.txt) stays calm for exactly the number of digits listed. `python3 liars/check.py 40` checks the first 34 in seconds; `python3 liars/check.py` checks all of them in about 8 minutes. | connabyss | waiting for a rerun | Open |
