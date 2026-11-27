@@ -89,6 +89,8 @@ details ul{padding-left:18px;margin:10px 0 0;display:flex;flex-direction:column;
 .tourb{font:600 19px var(--sans);color:#14110a;background:var(--gold);border:0;border-radius:14px;padding:18px 20px;cursor:pointer;width:100%;max-width:420px;box-shadow:0 0 32px rgba(242,193,78,.18)}
 .tourb:active{transform:translateY(1px)}
 .hint{color:var(--soft);font-size:15px;margin:0}
+.kbd-hint{margin:10px 2px 0}
+@media (pointer:coarse){.kbd-hint{display:none}}
 .hook{font:600 25px/1.25 var(--sans);color:var(--ink);margin:16px 0 0;max-width:22ch}
 .ownb{font:600 15px var(--sans);color:var(--blue);background:transparent;border:1px solid var(--line);border-radius:10px;padding:11px 14px;cursor:pointer;align-self:flex-start;margin-top:6px}
 .ownb[hidden],.own[hidden],#answers[hidden]{display:none}
@@ -172,6 +174,7 @@ details .live{margin-top:12px}
       <div class="keys" id="keys"></div>
     </div>
     <button class="run" id="run">Run</button>
+    <p class="hint kbd-hint">Ctrl + Enter runs it</p>
     <details>
       <summary>Words it knows</summary>
       <ul>
@@ -2685,6 +2688,8 @@ function tourFromHash() {
 addEventListener('hashchange', tourFromHash);
 setTimeout(tourFromHash, 50);
 $('run').onclick = () => (busy ? stopRun('you pressed Stop') : go());
+// Ctrl+Enter (Cmd+Enter on a Mac) in the code box runs the loop, like pressing Run
+code.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); $('run').click(); } });
 code.addEventListener('input', () => { if (location.hash.startsWith('#code=')) setHash(''); filled(); [...$('chips').children].forEach((c) => c.setAttribute('aria-pressed', 'false')); });
 let saved = null; try { saved = localStorage.getItem('pf-code'); } catch (e) {}
 // first visit: one calm button and nothing running; a returning visitor gets their own loop back, not run yet
