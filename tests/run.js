@@ -345,6 +345,9 @@ is(out('x = 1\nforever: x = x + 0.1\nshow x'), 'stopped: line 2: there are no de
 // ── night shift bug hunt: asking for a huge number of digits froze the page (100000 digits of the own square)
 is(out('x = 5\nforever: x = x × x\nshow 100000 digits of x'), 'stopped: line 3: I show at most 2000 digits at a time', 'a digit count that would freeze the page gets a clear answer');
 is(out('x = 5\nforever: x = x × x\nshow 2000 digits of x').length, 2001, '2000 digits still work');
+has(out('x = 5\nforever: x = x × x\nshow 0 digits of x'), 'at least 1 digit', 'show 0 digits gets a clear error');
+has(out('x = 5\nforever: x = x × x\nsing 0 digits of x'), 'at least 1 digit', 'sing 0 digits gets a clear error');
+is(out('x = 5\nforever: x = x × x\nshow 1 digits of x'), '…5', 'show 1 digits of x still works');
 
 // ── found by an explorer agent in a GitHub Codespace (Nov 2026): loops that branch on their own last digits, and
 // y = 10 × y + (an endless number). Both used to say "can't see the end".
