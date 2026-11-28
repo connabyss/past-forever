@@ -586,6 +586,7 @@ function parse(src) {
         p++;
         if (at('num') && toks[p + 1] && toks[p + 1].t === 'digits') {
           const k = Number(toks[p].v); p += 2;
+          if (k < 1) throw new LangError('line ' + line + ': ask for at least 1 digit');
           if (k > MAX_SHOW) throw new LangError('line ' + line + ': I show at most ' + MAX_SHOW + ' digits at a time'); eat('of'); return { t: 'show', e: expr(), k, line }; }
         return { t: 'show', e: expr(), line };
       }
@@ -594,6 +595,7 @@ function parse(src) {
         p++;
         if (at('num') && toks[p + 1] && toks[p + 1].t === 'digits') {
           const k = Number(toks[p].v); p += 2;
+          if (k < 1) throw new LangError('line ' + line + ': ask for at least 1 digit');
           if (k > MAX_SHOW) throw new LangError('line ' + line + ': I sing at most ' + MAX_SHOW + ' digits at a time'); eat('of'); return { t: 'sing', e: expr(), k, line }; }
         return { t: 'sing', e: expr(), line };
       }
@@ -725,13 +727,13 @@ class Machine {
         if (this.counts.has(s.name) && !isBad(v)) v = count(toCount(v), v.why);
         this.env.set(s.name, v); return;
       }
-      case 'show': { const v = this.ev(s.e); this.lastShown = v; this.emit(show(v, s.k || SHOW_DIGITS), whyText(v)); return; }
+      case 'show': { const v = this.ev(s.e); this.lastShown = v; this.emit(show(v, s.k ?? SHOW_DIGITS), whyText(v)); return; }
       case 'why': { const v = this.get(s.name, s.line); this.emit(s.name + ': ' + whyText(v)); return; }
       case 'sing': {
         const v = this.ev(s.e);
         if (v.k === 'restless' || v.k === 'unknown') { this.emit('♪ nothing to sing: ' + show(v), whyText(v)); return; }
         if (v.k !== 'num' && v.k !== 'end') throw new LangError('line ' + s.line + ': sing needs a number');
-        const k = s.k || SING_DIGITS;
+        const k = s.k ?? SING_DIGITS;
         const digits = v.k === 'num' && qint(v.q) && v.q.n >= 0n && !s.k ? String(v.q.n) : String(valMod(v, k)).padStart(k, '0');
         if (!this.quiet) this.out.push({ text: '♪ ' + (digits.length < k || (v.k === 'num' && qint(v.q) && v.q.n >= 0n && !s.k) ? digits : '…' + digits), why: SING_WHY + ' ' + plural(digits.length, 'note') + ', ' + (digits.length * NOTE_SEC).toFixed(1) + ' seconds.', sing: { digits } });
         return;
